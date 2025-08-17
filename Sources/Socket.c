@@ -135,5 +135,6 @@ void sock_Delete(PSocketServer self) {
   vct_Delete(self->inputReads);
   vct_Delete(self->outputCommands);
   vct_Delete(self->connections);
+  close(self->serverFD.fd);
   free(self);
 }
