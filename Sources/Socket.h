@@ -24,6 +24,11 @@ typedef struct SocketServer_t {
   Vector outputCommands;
 } SocketServer;
 
+typedef struct SocketMethod_t {
+  void (*method)(Connection conn, void *mirror);
+  void *mirrorBuffer;
+} SocketMethod;
+
 typedef SocketServer *PSocketServer;
 
 typedef struct SocketClient_t {

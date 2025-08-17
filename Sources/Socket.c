@@ -7,8 +7,10 @@
 #include <signal.h>
 #include <netdb.h>
 #include <fcntl.h>
+#include <assert.h>
 
 #define SA struct sockaddr
+#define MAX_CONNECTIONS_PER_SERVER 1024
 
 uint8_t _sock_StartConnections(PSocketServer self);
 
@@ -32,6 +34,7 @@ PSocketServer sock_Create(uint16_t port) {
 }
 
 void sock_SetMaxConnections(PSocketServer self, int32_t maxActiveConnections) {
+  assert(maxActiveConnections < MAX_CONNECTIONS_PER_SERVER);
   self->maxActiveConnections = maxActiveConnections;
 }
 
@@ -109,7 +112,7 @@ void sock_ProcessWriteRequests_t(PSocketServer self, int32_t *markedForDeletionR
 }
 
 void sock_ProcessWriteRequests(PSocketServer self)  {
-  int32_t markedForDeletionRequests[1024];
+  int32_t markedForDeletionRequests[MAX_CONNECTIONS_PER_SERVER];
   size_t sz = 0;
   sock_ProcessWriteRequests_t(self, markedForDeletionRequests, &sz);
   sock_WriteBufferCleanup(self);
