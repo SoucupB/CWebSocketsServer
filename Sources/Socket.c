@@ -6,6 +6,7 @@
 #include <unistd.h>
 #include <signal.h>
 #include <netdb.h>
+#include <fcntl.h>
 
 #define SA struct sockaddr
 
@@ -20,10 +21,15 @@ PSocketServer sock_Create(uint16_t port) {
   memset(server, 0, sizeof(SocketServer));
   server->connections = vct_Init(sizeof(Connection));
   server->port = port;
+  server->maxActiveConnections = 16;
   if(!_sock_StartConnections(server)) {
     sock_Delete(server);
   }
   return server;
+}
+
+void sock_SetMaxConnections(PSocketServer self, int32_t maxActiveConnections) {
+  self->maxActiveConnections = maxActiveConnections;
 }
 
 uint8_t _sock_StartConnections(PSocketServer self) {
@@ -49,7 +55,27 @@ uint8_t _sock_StartConnections(PSocketServer self) {
     return 0;
   }
   self->serverFD.fd = sockfd;
+  fcntl(sockfd, F_SETFL, fcntl(sockfd, F_GETFL, 0) | O_NONBLOCK);
   return 1;
+}
+
+static inline void sock_AcceptConnectionsRoutine(PSocketServer self) {
+  struct sockaddr_in cli;
+  socklen_t len;
+  int32_t sockfd = self->serverFD.fd;
+  len = sizeof( (struct sockaddr *) &len);
+  int32_t connfd = accept(sockfd, (SA*)&cli, &len);
+  if (connfd < 0) {
+    return ;
+  }
+  Connection currentCon = (Connection) {
+    .fd = connfd
+  };
+  vct_Push(self->connections, &currentCon);
+}
+
+void sock_OnFrame(PSocketServer self) {
+  sock_AcceptConnectionsRoutine(self);
 }
 
 void sock_Delete(PSocketServer self) {
