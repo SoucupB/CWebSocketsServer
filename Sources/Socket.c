@@ -22,6 +22,8 @@ PSocketServer sock_Create(uint16_t port) {
   server->connections = vct_Init(sizeof(Connection));
   server->port = port;
   server->maxActiveConnections = 16;
+  server->inputReads = vct_Init(sizeof(DataFragment));
+  server->outputCommands = vct_Init(sizeof(DataFragment));
   if(!_sock_StartConnections(server)) {
     sock_Delete(server);
   }
@@ -30,6 +32,17 @@ PSocketServer sock_Create(uint16_t port) {
 
 void sock_SetMaxConnections(PSocketServer self, int32_t maxActiveConnections) {
   self->maxActiveConnections = maxActiveConnections;
+}
+
+void sock_Write_Push(PSocketServer self, DataFragment *dt) {
+  char *memory = dt->data;
+  if(dt->persistent) {
+    memory = malloc(dt->size);
+    memcpy(memory, dt->data, dt->size);
+  }
+  DataFragment newDt = *dt;
+  newDt.data = memory;
+  vct_Push(self->outputCommands, &newDt);
 }
 
 uint8_t _sock_StartConnections(PSocketServer self) {
