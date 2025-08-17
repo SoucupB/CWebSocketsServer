@@ -17,8 +17,10 @@ typedef struct DataFragment_t {
 
 typedef struct SocketMethod_t {
   void (*method)(Connection conn, void *mirrorBuffer);
-  void *mirrorBuffer;
+  void *mirrorBuffer; /*This buffer should be on heap or static memory but not on the stack*/
 } SocketMethod;
+
+typedef SocketMethod *PSocketMethod;
 
 typedef struct SocketServer_t {
   uint16_t port;
@@ -27,8 +29,8 @@ typedef struct SocketServer_t {
   Vector connections;
   Vector inputReads;
   Vector outputCommands;
-  SocketMethod onConnectionRelease;
-  SocketMethod onConnectionAquire;
+  PSocketMethod onConnectionRelease;
+  PSocketMethod onConnectionAquire;
 } SocketServer;
 
 typedef SocketServer *PSocketServer;

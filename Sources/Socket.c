@@ -76,6 +76,13 @@ uint8_t _sock_StartConnections(PSocketServer self) {
   return 1;
 }
 
+static inline void sock_ExecuteMethod(Connection conn, PSocketMethod routine) {
+  if(!routine) {
+    return ;
+  }
+  routine->method(conn, routine->mirrorBuffer);
+}
+
 static inline void sock_AcceptConnectionsRoutine(PSocketServer self) {
   struct sockaddr_in cli;
   socklen_t len;
@@ -89,6 +96,7 @@ static inline void sock_AcceptConnectionsRoutine(PSocketServer self) {
     .fd = connfd
   };
   vct_Push(self->connections, &currentCon);
+  sock_ExecuteMethod(currentCon, self->onConnectionAquire);
 }
 
 static inline void sock_WriteBufferCleanup(PSocketServer self) {
@@ -111,7 +119,7 @@ void sock_ProcessWriteRequests_t(PSocketServer self, int32_t *markedForDeletionR
   }
 }
 
-void sock_ProcessWriteRequests(PSocketServer self)  {
+static inline void sock_ProcessWriteRequests(PSocketServer self)  {
   int32_t markedForDeletionRequests[MAX_CONNECTIONS_PER_SERVER];
   size_t sz = 0;
   sock_ProcessWriteRequests_t(self, markedForDeletionRequests, &sz);
