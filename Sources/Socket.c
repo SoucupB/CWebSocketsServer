@@ -89,6 +89,12 @@ static inline void sock_AcceptConnectionsRoutine(PSocketServer self) {
 }
 
 static inline void sock_WriteBufferCleanup(PSocketServer self) {
+  DataFragment *dataFragments = self->outputCommands->buffer;
+  for(size_t i = 0, c = self->outputCommands->size; i < c; i++) {
+    if(dataFragments[i].persistent) {
+      free(dataFragments[i].data);
+    }
+  }
   vct_DeleteWOBuffer(self->outputCommands);
 }
 
