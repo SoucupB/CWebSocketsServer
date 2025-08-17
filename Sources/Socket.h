@@ -45,3 +45,6 @@ void sock_OnFrame(PSocketServer self);
 void sock_Write_Push(PSocketServer self, DataFragment *dt);
 // Default is set to 16 max concurent connections
 void sock_SetMaxConnections(PSocketServer self, int32_t maxActiveConnections);
+
+PSocketMethod sock_Method_Create(void (*method)(Connection conn, void *mirrorBuffer), void *mirrorBuffer);
+void sock_Method_Delete(PSocketMethod self);

@@ -8,6 +8,7 @@
 #include <netdb.h>
 #include <fcntl.h>
 #include <assert.h>
+#include <stdio.h>
 
 #define SA struct sockaddr
 #define MAX_CONNECTIONS_PER_SERVER 1024
@@ -106,7 +107,18 @@ static inline void sock_WriteBufferCleanup(PSocketServer self) {
       free(dataFragments[i].data);
     }
   }
-  vct_DeleteWOBuffer(self->outputCommands);
+  vct_Clear(self->outputCommands);
+}
+
+PSocketMethod sock_Method_Create(void (*method)(Connection conn, void *mirrorBuffer), void *mirrorBuffer) {
+  PSocketMethod self = malloc(sizeof(SocketMethod));
+  self->method = method;
+  self->mirrorBuffer = mirrorBuffer;
+  return self;
+}
+
+void sock_Method_Delete(PSocketMethod self) {
+  free(self);
 }
 
 void sock_ProcessWriteRequests_t(PSocketServer self, int32_t *markedForDeletionRequests, size_t *sz) {
