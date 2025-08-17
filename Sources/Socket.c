@@ -138,6 +138,10 @@ static inline void sock_ProcessWriteRequests(PSocketServer self)  {
   sock_WriteBufferCleanup(self);
 }
 
+void sock_Read_ReceivedMessage(PSocketServer self, DataFragment *fragment, size_t *count, size_t maxMessages) {
+  
+}
+
 void sock_OnFrame(PSocketServer self) {
   sock_AcceptConnectionsRoutine(self);
   sock_ProcessWriteRequests(self);
