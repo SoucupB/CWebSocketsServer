@@ -26,6 +26,7 @@ PSocketServer sock_Create(uint16_t port) {
   server->outputCommands = vct_Init(sizeof(DataFragment));
   if(!_sock_StartConnections(server)) {
     sock_Delete(server);
+    return NULL;
   }
   return server;
 }
@@ -87,11 +88,35 @@ static inline void sock_AcceptConnectionsRoutine(PSocketServer self) {
   vct_Push(self->connections, &currentCon);
 }
 
+static inline void sock_WriteBufferCleanup(PSocketServer self) {
+  vct_DeleteWOBuffer(self->outputCommands);
+}
+
+void sock_ProcessWriteRequests_t(PSocketServer self, int32_t *markedForDeletionRequests, size_t *sz) {
+  *sz = 0;
+  DataFragment *dataFragments = self->outputCommands->buffer;
+  for(size_t i = 0, c = self->outputCommands->size; i < c; i++) {
+    if(write(dataFragments[i].conn.fd, dataFragments[i].data, dataFragments[i].size) < 0) {
+      markedForDeletionRequests[(*sz)++] = dataFragments[i].conn.fd;
+    }
+  }
+}
+
+void sock_ProcessWriteRequests(PSocketServer self)  {
+  int32_t markedForDeletionRequests[1024];
+  size_t sz = 0;
+  sock_ProcessWriteRequests_t(self, markedForDeletionRequests, &sz);
+  sock_WriteBufferCleanup(self);
+}
+
 void sock_OnFrame(PSocketServer self) {
   sock_AcceptConnectionsRoutine(self);
+  sock_ProcessWriteRequests(self);
 }
 
 void sock_Delete(PSocketServer self) {
+  vct_Delete(self->inputReads);
+  vct_Delete(self->outputCommands);
   vct_Delete(self->connections);
   free(self);
 }

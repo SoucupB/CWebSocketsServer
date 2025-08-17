@@ -11,6 +11,7 @@ typedef struct Connection_t {
 typedef struct DataFragment_t {
   uint32_t size;
   uint8_t persistent;
+  Connection conn;
   char *data;
 } DataFragment;
 
