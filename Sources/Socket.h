@@ -35,10 +35,6 @@ typedef struct SocketServer_t {
 
 typedef SocketServer *PSocketServer;
 
-typedef struct SocketClient_t {
-  int32_t fd;
-} SocketClient;
-
 PSocketServer sock_Create(uint16_t port);
 void sock_Delete(PSocketServer self);
 void sock_OnFrame(PSocketServer self);
