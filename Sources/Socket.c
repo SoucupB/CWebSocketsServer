@@ -185,10 +185,17 @@ static inline void sock_ClearConnections(PSocketServer self) {
   }
 }
 
+static inline void sock_Time_OnFrame(PSocketServer self, uint64_t deltaMS) {
+  if(self->timeServer.timeServer) {
+    tf_OnFrame(self->timeServer.timeServer, deltaMS);
+  }
+}
+
 void sock_OnFrame(PSocketServer self, uint64_t deltaMS) {
   sock_AcceptConnectionsRoutine(self);
   sock_ProcessWriteRequests(self);
   sock_ProcessReadMessage(self);
+  sock_Time_OnFrame(self, deltaMS);
 }
 
 void sock_Delete(PSocketServer self) {
