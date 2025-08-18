@@ -39,7 +39,7 @@ typedef SocketServer *PSocketServer;
 
 PSocketServer sock_Create(uint16_t port);
 void sock_Delete(PSocketServer self);
-void sock_OnFrame(PSocketServer self);
+void sock_OnFrame(PSocketServer self, uint64_t deltaMS);
 void sock_Write_Push(PSocketServer self, DataFragment *dt);
 // Default is set to 16 max concurent connections
 void sock_SetMaxConnections(PSocketServer self, int32_t maxActiveConnections);

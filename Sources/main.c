@@ -29,7 +29,7 @@ int main() {
   server->onReceiveMessage = onReceive;
   printf("Server initialized!\n");
   while(1) {
-    sock_OnFrame(server);
+    sock_OnFrame(server, 0);
     usleep(124 * 1000);
   }
   sock_Method_Delete(onConnect);

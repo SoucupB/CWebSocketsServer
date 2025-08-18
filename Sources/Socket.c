@@ -180,7 +180,7 @@ static inline void sock_ClearConnections(PSocketServer self) {
   }
 }
 
-void sock_OnFrame(PSocketServer self) {
+void sock_OnFrame(PSocketServer self, uint64_t deltaMS) {
   sock_AcceptConnectionsRoutine(self);
   sock_ProcessWriteRequests(self);
   sock_ProcessReadMessage(self);
