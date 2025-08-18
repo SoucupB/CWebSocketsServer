@@ -77,11 +77,20 @@ uint8_t _sock_StartConnections(PSocketServer self) {
   return 1;
 }
 
-static inline void sock_ExecuteMethod(Connection conn, PSocketMethod routine) {
+static inline void sock_ExecuteMetaMethod(Connection conn, PSocketMethod routine) {
   if(!routine) {
     return ;
   }
-  routine->method(conn, routine->mirrorBuffer);
+  void (*method)(Connection, void *) = routine->method;
+  method(conn, routine->mirrorBuffer);
+}
+
+static inline void sock_ExecuteOnReceiveMethod(DataFragment *dataFragment, PSocketMethod routine) {
+  if(!routine) {
+    return ;
+  }
+  void (*method)(DataFragment *, void *) = routine->method;
+  method(dataFragment, routine->mirrorBuffer);
 }
 
 static inline void sock_AcceptConnectionsRoutine(PSocketServer self) {
@@ -97,7 +106,7 @@ static inline void sock_AcceptConnectionsRoutine(PSocketServer self) {
     .fd = connfd
   };
   vct_Push(self->connections, &currentCon);
-  sock_ExecuteMethod(currentCon, self->onConnectionAquire);
+  sock_ExecuteMetaMethod(currentCon, self->onConnectionAquire);
 }
 
 static inline void sock_WriteBufferCleanup(PSocketServer self) {
@@ -112,7 +121,7 @@ static inline void sock_WriteBufferCleanup(PSocketServer self) {
 
 PSocketMethod sock_Method_Create(void (*method)(Connection conn, void *mirrorBuffer), void *mirrorBuffer) {
   PSocketMethod self = malloc(sizeof(SocketMethod));
-  self->method = method;
+  self->method = (void *)method;
   self->mirrorBuffer = mirrorBuffer;
   return self;
 }
@@ -136,10 +145,6 @@ static inline void sock_ProcessWriteRequests(PSocketServer self)  {
   size_t sz = 0;
   sock_ProcessWriteRequests_t(self, markedForDeletionRequests, &sz);
   sock_WriteBufferCleanup(self);
-}
-
-void sock_Read_ReceivedMessage(PSocketServer self, DataFragment *fragment, size_t *count, size_t maxMessages) {
-  
 }
 
 void sock_OnFrame(PSocketServer self) {
