@@ -22,6 +22,7 @@ typedef struct SocketMethod_t {
 } SocketMethod;
 
 typedef SocketMethod *PSocketMethod;
+typedef Connection *PConnection;
 
 typedef struct Timers_t {
   PTimeServer timeServer;

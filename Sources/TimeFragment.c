@@ -38,8 +38,8 @@ static inline void tf_ExecuteMethods(PTimeServer self, uint64_t deltaMS) {
     }
   }
   Vector cpyVector = vct_RemoveElements(self->methods, fragmentsToRemove);
-  self->methods = cpyVector;
   vct_Delete(self->methods);
+  self->methods = cpyVector;
   vct_Delete(fragmentsToRemove);
 }
 

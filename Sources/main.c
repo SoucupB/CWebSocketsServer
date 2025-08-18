@@ -28,12 +28,13 @@ int main() {
   );
   server->onConnectionAquire = onConnect;
   server->onReceiveMessage = onReceive;
+  sock_AddConnectionTimeout(server, 5000);
   uint64_t currentTimestamp = tf_CurrentTimeMS();
   printf("Server initialized!\n");
   while(1) {
     sock_OnFrame(server, tf_CurrentTimeMS() - currentTimestamp);
-    usleep(124 * 1000);
     currentTimestamp = tf_CurrentTimeMS();
+    usleep(124 * 1000);
   }
   sock_Method_Delete(onConnect);
   sock_Method_Delete(onReceive);

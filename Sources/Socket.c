@@ -14,6 +14,13 @@
 #define SA struct sockaddr
 #define MAX_CONNECTIONS_PER_SERVER 1024
 
+typedef struct CloseConnStruct_t {
+  PSocketServer self;
+  Connection conn;
+} CloseConnStruct;
+
+typedef CloseConnStruct *PCloseConnStruct;
+
 uint8_t _sock_StartConnections(PSocketServer self);
 
 void sigpipe_handler(int signum) {
@@ -33,6 +40,27 @@ PSocketServer sock_Create(uint16_t port) {
     return NULL;
   }
   return server;
+}
+
+void _sock_CloseConnection(void *buffer) {
+  PCloseConnStruct conn = buffer;
+  close(conn->conn.fd);
+  free(buffer);
+  printf("Closing connection!\n");
+}
+
+void sock_PushCloseConnMethod(PSocketServer self, Connection conn) {
+  if(!self->timeServer.timeServer) {
+    return ;
+  }
+  PCloseConnStruct closeCmd = malloc(sizeof(CloseConnStruct));
+  closeCmd->conn = conn;
+  closeCmd->self = self;
+  TimeMethod timeFragment = (TimeMethod) {
+    .method = (void *)_sock_CloseConnection,
+    .buffer = closeCmd
+  };
+  tf_ExecuteAfter(self->timeServer.timeServer, timeFragment, self->timeServer.timeout);
 }
 
 void sock_SetMaxConnections(PSocketServer self, int32_t maxActiveConnections) {
@@ -138,6 +166,7 @@ static inline void sock_AcceptConnectionsRoutine(PSocketServer self) {
   };
   vct_Push(self->connections, &currentCon);
   sock_ExecuteMetaMethod(currentCon, self->onConnectionAquire);
+  sock_PushCloseConnMethod(self, currentCon);
 }
 
 static inline void sock_WriteBufferCleanup(PSocketServer self) {
