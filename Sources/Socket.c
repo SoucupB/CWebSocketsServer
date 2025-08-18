@@ -47,7 +47,7 @@ PSocketServer sock_Create(uint16_t port) {
 void _sock_CloseConnection(void *buffer) {
   PCloseConnStruct conn = buffer;
   close(conn->conn.fd);
-  printf("Closing connection in fd %d with index %ld!\n", conn->conn.fd, conn->index);
+  // printf("Closing connection in fd %d with index %ld!\n", conn->conn.fd, conn->index);
   vct_RemoveElement(conn->self->connections, conn->index);
   free(buffer);
 }
@@ -110,12 +110,12 @@ uint8_t _sock_StartConnections(PSocketServer self) {
   return 1;
 }
 
-static inline void sock_ExecuteMetaMethod(Connection conn, PSocketMethod routine) {
+static inline void sock_ExecuteMetaMethod(Connection *conn, PSocketMethod routine) {
   if(!routine) {
     return ;
   }
   void (*method)(Connection, void *) = routine->method;
-  method(conn, routine->mirrorBuffer);
+  method(*conn, routine->mirrorBuffer);
 }
 
 static inline void sock_ExecuteOnReceiveMethod(DataFragment *dataFragment, PSocketMethod routine) {
@@ -138,6 +138,7 @@ static inline void sock_OnReceiveMessage(PSocketServer self, Connection *conn, s
     return ;
   }
   if(count >= self->maxBytesPerReadConnection) {
+    sock_ExecuteMetaMethod(conn, self->onConnectionRelease);
     vct_RemoveElement(self->connections, index);
     return ;
   }
@@ -177,7 +178,7 @@ static inline void sock_AcceptConnectionsRoutine(PSocketServer self) {
   };
   sock_PushCloseConnMethod(self, currentCon, self->connections->size);
   vct_Push(self->connections, &currentCon);
-  sock_ExecuteMetaMethod(currentCon, self->onConnectionAquire);
+  sock_ExecuteMetaMethod(&currentCon, self->onConnectionAquire);
 }
 
 static inline void sock_WriteBufferCleanup(PSocketServer self) {
@@ -206,7 +207,7 @@ void sock_ProcessWriteRequests_t(PSocketServer self, Vector markedForDeletionReq
   for(size_t i = 0, c = self->outputCommands->size; i < c; i++) {
     if(write(dataFragments[i].conn.fd, dataFragments[i].data, dataFragments[i].size) < 0) {
       vct_Push(markedForDeletionRequests, &i);
-      sock_ExecuteMetaMethod(dataFragments[i].conn, self->onConnectionRelease);
+      sock_ExecuteMetaMethod(&dataFragments[i].conn, self->onConnectionRelease);
       close(dataFragments[i].conn.fd);
     }
   }
