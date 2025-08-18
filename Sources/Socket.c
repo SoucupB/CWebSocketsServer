@@ -17,6 +17,7 @@
 typedef struct CloseConnStruct_t {
   PSocketServer self;
   Connection conn;
+  size_t index;
 } CloseConnStruct;
 
 typedef CloseConnStruct *PCloseConnStruct;
@@ -45,17 +46,19 @@ PSocketServer sock_Create(uint16_t port) {
 void _sock_CloseConnection(void *buffer) {
   PCloseConnStruct conn = buffer;
   close(conn->conn.fd);
+  printf("Closing connection in fd %d with index %ld!\n", conn->conn.fd, conn->index);
+  vct_RemoveElement(conn->self->connections, conn->index);
   free(buffer);
-  printf("Closing connection!\n");
 }
 
-void sock_PushCloseConnMethod(PSocketServer self, Connection conn) {
+void sock_PushCloseConnMethod(PSocketServer self, Connection conn, size_t index) {
   if(!self->timeServer.timeServer) {
     return ;
   }
   PCloseConnStruct closeCmd = malloc(sizeof(CloseConnStruct));
   closeCmd->conn = conn;
   closeCmd->self = self;
+  closeCmd->index = index;
   TimeMethod timeFragment = (TimeMethod) {
     .method = (void *)_sock_CloseConnection,
     .buffer = closeCmd
@@ -164,9 +167,9 @@ static inline void sock_AcceptConnectionsRoutine(PSocketServer self) {
   Connection currentCon = (Connection) {
     .fd = connfd
   };
+  sock_PushCloseConnMethod(self, currentCon, self->connections->size);
   vct_Push(self->connections, &currentCon);
   sock_ExecuteMetaMethod(currentCon, self->onConnectionAquire);
-  sock_PushCloseConnMethod(self, currentCon);
 }
 
 static inline void sock_WriteBufferCleanup(PSocketServer self) {
