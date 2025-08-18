@@ -32,9 +32,10 @@ int main() {
   uint64_t currentTimestamp = tf_CurrentTimeMS();
   printf("Server initialized!\n");
   while(1) {
-    sock_OnFrame(server, tf_CurrentTimeMS() - currentTimestamp);
-    currentTimestamp = tf_CurrentTimeMS();
-    usleep(32 * 1000);
+    uint64_t currentTime = tf_CurrentTimeMS();
+    sock_OnFrame(server, currentTime - currentTimestamp);
+    currentTimestamp = currentTime;
+    usleep(64 * 1000);
   }
   sock_Method_Delete(onConnect);
   sock_Method_Delete(onReceive);

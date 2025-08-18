@@ -156,6 +156,9 @@ void sock_ProcessReadMessage(PSocketServer self) {
 }
 
 static inline void sock_AcceptConnectionsRoutine(PSocketServer self) {
+  if(self->maxActiveConnections <= self->connections->size) {
+    return ;
+  }
   struct sockaddr_in cli;
   socklen_t len;
   int32_t sockfd = self->serverFD.fd;
