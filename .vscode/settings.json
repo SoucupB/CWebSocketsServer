@@ -3,6 +3,7 @@
     "vector.h": "c",
     "cstdint": "c",
     "ostream": "c",
-    "locale": "c"
+    "locale": "c",
+    "istream": "c"
   }
 }

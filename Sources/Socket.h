@@ -32,6 +32,7 @@ typedef struct Timers_t {
 typedef struct SocketServer_t {
   uint16_t port;
   int32_t maxActiveConnections;
+  int32_t maxBytesPerReadConnection;
   Connection serverFD;
   Vector connections;
   Vector inputReads;

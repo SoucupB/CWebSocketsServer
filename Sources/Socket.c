@@ -34,6 +34,7 @@ PSocketServer sock_Create(uint16_t port) {
   server->connections = vct_Init(sizeof(Connection));
   server->port = port;
   server->maxActiveConnections = 16;
+  server->maxBytesPerReadConnection = 1024 * 1024 * 10; /* 10 megabytes of reading per socket of total bytes */
   server->inputReads = vct_Init(sizeof(DataFragment));
   server->outputCommands = vct_Init(sizeof(DataFragment));
   if(!_sock_StartConnections(server)) {
@@ -130,10 +131,14 @@ void sock_AddConnectionTimeout(PSocketServer self, int64_t expireAfter) {
   self->timeServer.timeout = expireAfter;
 }
 
-static inline void sock_OnReceiveMessage(PSocketServer self, Connection *conn) {
+static inline void sock_OnReceiveMessage(PSocketServer self, Connection *conn, size_t index) {
   int32_t count = 0;
   int32_t error = ioctl(conn->fd, FIONREAD, &count);
   if(!count || error == -1) {
+    return ;
+  }
+  if(count >= self->maxBytesPerReadConnection) {
+    vct_RemoveElement(self->connections, index);
     return ;
   }
   void *buffer = malloc(count);
@@ -151,7 +156,7 @@ static inline void sock_OnReceiveMessage(PSocketServer self, Connection *conn) {
 void sock_ProcessReadMessage(PSocketServer self) {
   Connection *conn = self->connections->buffer;
   for(size_t i = 0, c = self->connections->size; i < c; i++) {
-    sock_OnReceiveMessage(self, &conn[i]);
+    sock_OnReceiveMessage(self, &conn[i], i);
   }
 }
 
