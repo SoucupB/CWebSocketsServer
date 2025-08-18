@@ -233,14 +233,18 @@ void sock_OnFrame(PSocketServer self, uint64_t deltaMS) {
   sock_Time_OnFrame(self, deltaMS);
 }
 
+static inline void sock_Time_Delete(PSocketServer self) {
+  if(self->timeServer.timeServer) {
+    tf_Delete(self->timeServer.timeServer);
+  }
+}
+
 void sock_Delete(PSocketServer self) {
   vct_Delete(self->inputReads);
   vct_Delete(self->outputCommands);
   vct_Delete(self->connections);
   close(self->serverFD.fd);
   sock_ClearConnections(self);
-  if(self->timeServer.timeServer) {
-    tf_Delete(self->timeServer.timeServer);
-  }
+  sock_Time_Delete(self);
   free(self);
 }
