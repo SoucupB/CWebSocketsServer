@@ -7,6 +7,11 @@ void onConnectPlm(Connection conn, void *buffer) {
 }
 
 void onReceiveMessage(DataFragment *dataFragment, void *buffer) {
+  char *msg = dataFragment->data;
+  for(size_t i = 0; i < dataFragment->size; i++) {
+    printf("%c", msg[i]);
+  }
+  printf("\n");
   printf("Message receive!\n");
 }
 
