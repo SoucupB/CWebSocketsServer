@@ -94,6 +94,11 @@ static inline void sock_ExecuteOnReceiveMethod(DataFragment *dataFragment, PSock
   method(dataFragment, routine->mirrorBuffer);
 }
 
+void sock_AddConnectionTimeout(PSocketServer self, int64_t expireAfter) {
+  self->timeServer.timeServer = tf_Create();
+  self->timeServer.timeout = expireAfter;
+}
+
 static inline void sock_OnReceiveMessage(PSocketServer self, Connection *conn) {
   int32_t count = 0;
   int32_t error = ioctl(conn->fd, FIONREAD, &count);
@@ -192,5 +197,8 @@ void sock_Delete(PSocketServer self) {
   vct_Delete(self->connections);
   close(self->serverFD.fd);
   sock_ClearConnections(self);
+  if(self->timeServer.timeServer) {
+    tf_Delete(self->timeServer.timeServer);
+  }
   free(self);
 }

@@ -3,6 +3,7 @@
 #include <stdint.h>
 #include <stddef.h>
 #include "Vector.h"
+#include "TimeFragment.h"
 
 typedef struct Connection_t {
   int32_t fd;
@@ -22,6 +23,11 @@ typedef struct SocketMethod_t {
 
 typedef SocketMethod *PSocketMethod;
 
+typedef struct Timers_t {
+  PTimeServer timeServer;
+  int64_t timeout;
+} Timers;
+
 typedef struct SocketServer_t {
   uint16_t port;
   int32_t maxActiveConnections;
@@ -32,6 +38,7 @@ typedef struct SocketServer_t {
   PSocketMethod onConnectionRelease;
   PSocketMethod onConnectionAquire;
   PSocketMethod onReceiveMessage;
+  Timers timeServer;
 } SocketServer;
 
 typedef SocketServer *PSocketServer;
@@ -42,6 +49,7 @@ void sock_OnFrame(PSocketServer self, uint64_t deltaMS);
 void sock_Write_Push(PSocketServer self, DataFragment *dt);
 // Default is set to 16 max concurent connections
 void sock_SetMaxConnections(PSocketServer self, int32_t maxActiveConnections);
+void sock_AddConnectionTimeout(PSocketServer self, int64_t expireAfter);
 
 PSocketMethod sock_Method_Create(void *method, void *mirrorBuffer);
 void sock_Method_Delete(PSocketMethod self);
