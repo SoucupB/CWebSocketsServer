@@ -145,9 +145,9 @@ static inline void sock_WriteBufferCleanup(PSocketServer self) {
   vct_Clear(self->outputCommands);
 }
 
-PSocketMethod sock_Method_Create(void (*method)(Connection conn, void *mirrorBuffer), void *mirrorBuffer) {
+PSocketMethod sock_Method_Create(void *method, void *mirrorBuffer) {
   PSocketMethod self = malloc(sizeof(SocketMethod));
-  self->method = (void *)method;
+  self->method = method;
   self->mirrorBuffer = mirrorBuffer;
   return self;
 }
@@ -173,9 +173,17 @@ static inline void sock_ProcessWriteRequests(PSocketServer self)  {
   sock_WriteBufferCleanup(self);
 }
 
+static inline void sock_ClearConnections(PSocketServer self) {
+  Connection *conn = self->outputCommands->buffer;
+  for(size_t i = 0, c = self->outputCommands->size; i < c; i++) {
+    close(conn[i].fd);
+  }
+}
+
 void sock_OnFrame(PSocketServer self) {
   sock_AcceptConnectionsRoutine(self);
   sock_ProcessWriteRequests(self);
+  sock_ProcessReadMessage(self);
 }
 
 void sock_Delete(PSocketServer self) {
@@ -183,5 +191,6 @@ void sock_Delete(PSocketServer self) {
   vct_Delete(self->outputCommands);
   vct_Delete(self->connections);
   close(self->serverFD.fd);
+  sock_ClearConnections(self);
   free(self);
 }
