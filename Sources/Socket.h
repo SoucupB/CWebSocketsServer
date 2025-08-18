@@ -16,7 +16,6 @@ typedef struct DataFragment_t {
 } DataFragment;
 
 typedef struct SocketMethod_t {
-  // void (*method)(Connection conn, void *mirrorBuffer);
   void *method;
   void *mirrorBuffer; /*This buffer should be on heap or static memory but not on the stack*/
 } SocketMethod;
