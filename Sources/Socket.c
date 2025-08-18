@@ -193,21 +193,24 @@ void sock_Method_Delete(PSocketMethod self) {
   free(self);
 }
 
-void sock_ProcessWriteRequests_t(PSocketServer self, int32_t *markedForDeletionRequests, size_t *sz) {
-  *sz = 0;
+void sock_ProcessWriteRequests_t(PSocketServer self, Vector markedForDeletionRequests) {
   DataFragment *dataFragments = self->outputCommands->buffer;
   for(size_t i = 0, c = self->outputCommands->size; i < c; i++) {
     if(write(dataFragments[i].conn.fd, dataFragments[i].data, dataFragments[i].size) < 0) {
-      markedForDeletionRequests[(*sz)++] = dataFragments[i].conn.fd;
+      vct_Push(markedForDeletionRequests, &i);
+      sock_ExecuteMetaMethod(dataFragments[i].conn, self->onConnectionRelease);
+      close(dataFragments[i].conn.fd);
     }
   }
 }
 
 static inline void sock_ProcessWriteRequests(PSocketServer self)  {
-  int32_t markedForDeletionRequests[MAX_CONNECTIONS_PER_SERVER];
-  size_t sz = 0;
-  sock_ProcessWriteRequests_t(self, markedForDeletionRequests, &sz);
+  Vector markedForDeletionRequests = vct_Init(sizeof(size_t));
+  sock_ProcessWriteRequests_t(self, markedForDeletionRequests);
   sock_WriteBufferCleanup(self);
+  Vector prunnedArray = vct_RemoveElements(self->connections, markedForDeletionRequests);
+  vct_Delete(self->connections);
+  self->connections = prunnedArray;
 }
 
 static inline void sock_ClearConnections(PSocketServer self) {
