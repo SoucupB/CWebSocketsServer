@@ -9,8 +9,7 @@ typedef struct TimeMethod_t {
 
 typedef struct TimeFragment_t {
   TimeMethod methodFragment;
-  uint64_t executeAfter;
-  uint64_t lastExecutionTimeMS;
+  int64_t executeAfter;
 } TimeFragment;
 
 typedef struct TimeServer_t {

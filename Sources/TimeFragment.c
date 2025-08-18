@@ -21,12 +21,28 @@ void tf_Delete(PTimeServer self) {
 void tf_ExecuteAfter(PTimeServer self, TimeMethod currentMethod, uint64_t afterMS) {
   TimeFragment fragment = (TimeFragment) {
     .executeAfter = afterMS,
-    .lastExecutionTimeMS = tf_CurrentTimeMS(),
     .methodFragment = currentMethod
   };
   vct_Push(self->methods, &fragment);
 }
 
-void tf_OnFrame(PTimeServer self, uint64_t deltaMS) {
+static inline void tf_ExecuteMethods(PTimeServer self, uint64_t deltaMS) {
+  TimeFragment *fragment = self->methods->buffer;
+  Vector fragmentsToRemove = vct_Init(sizeof(size_t));
+  for(size_t i = 0, c = self->methods->size; i < c; i++) {
+    fragment[i].executeAfter -= (int64_t)deltaMS;
+    if(fragment[i].executeAfter <= 0) {
+      void (*method)(void *) = fragment[i].methodFragment.method;
+      method(fragment[i].methodFragment.buffer);
+      vct_Push(fragmentsToRemove, &i);
+    }
+  }
+  Vector cpyVector = vct_RemoveElements(self->methods, fragmentsToRemove);
+  self->methods = cpyVector;
+  vct_Delete(self->methods);
+  vct_Delete(fragmentsToRemove);
+}
 
+void tf_OnFrame(PTimeServer self, uint64_t deltaMS) {
+  tf_ExecuteMethods(self, deltaMS);
 }
