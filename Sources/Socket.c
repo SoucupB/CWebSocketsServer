@@ -9,6 +9,7 @@
 #include <fcntl.h>
 #include <assert.h>
 #include <stdio.h>
+#include <sys/ioctl.h>
 
 #define SA struct sockaddr
 #define MAX_CONNECTIONS_PER_SERVER 1024
@@ -91,6 +92,31 @@ static inline void sock_ExecuteOnReceiveMethod(DataFragment *dataFragment, PSock
   }
   void (*method)(DataFragment *, void *) = routine->method;
   method(dataFragment, routine->mirrorBuffer);
+}
+
+static inline void sock_OnReceiveMessage(PSocketServer self, Connection *conn) {
+  int32_t count = 0;
+  int32_t error = ioctl(conn->fd, FIONREAD, &count);
+  if(!count || error == -1) {
+    return ;
+  }
+  void *buffer = malloc(count);
+  (void)!read(conn->fd, buffer, count);
+  DataFragment dt = (DataFragment) {
+    .conn = *conn,
+    .data = buffer,
+    .persistent = 0,
+    .size = count
+  };
+  sock_ExecuteOnReceiveMethod(&dt, self->onReceiveMessage);
+  free(buffer);
+}
+
+void sock_ProcessReadMessage(PSocketServer self) {
+  Connection *conn = self->connections->buffer;
+  for(size_t i = 0, c = self->connections->size; i < c; i++) {
+    sock_OnReceiveMessage(self, &conn[i]);
+  }
 }
 
 static inline void sock_AcceptConnectionsRoutine(PSocketServer self) {
