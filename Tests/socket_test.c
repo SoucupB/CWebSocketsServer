@@ -192,6 +192,7 @@ static void test_connect_to_server_on_close_connection(void **state) {
   PConnection connection = test_Util_Connect(server);
   sock_Client_Free(connection);
   test_Util_WriteTo(server, /*index=*/0, "test", sizeof("test") - 1, /*times=*/10);
+  assert_true(sock_ConnectionCount(server) == 0);
   test_Util_Release(server);
   assert_true(onReleaseCounter == 1);
 }

@@ -213,6 +213,10 @@ void sock_ProcessWriteRequests_t(PSocketServer self, Vector markedForDeletionReq
   }
 }
 
+size_t sock_ConnectionCount(PSocketServer self) {
+  return self->connections->size;
+}
+
 static inline void sock_ProcessWriteRequests(PSocketServer self)  {
   Vector markedForDeletionRequests = vct_Init(sizeof(size_t));
   sock_ProcessWriteRequests_t(self, markedForDeletionRequests);
