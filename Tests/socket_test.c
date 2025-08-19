@@ -5,6 +5,7 @@
 #include <stdint.h>
 #include "SocketClient.h"
 #include "SocketServer.h"
+#include <string.h>
 
 uint16_t port = 20000;
 
@@ -139,6 +140,24 @@ static void test_connect_to_server_sending_multiple_messages(void **state) {
   sock_Client_Free(connection);
 }
 
+static void test_connect_to_server_message_correctness(void **state) {
+  void onReceiveMessage(DataFragment *dt, void *buffer) {
+    assert_true(dt->size == sizeof("some message") - 1);
+    assert_true(memcmp(dt->data, "some message", dt->size) == 0);
+  }
+  const uint16_t currentPort = port--;
+  PSocketMethod onReceiveMessageMethod = sock_Method_Create(
+    onReceiveMessage,
+    NULL
+  );
+  PSocketServer server = test_Util_PrepareServer(currentPort, methodToExecute, NULL);
+  server->onReceiveMessage = onReceiveMessageMethod;
+  PConnection connection = test_Util_Connect(server);
+  test_Util_SendMessage(server, connection, "some message", sizeof("some message") - 1);
+  test_Util_Release(server);
+  sock_Client_Free(connection);
+}
+
 int main(void) {
   const struct CMUnitTest tests[] = {
     cmocka_unit_test(test_connect_to_server_with_single_client),
@@ -146,6 +165,7 @@ int main(void) {
     cmocka_unit_test(test_connect_to_server_with_maximum_connections_count),
     cmocka_unit_test(test_connect_to_server_sending_one_message),
     cmocka_unit_test(test_connect_to_server_sending_multiple_messages),
+    cmocka_unit_test(test_connect_to_server_message_correctness),
   };
   return cmocka_run_group_tests(tests, NULL, NULL);
 }
