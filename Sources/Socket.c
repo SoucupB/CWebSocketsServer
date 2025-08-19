@@ -228,8 +228,8 @@ static inline void sock_ProcessWriteRequests(PSocketServer self)  {
 }
 
 static inline void sock_ClearConnections(PSocketServer self) {
-  Connection *conn = self->outputCommands->buffer;
-  for(size_t i = 0, c = self->outputCommands->size; i < c; i++) {
+  Connection *conn = self->connections->buffer;
+  for(size_t i = 0, c = self->connections->size; i < c; i++) {
     close(conn[i].fd);
   }
 }
@@ -298,7 +298,6 @@ void sock_Client_SendMessage(PDataFragment frag) {
 }
 
 void sock_Client_Free(PConnection conn) {
-  shutdown(conn->fd, SHUT_RDWR);
   close(conn->fd);
   free(conn);
 }
@@ -308,7 +307,6 @@ void sock_Delete(PSocketServer self) {
   sock_ClearConnections(self);
   vct_Delete(self->outputCommands);
   vct_Delete(self->connections);
-  shutdown(self->serverFD.fd, SHUT_RDWR);
   close(self->serverFD.fd);
   sock_Time_Delete(self);
   free(self);
