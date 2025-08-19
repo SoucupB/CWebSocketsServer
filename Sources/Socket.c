@@ -280,6 +280,7 @@ int32_t _sock_Client_Conn(uint16_t port, char *ip) {
     close(sock);
     return -1;
   }
+  fcntl(sock, F_SETFL, fcntl(sock, F_GETFL, 0) | O_NONBLOCK);
   return sock;
 }
 
@@ -295,6 +296,25 @@ PConnection sock_Client_Connect(uint16_t port, char *ip) {
 
 void sock_Client_SendMessage(PDataFragment frag) {
   (void)!send(frag->conn.fd, frag->data, frag->size, MSG_DONTWAIT);
+}
+
+DataFragment sock_Client_Receive(PConnection conn) {
+  Vector dataToRead = vct_Init(sizeof(char));
+  char bufferChunk[1024];
+  ssize_t bytesRead = -1;
+  while((bytesRead = recv(conn->fd, bufferChunk, sizeof(bufferChunk), 0)) && bytesRead != -1) {
+    for(size_t i = 0; i < bytesRead; i++) {
+      vct_Push(dataToRead, &bufferChunk[i]);
+    }
+  }
+  DataFragment fragment = {
+    .conn = *conn,
+    .data = dataToRead->buffer,
+    .persistent = 0,
+    .size = dataToRead->size
+  };
+  vct_DeleteWOBuffer(dataToRead);
+  return fragment;
 }
 
 void sock_Client_Free(PConnection conn) {

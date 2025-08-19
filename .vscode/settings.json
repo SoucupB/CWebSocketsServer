@@ -7,6 +7,10 @@
     "istream": "c",
     "socketserver.h": "c",
     "unistd.h": "c",
-    "timefragment.h": "c"
+    "timefragment.h": "c",
+    "array": "c",
+    "string": "c",
+    "string_view": "c",
+    "vector": "c"
   }
 }

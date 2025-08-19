@@ -20,6 +20,16 @@ PSocketServer test_Util_PrepareServer(uint16_t port, void *method, void *buffer)
   return server;
 }
 
+DataFragment test_Util_GetDT(PConnection conn, char *msg, size_t sz) {
+  DataFragment dt = {
+    .conn = *conn,
+    .data = msg,
+    .persistent = 1,
+    .size = sz,
+  };
+  return dt;
+}
+
 void test_Util_WriteTo(PSocketServer server, size_t index, char *msg, size_t sz, uint32_t times) {
   for(size_t i = 0; i < times; i++) {
     PConnection conn = sock_FindConnectionByIndex(server, index);
@@ -48,6 +58,13 @@ void test_Util_Release(PSocketServer self) {
     sock_Method_Delete(self->onReceiveMessage);
   }
   sock_Delete(self);
+}
+
+void test_Util_Expect(PConnection conn, char *buffer, size_t sz) {
+  DataFragment dt = sock_Client_Receive(conn);
+  assert_true(sz == dt.size);
+  assert_true(memcmp(dt.data, buffer, sz) == 0);
+  free(dt.data);
 }
 
 PConnection test_Util_Connect(PSocketServer server) {
@@ -113,7 +130,9 @@ void test_Util_SendMessage(PSocketServer server, PConnection conn, char *msg, si
     .size = sz
   };
   sock_Client_SendMessage(&dt);
-  sock_OnFrame(server, 32);
+  for(size_t i = 0; i < 10; i++) {
+    sock_OnFrame(server, 32);
+  }
 }
 
 static void test_connect_to_server_sending_one_message(void **state) {
@@ -197,6 +216,26 @@ static void test_connect_to_server_on_close_connection(void **state) {
   assert_true(onReleaseCounter == 1);
 }
 
+static void test_connect_to_server_on_write_back(void **state) {
+  void onReceiveMessage(DataFragment *dt, void *buffer) {
+    PSocketServer server = buffer;
+    DataFragment responseDT = test_Util_GetDT(&dt->conn, "echo back", sizeof("echo back") - 1);
+    sock_Write_Push(server, &responseDT);
+  }
+  const uint16_t currentPort = port--;
+  PSocketServer server = test_Util_PrepareServer(currentPort, methodToExecute, NULL);
+  PSocketMethod onReceiveMessageMethod = sock_Method_Create(
+    onReceiveMessage,
+    server
+  );
+  server->onReceiveMessage = onReceiveMessageMethod;
+  PConnection connection = test_Util_Connect(server);
+  test_Util_SendMessage(server, connection, "some message", sizeof("some message") - 1);
+  test_Util_Expect(connection, "echo back", sizeof("echo back") - 1);
+  test_Util_Release(server);
+  sock_Client_Free(connection);
+}
+
 int main(void) {
   const struct CMUnitTest tests[] = {
     cmocka_unit_test(test_connect_to_server_with_single_client),
@@ -206,6 +245,7 @@ int main(void) {
     cmocka_unit_test(test_connect_to_server_sending_multiple_messages),
     cmocka_unit_test(test_connect_to_server_message_correctness),
     cmocka_unit_test(test_connect_to_server_on_close_connection),
+    cmocka_unit_test(test_connect_to_server_on_write_back),
   };
   return cmocka_run_group_tests(tests, NULL, NULL);
 }
