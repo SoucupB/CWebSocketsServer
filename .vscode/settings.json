@@ -6,6 +6,7 @@
     "locale": "c",
     "istream": "c",
     "socketserver.h": "c",
-    "unistd.h": "c"
+    "unistd.h": "c",
+    "timefragment.h": "c"
   }
 }

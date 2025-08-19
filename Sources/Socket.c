@@ -47,7 +47,6 @@ PSocketServer sock_Create(uint16_t port) {
 void _sock_CloseConnection(void *buffer) {
   PCloseConnStruct conn = buffer;
   close(conn->conn.fd);
-  // printf("Closing connection in fd %d with index %ld!\n", conn->conn.fd, conn->index);
   vct_RemoveElement(conn->self->connections, conn->index);
   free(buffer);
 }
@@ -205,7 +204,8 @@ void sock_Method_Delete(PSocketMethod self) {
 void sock_ProcessWriteRequests_t(PSocketServer self, Vector markedForDeletionRequests) {
   DataFragment *dataFragments = self->outputCommands->buffer;
   for(size_t i = 0, c = self->outputCommands->size; i < c; i++) {
-    if(write(dataFragments[i].conn.fd, dataFragments[i].data, dataFragments[i].size) < 0) {
+    ssize_t response = send(dataFragments[i].conn.fd, dataFragments[i].data, dataFragments[i].size, MSG_DONTWAIT);
+    if(response < 0) {
       vct_Push(markedForDeletionRequests, &i);
       sock_ExecuteMetaMethod(&dataFragments[i].conn, self->onConnectionRelease);
       close(dataFragments[i].conn.fd);
@@ -290,10 +290,11 @@ PConnection sock_Client_Connect(uint16_t port, char *ip) {
 }
 
 void sock_Client_SendMessage(PDataFragment frag) {
-  (void)!write(frag->conn.fd, frag->data, frag->size);
+  (void)!send(frag->conn.fd, frag->data, frag->size, MSG_DONTWAIT);
 }
 
 void sock_Client_Free(PConnection conn) {
+  shutdown(conn->fd, SHUT_RDWR);
   close(conn->fd);
   free(conn);
 }
@@ -303,6 +304,7 @@ void sock_Delete(PSocketServer self) {
   sock_ClearConnections(self);
   vct_Delete(self->outputCommands);
   vct_Delete(self->connections);
+  shutdown(self->serverFD.fd, SHUT_RDWR);
   close(self->serverFD.fd);
   sock_Time_Delete(self);
   free(self);

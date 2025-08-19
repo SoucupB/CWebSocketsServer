@@ -6,6 +6,7 @@
 #include "SocketClient.h"
 #include "SocketServer.h"
 #include <string.h>
+#include <stdio.h>
 
 uint16_t port = 20000;
 
@@ -19,15 +20,21 @@ PSocketServer test_Util_PrepareServer(uint16_t port, void *method, void *buffer)
   return server;
 }
 
-void test_Util_WriteTo(PSocketServer server, size_t index, char *msg, size_t sz) {
-  DataFragment dt = {
-    .conn = *sock_FindConnectionByIndex(server, index),
-    .data = msg,
-    .persistent = 1,
-    .size = sz,
-  };
-  sock_Write_Push(server, &dt);
-  sock_OnFrame(server, 32);
+void test_Util_WriteTo(PSocketServer server, size_t index, char *msg, size_t sz, uint32_t times) {
+  for(size_t i = 0; i < times; i++) {
+    PConnection conn = sock_FindConnectionByIndex(server, index);
+    if(!conn) {
+      break;
+    }
+    DataFragment dt = {
+      .conn = *conn,
+      .data = msg,
+      .persistent = 1,
+      .size = sz,
+    };
+    sock_Write_Push(server, &dt);
+    sock_OnFrame(server, 32);
+  }
 }
 
 void test_Util_Release(PSocketServer self) {
@@ -184,7 +191,7 @@ static void test_connect_to_server_on_close_connection(void **state) {
   server->onConnectionRelease = onCloseMessageMethod;
   PConnection connection = test_Util_Connect(server);
   sock_Client_Free(connection);
-  test_Util_WriteTo(server, 0, "test", sizeof("test") - 1);
+  test_Util_WriteTo(server, /*index=*/0, "test", sizeof("test") - 1, /*times=*/10);
   test_Util_Release(server);
   assert_true(onReleaseCounter == 1);
 }
