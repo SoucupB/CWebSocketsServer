@@ -219,6 +219,7 @@ static inline void sock_ProcessWriteRequests(PSocketServer self)  {
   sock_WriteBufferCleanup(self);
   Vector prunnedArray = vct_RemoveElements(self->connections, markedForDeletionRequests);
   vct_Delete(self->connections);
+  vct_Delete(markedForDeletionRequests);
   self->connections = prunnedArray;
 }
 
