@@ -83,11 +83,46 @@ static void test_connect_to_server_with_maximum_connections_count(void **state) 
   }
 }
 
+void test_Util_SendMessage(PSocketServer server, PConnection conn, char *msg, size_t sz) {
+  DataFragment dt = (DataFragment) {
+    .conn = *conn,
+    .data = msg,
+    .persistent = 0,
+    .size = sz
+  };
+  sock_Client_SendMessage(&dt);
+  sock_OnFrame(server, 32);
+}
+
+static void test_connect_to_server_sending_messages(void **state) {
+  void onReceiveMessage(DataFragment *dt, void *buffer) {
+    uint32_t *bff = buffer;
+    (*bff)++;
+  }
+
+  uint32_t calleCount = 0;
+  const uint16_t currentPort = port--;
+  uint32_t messageCount = 0;
+  PSocketMethod onReceiveMessageMethod = sock_Method_Create(
+    onReceiveMessage,
+    &messageCount
+  );
+  PSocketServer server = test_Util_PrepareServer(currentPort, methodToExecute, &calleCount);
+  server->onReceiveMessage = onReceiveMessageMethod;
+  PConnection connection = test_Util_Connect(server);
+  assert_true(calleCount == 1);
+  test_Util_SendMessage(server, connection, "some message", sizeof("some message") - 1);
+  assert_true(messageCount == 1);
+  test_Util_Release(server);
+  sock_Client_Free(connection);
+}
+
 int main(void) {
   const struct CMUnitTest tests[] = {
     cmocka_unit_test(test_connect_to_server_with_single_client),
     cmocka_unit_test(test_connect_to_server_with_multiple_client),
     cmocka_unit_test(test_connect_to_server_with_maximum_connections_count),
+    cmocka_unit_test(test_connect_to_server_sending_messages),
   };
   return cmocka_run_group_tests(tests, NULL, NULL);
 }
