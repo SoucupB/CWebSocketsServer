@@ -67,10 +67,27 @@ static void test_connect_to_server_with_multiple_client(void **state) {
   }
 }
 
+static void test_connect_to_server_with_maximum_connections_count(void **state) {
+  const uint16_t currentPort = port--;
+  uint32_t calleCount = 0;
+  PSocketServer server = test_Util_PrepareServer(currentPort, methodToExecute, &calleCount);
+  sock_SetMaxConnections(server, 5);
+  PConnection connections[16];
+  for(size_t i = 0; i < 10; i++) {
+    connections[i] = test_Util_Connect(server);
+  }
+  assert_true(calleCount == 5);
+  test_Util_Release(server);
+  for(size_t i = 0; i < 10; i++) {
+    sock_Client_Free(connections[i]);
+  }
+}
+
 int main(void) {
   const struct CMUnitTest tests[] = {
     cmocka_unit_test(test_connect_to_server_with_single_client),
     cmocka_unit_test(test_connect_to_server_with_multiple_client),
+    cmocka_unit_test(test_connect_to_server_with_maximum_connections_count),
   };
   return cmocka_run_group_tests(tests, NULL, NULL);
 }
