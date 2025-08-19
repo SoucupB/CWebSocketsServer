@@ -281,15 +281,20 @@ PConnection sock_Client_Connect(uint16_t port, char *ip) {
 }
 
 void sock_Client_SendMessage(PDataFragment frag) {
-  write(frag->conn.fd, frag->data, frag->size);
+  (void)!write(frag->conn.fd, frag->data, frag->size);
+}
+
+void sock_Client_Free(PConnection conn) {
+  close(conn->fd);
+  free(conn);
 }
 
 void sock_Delete(PSocketServer self) {
   vct_Delete(self->inputReads);
+  sock_ClearConnections(self);
   vct_Delete(self->outputCommands);
   vct_Delete(self->connections);
   close(self->serverFD.fd);
-  sock_ClearConnections(self);
   sock_Time_Delete(self);
   free(self);
 }
