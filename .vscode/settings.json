@@ -4,6 +4,8 @@
     "cstdint": "c",
     "ostream": "c",
     "locale": "c",
-    "istream": "c"
+    "istream": "c",
+    "socketserver.h": "c",
+    "unistd.h": "c"
   }
 }

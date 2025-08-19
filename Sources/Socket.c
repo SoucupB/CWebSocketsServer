@@ -1,4 +1,4 @@
-#include "Socket.h"
+#include "SocketServer.h"
 #include <string.h>
 #include <sys/types.h>
 #include <sys/socket.h>
@@ -246,6 +246,38 @@ static inline void sock_Time_Delete(PSocketServer self) {
   if(self->timeServer.timeServer) {
     tf_Delete(self->timeServer.timeServer);
   }
+}
+
+int32_t _sock_Client_Conn(uint16_t port, char *ip) {
+  int32_t sock;
+  struct sockaddr_in server_addr;
+  sock = socket(AF_INET, SOCK_STREAM, 0);
+  if (sock < 0) {
+    return -1;
+  }
+  memset(&server_addr, 0, sizeof(server_addr));
+  server_addr.sin_family = AF_INET;
+  server_addr.sin_port = htons(port);
+
+  if (inet_pton(AF_INET, ip, &server_addr.sin_addr) <= 0) {
+    close(sock);
+    return -1;
+  }
+  if (connect(sock, (struct sockaddr*)&server_addr, sizeof(server_addr)) < 0) {
+    close(sock);
+    return -1;
+  }
+  return sock;
+}
+
+PConnection sock_Client_Connect(uint16_t port, char *ip) {
+  int32_t fd = _sock_Client_Conn(port, ip);
+  if(fd == -1) {
+    return NULL;
+  }
+  PConnection conn = malloc(sizeof(Connection));
+  conn->fd = fd;
+  return conn;
 }
 
 void sock_Delete(PSocketServer self) {
