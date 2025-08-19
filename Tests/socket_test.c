@@ -19,6 +19,17 @@ PSocketServer test_Util_PrepareServer(uint16_t port, void *method, void *buffer)
   return server;
 }
 
+void test_Util_WriteTo(PSocketServer server, size_t index, char *msg, size_t sz) {
+  DataFragment dt = {
+    .conn = *sock_FindConnectionByIndex(server, index),
+    .data = msg,
+    .persistent = 1,
+    .size = sz,
+  };
+  sock_Write_Push(server, &dt);
+  sock_OnFrame(server, 32);
+}
+
 void test_Util_Release(PSocketServer self) {
   if(self->onConnectionAquire) {
     sock_Method_Delete(self->onConnectionAquire);
@@ -159,21 +170,23 @@ static void test_connect_to_server_message_correctness(void **state) {
 }
 
 static void test_connect_to_server_on_close_connection(void **state) {
-  void onReceiveMessage(DataFragment *dt, void *buffer) {
-    assert_true(dt->size == sizeof("some message") - 1);
-    assert_true(memcmp(dt->data, "some message", dt->size) == 0);
+  void onCloseMessage(DataFragment *dt, void *buffer) {
+    uint32_t *onClose = buffer;
+    (*onClose)++;
   }
   const uint16_t currentPort = port--;
-  PSocketMethod onReceiveMessageMethod = sock_Method_Create(
-    onReceiveMessage,
-    NULL
+  uint32_t onReleaseCounter = 0;
+  PSocketMethod onCloseMessageMethod = sock_Method_Create(
+    onCloseMessage,
+    &onReleaseCounter
   );
   PSocketServer server = test_Util_PrepareServer(currentPort, methodToExecute, NULL);
-  server->onReceiveMessage = onReceiveMessageMethod;
+  server->onConnectionRelease = onCloseMessageMethod;
   PConnection connection = test_Util_Connect(server);
-  test_Util_SendMessage(server, connection, "some message", sizeof("some message") - 1);
-  test_Util_Release(server);
   sock_Client_Free(connection);
+  test_Util_WriteTo(server, 0, "test", sizeof("test") - 1);
+  test_Util_Release(server);
+  assert_true(onReleaseCounter == 1);
 }
 
 int main(void) {

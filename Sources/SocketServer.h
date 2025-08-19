@@ -31,6 +31,7 @@ PSocketServer sock_Create(uint16_t port);
 void sock_Delete(PSocketServer self);
 void sock_OnFrame(PSocketServer self, uint64_t deltaMS);
 void sock_Write_Push(PSocketServer self, DataFragment *dt);
+PConnection sock_FindConnectionByIndex(PSocketServer self, size_t index);
 // Default is set to 16 max concurent connections
 void sock_SetMaxConnections(PSocketServer self, int32_t maxActiveConnections);
 void sock_AddConnectionTimeout(PSocketServer self, int64_t expireAfter);

@@ -230,6 +230,14 @@ static inline void sock_ClearConnections(PSocketServer self) {
   }
 }
 
+PConnection sock_FindConnectionByIndex(PSocketServer self, size_t index) {
+  if(index >= self->connections->size) {
+    return NULL;
+  }
+  Connection *conn = self->connections->buffer;
+  return conn + index;
+}
+
 static inline void sock_Time_OnFrame(PSocketServer self, uint64_t deltaMS) {
   if(self->timeServer.timeServer) {
     tf_OnFrame(self->timeServer.timeServer, deltaMS);
