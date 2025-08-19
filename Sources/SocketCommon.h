@@ -20,3 +20,4 @@ typedef struct DataFragment_t {
 
 typedef SocketMethod *PSocketMethod;
 typedef Connection *PConnection;
+typedef DataFragment *PDataFragment;

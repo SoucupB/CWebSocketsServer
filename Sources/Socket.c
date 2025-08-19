@@ -280,6 +280,10 @@ PConnection sock_Client_Connect(uint16_t port, char *ip) {
   return conn;
 }
 
+void sock_Client_SendMessage(PDataFragment frag) {
+  write(frag->conn.fd, frag->data, frag->size);
+}
+
 void sock_Delete(PSocketServer self) {
   vct_Delete(self->inputReads);
   vct_Delete(self->outputCommands);
