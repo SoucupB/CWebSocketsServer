@@ -7,6 +7,7 @@
 #include "SocketServer.h"
 #include <string.h>
 #include <stdio.h>
+#include "Socket_Helper_test.h"
 
 uint16_t port = 20000;
 
