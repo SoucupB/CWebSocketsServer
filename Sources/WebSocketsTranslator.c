@@ -76,9 +76,9 @@ static inline char *wbs_SetPayloadCode(char *buffer, const PWebSocketObject obj)
     buffer[1] = obj->sz;
   }
   else if(obj->sz <= (1<<16)) {
-    buffer[1] = 126;
+    buffer[1] |= 126;
   } else {
-    buffer[1] = 127;
+    buffer[1] |= 127;
   }
   return buffer + 1 + wbs_SetPayloadSize(buffer, obj);
 }
@@ -89,6 +89,10 @@ void _wbs_PrintNextBytes(char *buffer, size_t sz) {
     printf("0x%x ", (uint8_t)buffer[i]);
   }
   printf(")\n");
+}
+
+static inline uint8_t wbs_IsMasked(char *buffer) {
+  return (buffer[1] & (1<<7)) > 0;
 }
 
 void wbs_PrintHeader(char *buffer) {
@@ -108,6 +112,8 @@ void wbs_PrintHeader(char *buffer) {
       break;
   }
   printf("Mask bit is 0x%x\n", ((uint8_t)buffer[1] & (1<<7)) > 0);
+  printf("Payload is\n");
+  // _wbs_PrintNextBytes(buffer + wbs_HeaderSize(buffer, 0), );
 }
 
 char *wbs_ToWebSocket(WebSocketObject self) {
