@@ -17,4 +17,7 @@ else
   echo "---- Valgrind Report ----"
   cat /tmp/valgrind_out
   echo "-------------------------"
+  exit 1
 fi
+
+exit 0
