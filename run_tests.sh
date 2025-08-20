@@ -1,11 +1,11 @@
 #!/bin/bash
 
-./_compile_specs.sh
-
 if [ -z "$1" ]; then
   echo "Missing argument!"
   exit 1
 fi
+
+./_compile_specs.sh $1
 
 TestBinaries/$1
 

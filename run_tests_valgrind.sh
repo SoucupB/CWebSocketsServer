@@ -1,11 +1,11 @@
 #!/bin/bash
-
-./_compile_specs.sh
-
 if [ -z "$1" ]; then
   echo "Missing argument!"
   exit 1
 fi
+
+./_compile_specs.sh $1
+
 
 valgrind --error-exitcode=1 --track-fds=yes --quiet -s --leak-check=full TestBinaries/$1
 RESULT=$?
