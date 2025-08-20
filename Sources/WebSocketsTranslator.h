@@ -3,7 +3,9 @@
 #include <stddef.h>
 
 typedef struct WebSocketObject_t {
-  uint8_t opcode;
+  char *buffer;
+  size_t sz;
 } WebSocketObject;
 
 char *wbs_ToWebSocket(char *msg, size_t sz);
+WebSocketObject wbs_FromWebSocket(char *msg, uint8_t *isValid);
