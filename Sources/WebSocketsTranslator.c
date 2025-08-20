@@ -46,6 +46,21 @@ static inline void wbs_SetPayloadSize(char *buffer, const PWebSocketObject obj) 
   }
 }
 
+static inline void wbs_WritePayload(char *buffer, const PWebSocketObject obj) {
+  memcpy(buffer, obj->buffer, obj->sz);
+}
+
+static inline size_t wbs_HeaderSize(const PWebSocketObject obj, uint8_t shouldBeMasked) {
+  size_t maskData = (!shouldBeMasked ? 0 : 4);
+  if(obj->sz <= 125) {
+    return obj->sz + 2 + maskData;
+  }
+  if(obj->sz <= (1<<16)) {
+    return obj->sz + 4 + maskData;
+  }
+  return obj->sz + 10 + maskData;
+}
+
 static inline void wbs_SetPayloadCode(char *buffer, const PWebSocketObject obj) {
   if(obj->sz <= 125) {
     buffer[1] = obj->sz;
@@ -86,7 +101,7 @@ void wbs_PrintHeader(char *buffer) {
 }
 
 char *wbs_ToWebSocket(WebSocketObject self) {
-  char *response = malloc(1024);
+  char *response = malloc(wbs_HeaderSize(&self, 0));
   wbs_ClearHeaderBytes(response);
   wbs_SetFin(response);
   wbs_SetOpcodeTo(response, OPCODE_BINARY);
