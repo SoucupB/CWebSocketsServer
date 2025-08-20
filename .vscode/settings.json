@@ -14,6 +14,8 @@
     "vector": "c",
     "stdint.h": "c",
     "cmocka.h": "c",
-    "socket_helper_test.h": "c"
+    "socket_helper_test.h": "c",
+    "ratio": "c",
+    "random": "c"
   }
 }

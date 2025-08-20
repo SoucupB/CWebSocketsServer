@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
+#include <arpa/inet.h>
 
 typedef enum {
   OPCODE_CONTINUATION_FRAME = 0x0,
@@ -25,13 +26,22 @@ static inline void wbs_ClearHeaderBytes(char *buffer) {
   buffer[1] = 0;
 }
 
+static inline void wbs_RevertBytes(char *st, char *end, char *dst) {
+  end--;
+  for(char *it = end; it >= st; it--) {
+    *dst = *it;
+    dst++;
+  }
+}
+
 static inline void wbs_SetPayloadSize(char *buffer, const PWebSocketObject obj) {
+  char *currentNumberPointer = (char *)&obj->sz;
   if(buffer[1] == 126) {
-    memcpy(buffer + 2, &obj->sz, sizeof(uint16_t));
+    wbs_RevertBytes(currentNumberPointer, currentNumberPointer + sizeof(uint16_t), buffer + 2);
     return ;
   }
   if(buffer[1] == 127) {
-    memcpy(buffer + 2, &obj->sz, sizeof(uint64_t));
+    wbs_RevertBytes(currentNumberPointer, currentNumberPointer + sizeof(uint64_t), buffer + 2);
     return ;
   }
 }
@@ -42,7 +52,6 @@ static inline void wbs_SetPayloadCode(char *buffer, const PWebSocketObject obj) 
   }
   else if(obj->sz <= (1<<16)) {
     buffer[1] = 126;
-    return ;
   } else {
     buffer[1] = 127;
   }
