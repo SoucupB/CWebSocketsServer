@@ -13,6 +13,7 @@
     "string_view": "c",
     "vector": "c",
     "stdint.h": "c",
-    "cmocka.h": "c"
+    "cmocka.h": "c",
+    "socket_helper_test.h": "c"
   }
 }

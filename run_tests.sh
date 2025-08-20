@@ -1,6 +1,5 @@
 #!/bin/bash
 
-# gcc -Wall -O3 -ISources/ -ITests/TestHelpers/ Sources/*.c Tests/TestHelpers/*.c Tests/Socket_test.c -o TestBinaries/Socket_test -lcmocka
 ./_compile_specs.sh
 
 if [ -z "$1" ]; then
