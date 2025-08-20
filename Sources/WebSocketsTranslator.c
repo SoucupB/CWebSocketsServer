@@ -34,16 +34,26 @@ static inline void wbs_RevertBytes(char *st, char *end, char *dst) {
   }
 }
 
-static inline void wbs_SetPayloadSize(char *buffer, const PWebSocketObject obj) {
+static inline size_t wbs_SetPayloadSize(char *buffer, const PWebSocketObject obj) {
   char *currentNumberPointer = (char *)&obj->sz;
-  if(buffer[1] == 126) {
-    wbs_RevertBytes(currentNumberPointer, currentNumberPointer + sizeof(uint16_t), buffer + 2);
-    return ;
+  switch (buffer[1])
+  {
+    case 126: {
+      wbs_RevertBytes(currentNumberPointer, currentNumberPointer + sizeof(uint16_t), buffer + 2);
+      return sizeof(uint16_t);
+      break;  
+    }
+
+    case 127: {
+      wbs_RevertBytes(currentNumberPointer, currentNumberPointer + sizeof(uint64_t), buffer + 2);
+      return sizeof(uint64_t);
+      break;  
+    }
+  
+    default:
+      break;
   }
-  if(buffer[1] == 127) {
-    wbs_RevertBytes(currentNumberPointer, currentNumberPointer + sizeof(uint64_t), buffer + 2);
-    return ;
-  }
+  return 0;
 }
 
 static inline void wbs_WritePayload(char *buffer, const PWebSocketObject obj) {
@@ -61,7 +71,7 @@ static inline size_t wbs_HeaderSize(const PWebSocketObject obj, uint8_t shouldBe
   return obj->sz + 10 + maskData;
 }
 
-static inline void wbs_SetPayloadCode(char *buffer, const PWebSocketObject obj) {
+static inline char *wbs_SetPayloadCode(char *buffer, const PWebSocketObject obj) {
   if(obj->sz <= 125) {
     buffer[1] = obj->sz;
   }
@@ -70,7 +80,7 @@ static inline void wbs_SetPayloadCode(char *buffer, const PWebSocketObject obj) 
   } else {
     buffer[1] = 127;
   }
-  wbs_SetPayloadSize(buffer, obj);
+  return buffer + 1 + wbs_SetPayloadSize(buffer, obj);
 }
 
 void _wbs_PrintNextBytes(char *buffer, size_t sz) {
@@ -105,7 +115,9 @@ char *wbs_ToWebSocket(WebSocketObject self) {
   wbs_ClearHeaderBytes(response);
   wbs_SetFin(response);
   wbs_SetOpcodeTo(response, OPCODE_BINARY);
-  wbs_SetPayloadCode(response, &self);
+  char *cpyResponse = response;
+  cpyResponse = wbs_SetPayloadCode(response, &self) + 1 /*First byte*/;
+  wbs_WritePayload(cpyResponse, &self);
   return response;
 }
 
