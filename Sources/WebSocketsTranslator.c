@@ -4,6 +4,8 @@
 #include <stdio.h>
 #include <arpa/inet.h>
 
+#define MAX_FRAME_SIZE (1024 * 1024 * 1024) 
+
 typedef enum {
   OPCODE_CONTINUATION_FRAME = 0x0,
   OPCODE_TEXT_FRAME = 0x1,
@@ -227,8 +229,30 @@ char *wbs_ToWebSocket(WebSocketObject self) {
 static inline char *wbs_UnmaskedBuffer(char *msg) {
   char *payloadPointer = wbs_PayloadBuffer(msg);
   size_t msgSize = wbs_PayloadSize(msg);
+  if(msgSize > MAX_FRAME_SIZE) {
+    return NULL;
+  }
   char *response = malloc(msgSize);
   memcpy(response, payloadPointer, msgSize);
+  return response;
+}
+
+static inline char *wbs_MaskOffset(char *msg) {
+  return wbs_PayloadBuffer(msg) - sizeof(uint32_t);
+}
+
+static inline char *wbs_MaskedPayload(char *msg) {
+  char *payloadPointer = wbs_PayloadBuffer(msg);
+  size_t msgSize = wbs_PayloadSize(msg);
+  if(msgSize > MAX_FRAME_SIZE) {
+    return NULL;
+  }
+  char *response = malloc(msgSize);
+  char *maskOffset = wbs_MaskOffset(msg);
+  memcpy(response, payloadPointer, msgSize);
+  for(size_t i = 0, p = 0; i < msgSize; i++, p = ((p + 1) & 3)) {
+    response[i] &= maskOffset[p];
+  }
   return response;
 }
 
@@ -236,7 +260,15 @@ char *wbs_ExtractPayload(char *msg) {
   if(!wbs_IsMasked(msg)) {
     return wbs_UnmaskedBuffer(msg);
   }
-  return NULL; // for masked data.
+  return wbs_MaskedPayload(msg);
+}
+
+void wbs_Clear_FromWebSocket(Vector objects) {
+  WebSocketObject *buffer = objects->buffer;
+  for(size_t i = 0, c = objects->size; i < c; i++) {
+    free(buffer[i].buffer);
+  }
+  vct_Delete(objects);
 }
 
 Vector wbs_FromWebSocket(char *msg, size_t bufferSize) {
@@ -250,6 +282,10 @@ Vector wbs_FromWebSocket(char *msg, size_t bufferSize) {
       .buffer = wbs_ExtractPayload(msg),
       .sz = wbs_PayloadSize(msg)
     };
+    if(!obj.buffer) {
+      wbs_Clear_FromWebSocket(buffer);
+      return NULL;
+    }
     vct_Push(buffer, &obj);
     msg += wbs_FullMessageSize(msg);
   }
