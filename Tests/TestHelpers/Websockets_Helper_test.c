@@ -16,12 +16,13 @@ void test_Util_Delete(WebSocketObject obj) {
 }
 
 char *test_Util_RepeatMessage(char *msg, size_t sz, size_t count) {
-  char *response = malloc(count * sz);
+  char *response = malloc(count * sz + 1);
   for(size_t i = 0, c = 0; i < count; i++) {
     for(size_t j = 0; j < sz; j++) {
       response[c++] = msg[j];
     }
   }
+  response[count * sz] = 0;
   return response;
 }
 

@@ -53,6 +53,16 @@ static void test_websockets_message_validity_single_message_valid(void **state) 
   free(buffer);
 }
 
+static void test_websockets_message_validity_single_message_big(void **state) {
+  char *buffer = test_Util_RepeatMessage("ab", sizeof("ab") - 1, 100000);
+  WebSocketObject drr = test_Util_Transform(buffer, 200000);
+  char *bff = wbs_ToWebSocket(drr);
+  assert_true(wbs_IsBufferValid(bff, 200010));
+  test_Util_Delete(drr);
+  free(bff);
+  free(buffer);
+}
+
 static void test_websockets_message_validity_single_message_invalid_overflow(void **state) {
   char *buffer = test_Util_RepeatMessage("abcdefgh", sizeof("abcdefgh") - 1, 1);
   WebSocketObject drr = test_Util_Transform(buffer, sizeof("abcdefgh") - 1);
@@ -136,6 +146,31 @@ static void test_websockets_message_split_messages_non_masked_data(void **state)
   free(mergedMessages);
 }
 
+static void test_websockets_message_split_messages_non_masked_data_many_messages(void **state) {
+  char *messages[] = {
+    test_Util_RepeatMessage("abcdefgh", sizeof("abcdefgh") - 1, 1000),
+    test_Util_RepeatMessage("ab", sizeof("ab") - 1, 66000),
+    "some_message",
+    "next_message",
+    "last_message",
+    "some_other_message",
+    "fixed_message",
+    "not_so_big_message",
+  };
+  char *mergedMessages = test_Util_CreateMessages(messages, sizeof(messages) / sizeof(char *));
+  Vector wbsMessages = wbs_FromWebSocket(mergedMessages, strlen(mergedMessages));
+  assert_non_null(wbsMessages);
+  WebSocketObject *objs = wbsMessages->buffer;
+  for(size_t i = 0, c = sizeof(messages) / sizeof(char *); i < c; i++) {
+    assert_true(objs[i].sz == strlen(messages[i]));
+    assert_true(!memcmp(messages[i], objs[i].buffer, strlen(messages[i])));
+  }
+  wbs_Clear_FromWebSocket(wbsMessages);
+  free(mergedMessages);
+  free(messages[1]);
+  free(messages[0]);
+}
+
 int main(void) {
   const struct CMUnitTest tests[] = {
     cmocka_unit_test(test_websockets_payload_size_small),
@@ -147,8 +182,10 @@ int main(void) {
     cmocka_unit_test(test_websockets_message_validity_multiple_message_valid),
     cmocka_unit_test(test_websockets_message_validity_multiple_message_invalid_underflow_10),
     cmocka_unit_test(test_websockets_message_validity_multiple_message_invalid_underflow_2),
+    cmocka_unit_test(test_websockets_message_validity_single_message_big),
     cmocka_unit_test(test_websockets_message_split_messages_non_masked_count),
     cmocka_unit_test(test_websockets_message_split_messages_non_masked_data),
+    cmocka_unit_test(test_websockets_message_split_messages_non_masked_data_many_messages),
   };
   return cmocka_run_group_tests(tests, NULL, NULL);
 }
