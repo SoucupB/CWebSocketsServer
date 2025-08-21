@@ -17,6 +17,17 @@
     "socket_helper_test.h": "c",
     "ratio": "c",
     "random": "c",
-    "websocketstranslator.h": "c"
+    "websocketstranslator.h": "c",
+    "deque": "c",
+    "unordered_map": "c",
+    "initializer_list": "c",
+    "__bit_reference": "c",
+    "__hash_table": "c",
+    "__split_buffer": "c",
+    "__tree": "c",
+    "ios": "c",
+    "iterator": "c",
+    "map": "c",
+    "set": "c"
   }
 }

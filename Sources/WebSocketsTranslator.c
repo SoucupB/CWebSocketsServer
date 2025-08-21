@@ -144,6 +144,14 @@ char *wbs_Public_PayloadBuffer(char *buffer) {
   return wbs_PayloadBuffer(buffer);
 }
 
+char *wbs_NextMessageIterator(char *st, size_t maxMessageSize) {
+  size_t messageSz = wbs_FullMessageSize(st);
+  if(messageSz >= maxMessageSize) {
+    return NULL;
+  }
+  return st + messageSz;
+}
+
 size_t wbs_FullMessageSize(char *buffer) {
   return (wbs_PayloadBuffer(buffer) - buffer) + wbs_PayloadSize(buffer);
 }
