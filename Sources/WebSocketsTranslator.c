@@ -13,6 +13,8 @@ typedef enum {
   OPCODE_PONG = 0xA
 } Opcode;
 
+static inline char *wbs_PayloadBuffer(char *buffer);
+
 static inline void wbs_SetOpcodeTo(char *buffer, Opcode code) {
   buffer[0] |= code;
 }
@@ -60,7 +62,7 @@ static inline void wbs_WritePayload(char *buffer, const PWebSocketObject obj) {
   memcpy(buffer, obj->buffer, obj->sz);
 }
 
-static inline size_t wbs_HeaderSize(const PWebSocketObject obj, uint8_t shouldBeMasked) {
+static inline size_t wbs_Object_HeaderSize(const PWebSocketObject obj, uint8_t shouldBeMasked) {
   size_t maskData = (!shouldBeMasked ? 0 : 4);
   if(obj->sz <= 125) {
     return obj->sz + 2 + maskData;
@@ -71,8 +73,16 @@ static inline size_t wbs_HeaderSize(const PWebSocketObject obj, uint8_t shouldBe
   return obj->sz + 10 + maskData;
 }
 
+static inline size_t wbs_Raw_HeaderSize(char *buffer) {
+  return (size_t)(wbs_PayloadBuffer(buffer) - buffer);
+}
+
+size_t wbs_Raw_Public_HeaderSize(char *buffer) {
+  return wbs_Raw_HeaderSize(buffer);
+}
+
 size_t wbs_Public_HeaderSize(const PWebSocketObject obj, uint8_t shouldBeMasked) {
-  return wbs_HeaderSize(obj, shouldBeMasked);
+  return wbs_Object_HeaderSize(obj, shouldBeMasked);
 }
 
 static inline char *wbs_SetPayloadCode(char *buffer, const PWebSocketObject obj) {
@@ -115,6 +125,10 @@ static inline size_t wbs_PayloadSize(char *buffer) {
   return 0;
 }
 
+size_t wbs_Public_PayloadSize(char *buffer) {
+  return wbs_PayloadSize(buffer);
+}
+
 static inline char *wbs_PayloadBuffer(char *buffer) {
   size_t maskOffset = (wbs_IsMasked(buffer) ? 4 : 0);
   if(buffer[1] < 126) {
@@ -155,7 +169,7 @@ void wbs_PrintHeader(char *buffer) {
 }
 
 char *wbs_ToWebSocket(WebSocketObject self) {
-  char *response = malloc(wbs_HeaderSize(&self, 0));
+  char *response = malloc(wbs_Object_HeaderSize(&self, 0));
   wbs_ClearHeaderBytes(response);
   wbs_SetFin(response);
   wbs_SetOpcodeTo(response, OPCODE_BINARY);

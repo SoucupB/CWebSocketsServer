@@ -16,6 +16,7 @@
     "cmocka.h": "c",
     "socket_helper_test.h": "c",
     "ratio": "c",
-    "random": "c"
+    "random": "c",
+    "websocketstranslator.h": "c"
   }
 }
