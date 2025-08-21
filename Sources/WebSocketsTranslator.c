@@ -160,7 +160,24 @@ uint8_t wbs_IsBufferValid(char *buffer, size_t sz) {
   return 1;
 }
 
+static inline size_t wbs_ValidMinimumSize(char *buffer) {
+  size_t maskSize = wbs_IsMasked(buffer) ? 4 : 0;
+  if(buffer[1] < 126) {
+    return 2 + maskSize;
+  }
+  if(buffer[1] == 126) {
+    return 4 + maskSize;
+  }
+  return 10 + maskSize;
+}
+
 char *wbs_NextMessageIterator(char *st, size_t maxMessageSize) {
+  if(maxMessageSize < 2) {
+    return NULL;
+  }
+  if(wbs_ValidMinimumSize(st) > maxMessageSize) {
+    return NULL;
+  }
   size_t messageSz = wbs_FullMessageSize(st);
   if(messageSz > maxMessageSize) {
     return NULL;
