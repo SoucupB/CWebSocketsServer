@@ -106,6 +106,19 @@ static void test_websockets_message_validity_multiple_message_invalid_underflow_
   free(mergedMessages);
 }
 
+static void test_websockets_message_split_messages_non_masked(void **state) {
+  char *messages[] = {
+    "some_message",
+    "next_message",
+    "last_message"
+  };
+  char *mergedMessages = test_Util_CreateMessages(messages, sizeof(messages) / sizeof(char *));
+  Vector wbsMessages = wbs_FromWebSocket(mergedMessages, strlen(mergedMessages));
+  assert_true(wbsMessages->size == 3);
+  wbs_Clear_FromWebSocket(wbsMessages);
+  free(mergedMessages);
+}
+
 int main(void) {
   const struct CMUnitTest tests[] = {
     cmocka_unit_test(test_websockets_payload_size_small),
@@ -117,6 +130,7 @@ int main(void) {
     cmocka_unit_test(test_websockets_message_validity_multiple_message_valid),
     cmocka_unit_test(test_websockets_message_validity_multiple_message_invalid_underflow_10),
     cmocka_unit_test(test_websockets_message_validity_multiple_message_invalid_underflow_2),
+    cmocka_unit_test(test_websockets_message_split_messages_non_masked),
   };
   return cmocka_run_group_tests(tests, NULL, NULL);
 }
