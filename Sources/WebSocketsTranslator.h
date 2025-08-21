@@ -1,6 +1,7 @@
 #pragma once
 #include <stdint.h>
 #include <stddef.h>
+#include "Vector.h"
 
 typedef struct WebSocketObject_t {
   char *buffer;
@@ -10,7 +11,7 @@ typedef struct WebSocketObject_t {
 typedef WebSocketObject *PWebSocketObject;
 
 char *wbs_ToWebSocket(WebSocketObject self);
-WebSocketObject wbs_FromWebSocket(char *msg, uint8_t *isValid);
+Vector/*WebSocketObject*/ wbs_FromWebSocket(char *msg, size_t bufferSize);
 void wbs_Print(char *buffer);
 size_t wbs_FullMessageSize(char *buffer);
 char *wbs_NextMessageIterator(char *st, size_t maxMessageSize);

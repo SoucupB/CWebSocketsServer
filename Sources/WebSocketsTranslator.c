@@ -224,7 +224,35 @@ char *wbs_ToWebSocket(WebSocketObject self) {
   return response;
 }
 
-WebSocketObject wbs_FromWebSocket(char *msg, uint8_t *isValid) {
-  *isValid = 0;
-  return (WebSocketObject) {};
+static inline char *wbs_UnmaskedBuffer(char *msg) {
+  char *payloadPointer = wbs_PayloadBuffer(msg);
+  size_t msgSize = wbs_PayloadSize(msg);
+  char *response = malloc(msgSize);
+  memcpy(response, payloadPointer, msgSize);
+  return response;
+}
+
+char *wbs_ExtractPayload(char *msg) {
+  if(!wbs_IsMasked(msg)) {
+    return wbs_UnmaskedBuffer(msg);
+  }
+  return NULL; // for masked data.
+}
+
+Vector wbs_FromWebSocket(char *msg, size_t bufferSize) {
+  if(!wbs_IsBufferValid(msg, bufferSize)) {
+    return NULL;
+  }
+  char *endBuffer = msg + bufferSize;
+  Vector buffer = vct_Init(sizeof(WebSocketObject));
+  while(msg < endBuffer) {
+    WebSocketObject obj = (WebSocketObject) {
+      .buffer = wbs_ExtractPayload(msg),
+      .sz = wbs_PayloadSize(msg)
+    };
+    vct_Push(buffer, &obj);
+    msg += wbs_FullMessageSize(msg);
+  }
+
+  return buffer;
 }
