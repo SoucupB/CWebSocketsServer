@@ -140,6 +140,10 @@ static inline char *wbs_PayloadBuffer(char *buffer) {
   return buffer + 10 + maskOffset;
 }
 
+char *wbs_Public_PayloadBuffer(char *buffer) {
+  return wbs_PayloadBuffer(buffer);
+}
+
 size_t wbs_FullMessageSize(char *buffer) {
   return (wbs_PayloadBuffer(buffer) - buffer) + wbs_PayloadSize(buffer);
 }
