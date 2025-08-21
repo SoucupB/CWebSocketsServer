@@ -44,8 +44,8 @@ static void test_websockets_payload_size_big(void **state) {
 }
 
 static void test_websockets_message_validity_single_message_valid(void **state) {
-  char *buffer = test_Util_RepeatMessage("ab", sizeof("ab") - 1, 1);
-  WebSocketObject drr = test_Util_Transform(buffer, 2);
+  char *buffer = test_Util_RepeatMessage("abcdefgh", sizeof("abcdefgh") - 1, 1);
+  WebSocketObject drr = test_Util_Transform(buffer, sizeof("abcdefgh") - 1);
   char *bff = wbs_ToWebSocket(drr);
   assert_true(wbs_IsBufferValid(bff, wbs_FullMessageSize(bff)));
   test_Util_Delete(drr);
@@ -54,8 +54,8 @@ static void test_websockets_message_validity_single_message_valid(void **state) 
 }
 
 static void test_websockets_message_validity_single_message_invalid_overflow(void **state) {
-  char *buffer = test_Util_RepeatMessage("ab", sizeof("ab") - 1, 1);
-  WebSocketObject drr = test_Util_Transform(buffer, 2);
+  char *buffer = test_Util_RepeatMessage("abcdefgh", sizeof("abcdefgh") - 1, 1);
+  WebSocketObject drr = test_Util_Transform(buffer, sizeof("abcdefgh") - 1);
   char *bff = wbs_ToWebSocket(drr);
   assert_false(wbs_IsBufferValid(bff, wbs_FullMessageSize(bff) + 1));
   test_Util_Delete(drr);
@@ -64,8 +64,8 @@ static void test_websockets_message_validity_single_message_invalid_overflow(voi
 }
 
 static void test_websockets_message_validity_single_message_invalid_underflow(void **state) {
-  char *buffer = test_Util_RepeatMessage("ab", sizeof("ab") - 1, 1);
-  WebSocketObject drr = test_Util_Transform(buffer, 2);
+  char *buffer = test_Util_RepeatMessage("abcdefgh", sizeof("abcdefgh") - 1, 1);
+  WebSocketObject drr = test_Util_Transform(buffer, sizeof("abcdefgh") - 1);
   char *bff = wbs_ToWebSocket(drr);
   assert_false(wbs_IsBufferValid(bff, wbs_FullMessageSize(bff) - 1));
   test_Util_Delete(drr);
