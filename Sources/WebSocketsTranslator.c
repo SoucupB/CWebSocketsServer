@@ -95,6 +95,33 @@ static inline uint8_t wbs_IsMasked(char *buffer) {
   return (buffer[1] & (1<<7)) > 0;
 }
 
+static inline size_t wbs_MessageSize(char *buffer) {
+  size_t result = 0;
+  if(buffer[1] < 126) {
+    return buffer[1];
+  }
+  if(buffer[1] == 126) {
+    wbs_RevertBytes(buffer + 2, buffer + 2 + sizeof(uint16_t), (char *)&result);
+    return result;
+  }
+  if(buffer[1] == 127) {
+    wbs_RevertBytes(buffer + 2, buffer + 2 + sizeof(uint64_t), (char *)&result);
+    return result;
+  }
+  return 0;
+}
+
+static inline char *wbs_PayloadBuffer(char *buffer) {
+  size_t maskOffset = (wbs_IsMasked(buffer) ? 4 : 0);
+  if(buffer[1] < 126) {
+    return buffer + 2 + maskOffset;
+  }
+  if(buffer[1] == 126) {
+    return buffer + 4 + maskOffset;
+  }
+  return buffer + 10 + maskOffset;
+}
+
 void wbs_PrintHeader(char *buffer) {
   printf("First byte 0x%x\n", (uint8_t)buffer[0]);
   printf("Size cateogry byte is 0x%x\n", ((uint8_t)buffer[1] & ((1<<7) - 1)));
@@ -112,8 +139,8 @@ void wbs_PrintHeader(char *buffer) {
       break;
   }
   printf("Mask bit is 0x%x\n", ((uint8_t)buffer[1] & (1<<7)) > 0);
-  printf("Payload is\n");
-  // _wbs_PrintNextBytes(buffer + wbs_HeaderSize(buffer, 0), );
+  printf("Payload is size is %d\n", wbs_MessageSize(buffer));
+  _wbs_PrintNextBytes(wbs_PayloadBuffer(buffer), wbs_MessageSize(buffer));
 }
 
 char *wbs_ToWebSocket(WebSocketObject self) {

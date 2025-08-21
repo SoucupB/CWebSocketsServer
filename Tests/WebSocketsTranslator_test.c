@@ -10,7 +10,7 @@
 static void test_connect_to_server_with_single_client(void **state) {
   WebSocketObject drr = {
     .buffer = "ana si vasile",
-    .sz = 1000
+    .sz = sizeof("ana si vasile") - 1
   };
   char *bff = wbs_ToWebSocket(drr);
   wbs_PrintHeader(bff);
