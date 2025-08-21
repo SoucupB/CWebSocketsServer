@@ -71,6 +71,10 @@ static inline size_t wbs_HeaderSize(const PWebSocketObject obj, uint8_t shouldBe
   return obj->sz + 10 + maskData;
 }
 
+size_t wbs_Public_HeaderSize(const PWebSocketObject obj, uint8_t shouldBeMasked) {
+  return wbs_HeaderSize(obj, shouldBeMasked);
+}
+
 static inline char *wbs_SetPayloadCode(char *buffer, const PWebSocketObject obj) {
   if(obj->sz <= 125) {
     buffer[1] = obj->sz;
@@ -95,7 +99,7 @@ static inline uint8_t wbs_IsMasked(char *buffer) {
   return (buffer[1] & (1<<7)) > 0;
 }
 
-static inline size_t wbs_MessageSize(char *buffer) {
+static inline size_t wbs_PayloadSize(char *buffer) {
   size_t result = 0;
   if(buffer[1] < 126) {
     return buffer[1];
@@ -122,6 +126,10 @@ static inline char *wbs_PayloadBuffer(char *buffer) {
   return buffer + 10 + maskOffset;
 }
 
+size_t wbs_FullMessageSize(char *buffer) {
+  return (wbs_PayloadBuffer(buffer) - buffer) + wbs_PayloadSize(buffer);
+}
+
 void wbs_PrintHeader(char *buffer) {
   printf("First byte 0x%x\n", (uint8_t)buffer[0]);
   printf("Size cateogry byte is 0x%x\n", ((uint8_t)buffer[1] & ((1<<7) - 1)));
@@ -139,8 +147,11 @@ void wbs_PrintHeader(char *buffer) {
       break;
   }
   printf("Mask bit is 0x%x\n", ((uint8_t)buffer[1] & (1<<7)) > 0);
-  printf("Payload is size is %d\n", wbs_MessageSize(buffer));
-  _wbs_PrintNextBytes(wbs_PayloadBuffer(buffer), wbs_MessageSize(buffer));
+  const size_t payloadSize = wbs_PayloadSize(buffer), messageSize = wbs_FullMessageSize(buffer);
+  printf("Payload is size is %ld\n", payloadSize);
+  _wbs_PrintNextBytes(wbs_PayloadBuffer(buffer), payloadSize);
+  printf("Full message size is %ld\n", messageSize);
+  _wbs_PrintNextBytes(buffer, messageSize);
 }
 
 char *wbs_ToWebSocket(WebSocketObject self) {
