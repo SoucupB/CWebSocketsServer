@@ -162,7 +162,7 @@ uint8_t wbs_IsBufferValid(char *buffer, size_t sz) {
 
 char *wbs_NextMessageIterator(char *st, size_t maxMessageSize) {
   size_t messageSz = wbs_FullMessageSize(st);
-  if(messageSz >= maxMessageSize) {
+  if(messageSz > maxMessageSize) {
     return NULL;
   }
   return st + messageSz;

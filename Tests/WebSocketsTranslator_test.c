@@ -43,11 +43,31 @@ static void test_websockets_payload_size_big(void **state) {
   free(buffer);
 }
 
-static void test_websockets_message_validity_single(void **state) {
-  char *buffer = test_Util_RepeatMessage("ab", sizeof("ab") - 1, 5);
-  WebSocketObject drr = test_Util_Transform(buffer, 10);
+static void test_websockets_message_validity_single_message_valid(void **state) {
+  char *buffer = test_Util_RepeatMessage("ab", sizeof("ab") - 1, 1);
+  WebSocketObject drr = test_Util_Transform(buffer, 2);
   char *bff = wbs_ToWebSocket(drr);
   assert_true(wbs_IsBufferValid(bff, wbs_FullMessageSize(bff)));
+  test_Util_Delete(drr);
+  free(bff);
+  free(buffer);
+}
+
+static void test_websockets_message_validity_single_message_invalid_overflow(void **state) {
+  char *buffer = test_Util_RepeatMessage("ab", sizeof("ab") - 1, 1);
+  WebSocketObject drr = test_Util_Transform(buffer, 2);
+  char *bff = wbs_ToWebSocket(drr);
+  assert_false(wbs_IsBufferValid(bff, wbs_FullMessageSize(bff) + 1));
+  test_Util_Delete(drr);
+  free(bff);
+  free(buffer);
+}
+
+static void test_websockets_message_validity_single_message_invalid_underflow(void **state) {
+  char *buffer = test_Util_RepeatMessage("ab", sizeof("ab") - 1, 1);
+  WebSocketObject drr = test_Util_Transform(buffer, 2);
+  char *bff = wbs_ToWebSocket(drr);
+  assert_false(wbs_IsBufferValid(bff, wbs_FullMessageSize(bff) - 1));
   test_Util_Delete(drr);
   free(bff);
   free(buffer);
@@ -58,7 +78,9 @@ int main(void) {
     cmocka_unit_test(test_websockets_payload_size_small),
     cmocka_unit_test(test_websockets_payload_size_medium),
     cmocka_unit_test(test_websockets_payload_size_big),
-    cmocka_unit_test(test_websockets_message_validity_single),
+    cmocka_unit_test(test_websockets_message_validity_single_message_valid),
+    cmocka_unit_test(test_websockets_message_validity_single_message_invalid_overflow),
+    cmocka_unit_test(test_websockets_message_validity_single_message_invalid_underflow),
   };
   return cmocka_run_group_tests(tests, NULL, NULL);
 }
