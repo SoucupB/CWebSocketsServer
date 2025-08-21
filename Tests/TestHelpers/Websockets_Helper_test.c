@@ -24,3 +24,27 @@ char *test_Util_RepeatMessage(char *msg, size_t sz, size_t count) {
   }
   return response;
 }
+
+void test_Util_PushString(char *src, char *dst, size_t sz) {
+  memcpy(src, dst, sz);
+}
+
+char *test_Util_CreateMessages(char **messages, size_t sz) {
+  size_t totalSize = 0;
+  for(size_t i = 0; i < sz; i++) {
+    totalSize += strlen(messages[i]);
+  }
+  char *response = malloc(2 * (totalSize + 1));
+  memset(response, 0, 2 * (totalSize + 1));
+  char *rspCpy = response;
+  for(size_t i = 0; i < sz; i++) {
+    WebSocketObject drr = test_Util_Transform(messages[i], strlen(messages[i]));
+    char *newMessage = wbs_ToWebSocket(drr);
+    size_t msgSize = wbs_FullMessageSize(newMessage);
+    test_Util_PushString(response, newMessage, msgSize);
+    response += msgSize;
+    test_Util_Delete(drr);
+    free(newMessage);
+  }
+  return rspCpy;
+}

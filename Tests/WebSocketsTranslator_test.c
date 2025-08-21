@@ -73,6 +73,28 @@ static void test_websockets_message_validity_single_message_invalid_underflow(vo
   free(buffer);
 }
 
+static void test_websockets_message_validity_multiple_message_valid(void **state) {
+  char *messages[] = {
+    "some_message",
+    "next_message",
+    "last_message"
+  };
+  char *mergedMessages = test_Util_CreateMessages(messages, sizeof(messages) / sizeof(char *));
+  assert_true(wbs_IsBufferValid(mergedMessages, strlen(mergedMessages)));
+  free(mergedMessages);
+}
+
+static void test_websockets_message_validity_multiple_message_invalid_underflow(void **state) {
+  char *messages[] = {
+    "some_message",
+    "next_message",
+    "last_message"
+  };
+  char *mergedMessages = test_Util_CreateMessages(messages, sizeof(messages) / sizeof(char *));
+  assert_false(wbs_IsBufferValid(mergedMessages, strlen(mergedMessages) - 10));
+  free(mergedMessages);
+}
+
 int main(void) {
   const struct CMUnitTest tests[] = {
     cmocka_unit_test(test_websockets_payload_size_small),
@@ -81,6 +103,8 @@ int main(void) {
     cmocka_unit_test(test_websockets_message_validity_single_message_valid),
     cmocka_unit_test(test_websockets_message_validity_single_message_invalid_overflow),
     cmocka_unit_test(test_websockets_message_validity_single_message_invalid_underflow),
+    cmocka_unit_test(test_websockets_message_validity_multiple_message_valid),
+    cmocka_unit_test(test_websockets_message_validity_multiple_message_invalid_underflow),
   };
   return cmocka_run_group_tests(tests, NULL, NULL);
 }

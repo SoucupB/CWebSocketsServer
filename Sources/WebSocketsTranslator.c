@@ -189,7 +189,7 @@ size_t wbs_FullMessageSize(char *buffer) {
   return (wbs_PayloadBuffer(buffer) - buffer) + wbs_PayloadSize(buffer);
 }
 
-void wbs_PrintHeader(char *buffer) {
+void wbs_Print(char *buffer) {
   printf("First byte 0x%x\n", (uint8_t)buffer[0]);
   printf("Size cateogry byte is 0x%x\n", ((uint8_t)buffer[1] & ((1<<7) - 1)));
   switch (buffer[1])
