@@ -14,6 +14,7 @@ WebSocketObject wbs_FromWebSocket(char *msg, uint8_t *isValid);
 void wbs_PrintHeader(char *buffer);
 size_t wbs_FullMessageSize(char *buffer);
 char *wbs_NextMessageIterator(char *st, size_t maxMessageSize);
+uint8_t wbs_IsBufferValid(char *buffer, size_t sz);
 
 size_t wbs_Public_HeaderSize(const PWebSocketObject obj, uint8_t shouldBeMasked);
 size_t wbs_Public_PayloadSize(char *buffer);

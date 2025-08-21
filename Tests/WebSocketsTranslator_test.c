@@ -43,11 +43,22 @@ static void test_websockets_payload_size_big(void **state) {
   free(buffer);
 }
 
+static void test_websockets_message_validity_single(void **state) {
+  char *buffer = test_Util_RepeatMessage("ab", sizeof("ab") - 1, 5);
+  WebSocketObject drr = test_Util_Transform(buffer, 10);
+  char *bff = wbs_ToWebSocket(drr);
+  assert_true(wbs_IsBufferValid(bff, wbs_FullMessageSize(bff)));
+  test_Util_Delete(drr);
+  free(bff);
+  free(buffer);
+}
+
 int main(void) {
   const struct CMUnitTest tests[] = {
     cmocka_unit_test(test_websockets_payload_size_small),
     cmocka_unit_test(test_websockets_payload_size_medium),
     cmocka_unit_test(test_websockets_payload_size_big),
+    cmocka_unit_test(test_websockets_message_validity_single),
   };
   return cmocka_run_group_tests(tests, NULL, NULL);
 }
