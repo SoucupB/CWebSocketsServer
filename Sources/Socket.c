@@ -13,6 +13,7 @@
 
 #define SA struct sockaddr
 #define MAX_CONNECTIONS_PER_SERVER 1024
+#define MAX_BYTES_SWITCH_STACK (1<<12)
 
 typedef struct CloseConnStruct_t {
   PSocketServer self;
@@ -130,18 +131,7 @@ void sock_AddConnectionTimeout(PSocketServer self, int64_t expireAfter) {
   self->timeServer.timeout = expireAfter;
 }
 
-static inline void sock_OnReceiveMessage(PSocketServer self, Connection *conn, size_t index) {
-  int32_t count = 0;
-  int32_t error = ioctl(conn->fd, FIONREAD, &count);
-  if(!count || error == -1) {
-    return ;
-  }
-  if(count >= self->maxBytesPerReadConnection) {
-    sock_ExecuteMetaMethod(conn, self->onConnectionRelease);
-    vct_RemoveElement(self->connections, index);
-    return ;
-  }
-  void *buffer = malloc(count);
+static inline void sock_ReadData(PSocketServer self, Connection *conn, char *buffer, size_t count) {
   (void)!read(conn->fd, buffer, count);
   DataFragment dt = (DataFragment) {
     .conn = *conn,
@@ -150,6 +140,27 @@ static inline void sock_OnReceiveMessage(PSocketServer self, Connection *conn, s
     .size = count
   };
   sock_ExecuteOnReceiveMethod(&dt, self->onReceiveMessage);
+}
+
+static inline void sock_OnReceiveMessage(PSocketServer self, Connection *conn, size_t index) {
+  size_t count = 0;
+  int32_t error = ioctl(conn->fd, FIONREAD, &count);
+  if(!count || error == -1) {
+    return ;
+  }
+  if(count >= self->maxBytesPerReadConnection) {
+    sock_ExecuteMetaMethod(conn, self->onConnectionRelease);
+    close(conn->fd);
+    vct_RemoveElement(self->connections, index);
+    return ;
+  }
+  if(count <= MAX_BYTES_SWITCH_STACK) {
+    char buffer[MAX_BYTES_SWITCH_STACK];
+    sock_ReadData(self, conn, buffer, count);
+    return ;
+  }
+  void *buffer = malloc(count);
+  sock_ReadData(self, conn, buffer, count);
   free(buffer);
 }
 
