@@ -188,6 +188,17 @@ static void test_websockets_message_split_messages_non_masked_data_single_big_me
   free(messages[0]);
 }
 
+static void test_websockets_message_split_messages_non_masked_data_invalid(void **state) {
+  char *messages[] = {
+    test_Util_RepeatMessage("a", sizeof("a") - 1, 66000)
+  };
+  WebSocketObject mergedMessages = test_Util_CreateMessages(messages, sizeof(messages) / sizeof(char *));
+  Vector wbsMessages = wbs_FromWebSocket(mergedMessages.buffer, mergedMessages.sz - 1);
+  assert_null(wbsMessages);
+  free(mergedMessages.buffer);
+  free(messages[0]);
+}
+
 int main(void) {
   const struct CMUnitTest tests[] = {
     cmocka_unit_test(test_websockets_payload_size_small),
@@ -204,6 +215,7 @@ int main(void) {
     cmocka_unit_test(test_websockets_message_split_messages_non_masked_data),
     cmocka_unit_test(test_websockets_message_split_messages_non_masked_data_many_messages),
     cmocka_unit_test(test_websockets_message_split_messages_non_masked_data_single_big_message),
+    cmocka_unit_test(test_websockets_message_split_messages_non_masked_data_invalid),
   };
   return cmocka_run_group_tests(tests, NULL, NULL);
 }
