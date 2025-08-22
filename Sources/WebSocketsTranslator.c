@@ -144,7 +144,7 @@ size_t wbs_Public_PayloadSize(char *buffer) {
 }
 
 static inline char *wbs_PayloadBuffer(char *buffer) {
-  size_t maskOffset = (wbs_IsMasked(buffer) ? 4 : 0);
+  size_t maskOffset = wbs_IsMasked(buffer) * 4;
   uint8_t size = wbs_SizeCode(buffer);
   if(size < 126) {
     return buffer + 2 + maskOffset;
@@ -153,10 +153,6 @@ static inline char *wbs_PayloadBuffer(char *buffer) {
     return buffer + 4 + maskOffset;
   }
   return buffer + 10 + maskOffset;
-}
-
-static inline void wbs_SetMask() {
-
 }
 
 char *wbs_Public_PayloadBuffer(char *buffer) {
@@ -173,14 +169,11 @@ uint8_t wbs_IsBufferValid(char *buffer, size_t sz) {
     }
     buffer = nextBuffer;
   }
-  if(buffer > endBuffer) {
-    return 0;
-  }
-  return 1;
+  return buffer <= endBuffer;
 }
 
 static inline size_t wbs_ValidMinimumSize(char *buffer) {
-  size_t maskSize = wbs_IsMasked(buffer) ? 4 : 0;
+  size_t maskSize = wbs_IsMasked(buffer) * 4;
   uint8_t size = wbs_SizeCode(buffer);
   if(size < 126) {
     return 2 + maskSize;

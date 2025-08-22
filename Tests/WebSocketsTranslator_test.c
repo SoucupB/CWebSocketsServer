@@ -278,7 +278,7 @@ static void test_websockets_message_validity_multiple_message_invalid_masked(voi
   free(mergedMessages.buffer);
 }
 
-static void test_websockets_message_split_messages_non_masked_data_masked(void **state) {
+static void test_websockets_message_split_messages_masked_data(void **state) {
   char *messages[] = {
     "some_message",
     "next_message",
@@ -295,7 +295,7 @@ static void test_websockets_message_split_messages_non_masked_data_masked(void *
   free(mergedMessages.buffer);
 }
 
-static void test_websockets_message_split_messages_non_masked_data_invalid_multiple_messages_masked(void **state) {
+static void test_websockets_message_split_messages_masked_data_invalid_multiple_messages(void **state) {
   char *messages[] = {
     test_Util_RepeatMessage("abcdefgh", sizeof("abcdefgh") - 1, 1000),
     test_Util_RepeatMessage("ab", sizeof("ab") - 1, 66000),
@@ -314,7 +314,7 @@ static void test_websockets_message_split_messages_non_masked_data_invalid_multi
   free(messages[1]);
 }
 
-static void test_websockets_message_split_messages_non_masked_data_many_messages_masked(void **state) {
+static void test_websockets_message_split_messages_masked_data_many_messages_masked(void **state) {
   char *messages[] = {
     test_Util_RepeatMessage("abcdefgh", sizeof("abcdefgh") - 1, 1000),
     test_Util_RepeatMessage("ab", sizeof("ab") - 1, 66000),
@@ -365,9 +365,9 @@ int main(void) {
     cmocka_unit_test(test_websockets_payload_size_big_masked),
     cmocka_unit_test(test_websockets_message_validity_multiple_message_valid_masked),
     cmocka_unit_test(test_websockets_message_validity_multiple_message_invalid_masked),
-    cmocka_unit_test(test_websockets_message_split_messages_non_masked_data_masked),
-    cmocka_unit_test(test_websockets_message_split_messages_non_masked_data_invalid_multiple_messages_masked),
-    cmocka_unit_test(test_websockets_message_split_messages_non_masked_data_many_messages_masked),
+    cmocka_unit_test(test_websockets_message_split_messages_masked_data),
+    cmocka_unit_test(test_websockets_message_split_messages_masked_data_invalid_multiple_messages),
+    cmocka_unit_test(test_websockets_message_split_messages_masked_data_many_messages_masked),
   };
   return cmocka_run_group_tests(tests, NULL, NULL);
 }
