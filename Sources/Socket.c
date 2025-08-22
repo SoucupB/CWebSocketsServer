@@ -195,8 +195,7 @@ static inline void sock_OnReceiveMessage(PSocketServer self, Connection *conn, s
   }
   if(count >= self->maxBytesPerReadConnection) {
     sock_ExecuteMetaMethod(conn, self->onConnectionRelease);
-    close(conn->fd);
-    vct_RemoveElement(self->connections, index);
+    sock_CloseConnection(self, index);
     return ;
   }
   if(count <= MAX_BYTES_SWITCH_STACK) {
