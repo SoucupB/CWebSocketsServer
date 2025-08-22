@@ -76,7 +76,7 @@ static inline void wbs_WritePayload(char *buffer, const PWebSocketObject obj) {
 }
 
 static inline size_t wbs_Object_HeaderSize(const PWebSocketObject obj, uint8_t shouldBeMasked) {
-  size_t maskData = (!shouldBeMasked ? 0 : 4);
+  size_t maskData = shouldBeMasked * 4;
   if(obj->sz <= 125) {
     return obj->sz + 2 + maskData;
   }
@@ -245,18 +245,23 @@ char *wbs_ToWebSocket(WebSocketObject self) {
   return response;
 }
 
+void wbs_MaskSwitch(char *buffer) {
+  char *maskOffset = wbs_MaskOffset(buffer);
+  char *payloadOffset = wbs_PayloadBuffer(buffer);
+  for(size_t i = 0, c = 0, z = wbs_PayloadSize(buffer); i < z; i++, c = ((c + 1) & 3)) {
+    payloadOffset[i] ^= maskOffset[c];
+  }
+}
+
 static inline void wbs_Mask_Set(char *buffer) {
   if(!wbs_IsMasked(buffer)) {
     return ;
   }
   char *maskOffset = wbs_MaskOffset(buffer);
-  char *payloadOffset = wbs_PayloadBuffer(buffer);
   for(size_t i = 0; i < sizeof(uint32_t); i++) {
     maskOffset[i] = (rand() & 0xFF);
   }
-  for(size_t i = 0, c = 0, z = wbs_PayloadSize(buffer); i < z; i++, c = ((c + 1) & 3)) {
-    payloadOffset[i] ^= maskOffset[c];
-  }
+  wbs_MaskSwitch(buffer);
 }
 
 char *wbs_Masked_ToWebSocket(WebSocketObject self) {

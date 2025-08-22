@@ -218,8 +218,47 @@ static void test_websockets_message_split_messages_non_masked_data_invalid_multi
   free(messages[1]);
 }
 
+
+static void test_websockets_payload_size_small_masked(void **state) {
+  WebSocketObject drr = test_Util_Transform("some super specs", sizeof("some super specs") - 1);
+  char *bff = wbs_Masked_ToWebSocket(drr);
+  assert_true(wbs_Public_PayloadSize(bff) == sizeof("some super specs") - 1);
+  assert_true(wbs_Raw_Public_HeaderSize(bff) == 6);
+  wbs_MaskSwitch(bff);
+  assert_true(memcmp(wbs_Public_PayloadBuffer(bff), drr.buffer, wbs_Public_PayloadSize(bff)) == 0);
+  test_Util_Delete(drr);
+  free(bff);
+}
+
+static void test_websockets_payload_size_medium_masked(void **state) {
+  char *buffer = test_Util_RepeatMessage("ab", sizeof("ab") - 1, 500);
+  WebSocketObject drr = test_Util_Transform(buffer, 1000);
+  char *bff = wbs_Masked_ToWebSocket(drr);
+  assert_true(wbs_Public_PayloadSize(bff) == 1000);
+  assert_true(wbs_Raw_Public_HeaderSize(bff) == 8);
+  wbs_MaskSwitch(bff);
+  assert_true(memcmp(wbs_Public_PayloadBuffer(bff), buffer, wbs_Public_PayloadSize(bff)) == 0);
+  test_Util_Delete(drr);
+  free(bff);
+  free(buffer);
+}
+
+static void test_websockets_payload_size_big_masked(void **state) {
+  char *buffer = test_Util_RepeatMessage("ab", sizeof("ab") - 1, 100000);
+  WebSocketObject drr = test_Util_Transform(buffer, 200000);
+  char *bff = wbs_Masked_ToWebSocket(drr);
+  assert_true(wbs_Public_PayloadSize(bff) == 200000);
+  assert_true(wbs_Raw_Public_HeaderSize(bff) == 14);
+  wbs_MaskSwitch(bff);
+  assert_true(memcmp(wbs_Public_PayloadBuffer(bff), buffer, wbs_Public_PayloadSize(bff)) == 0);
+  test_Util_Delete(drr);
+  free(bff);
+  free(buffer);
+}
+
 int main(void) {
   const struct CMUnitTest tests[] = {
+    // unmasked requests
     cmocka_unit_test(test_websockets_payload_size_small),
     cmocka_unit_test(test_websockets_payload_size_medium),
     cmocka_unit_test(test_websockets_payload_size_big),
@@ -236,6 +275,10 @@ int main(void) {
     cmocka_unit_test(test_websockets_message_split_messages_non_masked_data_single_big_message),
     cmocka_unit_test(test_websockets_message_split_messages_non_masked_data_invalid),
     cmocka_unit_test(test_websockets_message_split_messages_non_masked_data_invalid_multiple_messages),
+    // masked requests
+    cmocka_unit_test(test_websockets_payload_size_small_masked),
+    cmocka_unit_test(test_websockets_payload_size_medium_masked),
+    cmocka_unit_test(test_websockets_payload_size_big_masked),
   };
   return cmocka_run_group_tests(tests, NULL, NULL);
 }
