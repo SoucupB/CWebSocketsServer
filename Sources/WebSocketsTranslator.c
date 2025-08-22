@@ -16,6 +16,7 @@ typedef enum {
 } Opcode;
 
 static inline char *wbs_PayloadBuffer(char *buffer);
+static inline uint8_t wbs_IsMasked(char *buffer);
 
 static inline void wbs_SetOpcodeTo(char *buffer, Opcode code) {
   buffer[0] |= code;
@@ -30,7 +31,7 @@ static inline void wbs_ClearHeaderBytes(char *buffer) {
   buffer[1] = 0;
 }
 
-static inline void wbs_SetMask(char *buffer) {
+static inline void wbs_SetMaskFlag(char *buffer) {
   buffer[1] |= (1<<7);
 }
 
@@ -48,24 +49,25 @@ static inline void wbs_RevertBytes(char *st, char *end, char *dst) {
 
 static inline size_t wbs_SetPayloadSize(char *buffer, const PWebSocketObject obj) {
   char *currentNumberPointer = (char *)&obj->sz;
+  size_t maskSize = wbs_IsMasked(buffer) * 4;
   switch (wbs_SizeCode(buffer))
   {
     case 126: {
       wbs_RevertBytes(currentNumberPointer, currentNumberPointer + sizeof(uint16_t), buffer + 2);
-      return sizeof(uint16_t);
+      return sizeof(uint16_t) + maskSize;
       break;  
     }
 
     case 127: {
       wbs_RevertBytes(currentNumberPointer, currentNumberPointer + sizeof(uint64_t), buffer + 2);
-      return sizeof(uint64_t);
+      return sizeof(uint64_t) + maskSize;
       break;  
     }
   
     default:
       break;
   }
-  return 0;
+  return maskSize;
 }
 
 static inline void wbs_WritePayload(char *buffer, const PWebSocketObject obj) {
@@ -242,7 +244,7 @@ char *wbs_Masked_ToWebSocket(WebSocketObject self) {
   char *response = malloc(wbs_Object_HeaderSize(&self, 1));
   wbs_ClearHeaderBytes(response);
   wbs_SetFin(response);
-  wbs_SetMask(response);
+  wbs_SetMaskFlag(response);
   wbs_SetOpcodeTo(response, OPCODE_BINARY);
   char *cpyResponse = response;
   cpyResponse = wbs_SetPayloadCode(response, &self) + 1 /*First byte*/;
