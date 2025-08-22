@@ -278,14 +278,7 @@ char *wbs_Masked_ToWebSocket(WebSocketObject self) {
 }
 
 static inline char *wbs_UnmaskedBuffer(char *msg) {
-  char *payloadPointer = wbs_PayloadBuffer(msg);
-  size_t msgSize = wbs_PayloadSize(msg);
-  if(msgSize > MAX_FRAME_SIZE) {
-    return NULL;
-  }
-  char *response = malloc(msgSize);
-  memcpy(response, payloadPointer, msgSize);
-  return response;
+  return wbs_PayloadBuffer(msg);
 }
 
 static inline char *wbs_MaskOffset(char *msg) {
@@ -293,18 +286,8 @@ static inline char *wbs_MaskOffset(char *msg) {
 }
 
 static inline char *wbs_MaskedPayload(char *msg) {
-  char *payloadPointer = wbs_PayloadBuffer(msg);
-  size_t msgSize = wbs_PayloadSize(msg);
-  if(msgSize > MAX_FRAME_SIZE) {
-    return NULL;
-  }
-  char *response = malloc(msgSize);
-  char *maskOffset = wbs_MaskOffset(msg);
-  memcpy(response, payloadPointer, msgSize);
-  for(size_t i = 0, p = 0; i < msgSize; i++, p = ((p + 1) & 3)) {
-    response[i] ^= maskOffset[p];
-  }
-  return response;
+  wbs_MaskSwitch(msg);
+  return wbs_PayloadBuffer(msg);
 }
 
 char *wbs_ExtractPayload(char *msg) {
@@ -315,10 +298,6 @@ char *wbs_ExtractPayload(char *msg) {
 }
 
 void wbs_Clear_FromWebSocket(Vector objects) {
-  WebSocketObject *buffer = objects->buffer;
-  for(size_t i = 0, c = objects->size; i < c; i++) {
-    free(buffer[i].buffer);
-  }
   vct_Delete(objects);
 }
 
