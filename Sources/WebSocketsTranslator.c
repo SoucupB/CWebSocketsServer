@@ -199,7 +199,7 @@ char *wbs_NextMessageIterator(char *st, size_t maxMessageSize) {
 }
 
 size_t wbs_FullMessageSize(char *buffer) {
-  return (wbs_PayloadBuffer(buffer) - buffer) + wbs_PayloadSize(buffer);
+  return wbs_Raw_HeaderSize(buffer) + wbs_PayloadSize(buffer);
 }
 
 void wbs_Print(char *buffer) {
