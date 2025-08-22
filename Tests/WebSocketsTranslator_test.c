@@ -89,7 +89,7 @@ static void test_websockets_message_validity_multiple_message_valid(void **state
     "next_message",
     "last_message"
   };
-  WebSocketObject mergedMessages = test_Util_CreateMessages(messages, sizeof(messages) / sizeof(char *));
+  WebSocketObject mergedMessages = test_Util_CreateMessages(messages, sizeof(messages) / sizeof(char *), 0);
   assert_true(wbs_IsBufferValid(mergedMessages.buffer, mergedMessages.sz));
   free(mergedMessages.buffer);
 }
@@ -100,7 +100,7 @@ static void test_websockets_message_validity_multiple_message_invalid_underflow_
     "next_message",
     "last_message"
   };
-  WebSocketObject mergedMessages = test_Util_CreateMessages(messages, sizeof(messages) / sizeof(char *));
+  WebSocketObject mergedMessages = test_Util_CreateMessages(messages, sizeof(messages) / sizeof(char *), 0);
   assert_false(wbs_IsBufferValid(mergedMessages.buffer, mergedMessages.sz - 10));
   free(mergedMessages.buffer);
 }
@@ -111,7 +111,7 @@ static void test_websockets_message_validity_multiple_message_invalid_underflow_
     "next_message",
     "last_message"
   };
-  WebSocketObject mergedMessages = test_Util_CreateMessages(messages, sizeof(messages) / sizeof(char *));
+  WebSocketObject mergedMessages = test_Util_CreateMessages(messages, sizeof(messages) / sizeof(char *), 0);
   assert_false(wbs_IsBufferValid(mergedMessages.buffer, mergedMessages.sz - 2));
   free(mergedMessages.buffer);
 }
@@ -122,7 +122,7 @@ static void test_websockets_message_split_messages_non_masked_count(void **state
     "next_message",
     "last_message"
   };
-  WebSocketObject mergedMessages = test_Util_CreateMessages(messages, sizeof(messages) / sizeof(char *));
+  WebSocketObject mergedMessages = test_Util_CreateMessages(messages, sizeof(messages) / sizeof(char *), 0);
   Vector wbsMessages = wbs_FromWebSocket(mergedMessages.buffer, mergedMessages.sz);
   assert_true(wbsMessages->size == 3);
   wbs_Clear_FromWebSocket(wbsMessages);
@@ -135,7 +135,7 @@ static void test_websockets_message_split_messages_non_masked_data(void **state)
     "next_message",
     "last_message"
   };
-  WebSocketObject mergedMessages = test_Util_CreateMessages(messages, sizeof(messages) / sizeof(char *));
+  WebSocketObject mergedMessages = test_Util_CreateMessages(messages, sizeof(messages) / sizeof(char *), 0);
   Vector wbsMessages = wbs_FromWebSocket(mergedMessages.buffer, mergedMessages.sz);
   WebSocketObject *objs = wbsMessages->buffer;
   for(size_t i = 0, c = sizeof(messages) / sizeof(char *); i < c; i++) {
@@ -157,7 +157,7 @@ static void test_websockets_message_split_messages_non_masked_data_many_messages
     "fixed_message",
     "not_so_big_message",
   };
-  WebSocketObject mergedMessages = test_Util_CreateMessages(messages, sizeof(messages) / sizeof(char *));
+  WebSocketObject mergedMessages = test_Util_CreateMessages(messages, sizeof(messages) / sizeof(char *), 0);
   Vector wbsMessages = wbs_FromWebSocket(mergedMessages.buffer, mergedMessages.sz);
   assert_non_null(wbsMessages);
   WebSocketObject *objs = wbsMessages->buffer;
@@ -175,7 +175,7 @@ static void test_websockets_message_split_messages_non_masked_data_single_big_me
   char *messages[] = {
     test_Util_RepeatMessage("a", sizeof("a") - 1, 66000)
   };
-  WebSocketObject mergedMessages = test_Util_CreateMessages(messages, sizeof(messages) / sizeof(char *));
+  WebSocketObject mergedMessages = test_Util_CreateMessages(messages, sizeof(messages) / sizeof(char *), 0);
   Vector wbsMessages = wbs_FromWebSocket(mergedMessages.buffer, mergedMessages.sz);
   assert_non_null(wbsMessages);
   WebSocketObject *objs = wbsMessages->buffer;
@@ -192,7 +192,7 @@ static void test_websockets_message_split_messages_non_masked_data_invalid(void 
   char *messages[] = {
     test_Util_RepeatMessage("a", sizeof("a") - 1, 66000)
   };
-  WebSocketObject mergedMessages = test_Util_CreateMessages(messages, sizeof(messages) / sizeof(char *));
+  WebSocketObject mergedMessages = test_Util_CreateMessages(messages, sizeof(messages) / sizeof(char *), 0);
   Vector wbsMessages = wbs_FromWebSocket(mergedMessages.buffer, mergedMessages.sz - 1);
   assert_null(wbsMessages);
   free(mergedMessages.buffer);
@@ -210,7 +210,7 @@ static void test_websockets_message_split_messages_non_masked_data_invalid_multi
     "fixed_message",
     "not_so_big_message",
   };
-  WebSocketObject mergedMessages = test_Util_CreateMessages(messages, sizeof(messages) / sizeof(char *));
+  WebSocketObject mergedMessages = test_Util_CreateMessages(messages, sizeof(messages) / sizeof(char *), 0);
   Vector wbsMessages = wbs_FromWebSocket(mergedMessages.buffer, mergedMessages.sz - 1);
   assert_null(wbsMessages);
   free(mergedMessages.buffer);
@@ -256,6 +256,90 @@ static void test_websockets_payload_size_big_masked(void **state) {
   free(buffer);
 }
 
+static void test_websockets_message_validity_multiple_message_valid_masked(void **state) {
+  char *messages[] = {
+    "some_message",
+    "next_message",
+    "last_message"
+  };
+  WebSocketObject mergedMessages = test_Util_CreateMessages(messages, sizeof(messages) / sizeof(char *), 1);
+  assert_true(wbs_IsBufferValid(mergedMessages.buffer, mergedMessages.sz));
+  free(mergedMessages.buffer);
+}
+
+static void test_websockets_message_validity_multiple_message_invalid_masked(void **state) {
+  char *messages[] = {
+    "some_message",
+    "next_message",
+    "last_message"
+  };
+  WebSocketObject mergedMessages = test_Util_CreateMessages(messages, sizeof(messages) / sizeof(char *), 1);
+  assert_false(wbs_IsBufferValid(mergedMessages.buffer, mergedMessages.sz - 3));
+  free(mergedMessages.buffer);
+}
+
+static void test_websockets_message_split_messages_non_masked_data_masked(void **state) {
+  char *messages[] = {
+    "some_message",
+    "next_message",
+    "last_message"
+  };
+  WebSocketObject mergedMessages = test_Util_CreateMessages(messages, sizeof(messages) / sizeof(char *), 1);
+  Vector wbsMessages = wbs_FromWebSocket(mergedMessages.buffer, mergedMessages.sz);
+  WebSocketObject *objs = wbsMessages->buffer;
+  for(size_t i = 0, c = sizeof(messages) / sizeof(char *); i < c; i++) {
+    assert_true(objs[i].sz == strlen(messages[i]));
+    assert_true(!memcmp(messages[i], objs[i].buffer, strlen(messages[i])));
+  }
+  wbs_Clear_FromWebSocket(wbsMessages);
+  free(mergedMessages.buffer);
+}
+
+static void test_websockets_message_split_messages_non_masked_data_invalid_multiple_messages_masked(void **state) {
+  char *messages[] = {
+    test_Util_RepeatMessage("abcdefgh", sizeof("abcdefgh") - 1, 1000),
+    test_Util_RepeatMessage("ab", sizeof("ab") - 1, 66000),
+    "some_message",
+    "next_message",
+    "last_message",
+    "some_other_message",
+    "fixed_message",
+    "not_so_big_message",
+  };
+  WebSocketObject mergedMessages = test_Util_CreateMessages(messages, sizeof(messages) / sizeof(char *), 1);
+  Vector wbsMessages = wbs_FromWebSocket(mergedMessages.buffer, mergedMessages.sz - 1);
+  assert_null(wbsMessages);
+  free(mergedMessages.buffer);
+  free(messages[0]);
+  free(messages[1]);
+}
+
+static void test_websockets_message_split_messages_non_masked_data_many_messages_masked(void **state) {
+  char *messages[] = {
+    test_Util_RepeatMessage("abcdefgh", sizeof("abcdefgh") - 1, 1000),
+    test_Util_RepeatMessage("ab", sizeof("ab") - 1, 66000),
+    "some_message",
+    "next_message",
+    "last_message",
+    "some_other_message",
+    "fixed_message",
+    "not_so_big_message",
+  };
+  WebSocketObject mergedMessages = test_Util_CreateMessages(messages, sizeof(messages) / sizeof(char *), 1);
+  Vector wbsMessages = wbs_FromWebSocket(mergedMessages.buffer, mergedMessages.sz);
+  assert_non_null(wbsMessages);
+  WebSocketObject *objs = wbsMessages->buffer;
+  for(size_t i = 0, c = sizeof(messages) / sizeof(char *); i < c; i++) {
+    assert_true(objs[i].sz == strlen(messages[i]));
+    assert_true(!memcmp(messages[i], objs[i].buffer, strlen(messages[i])));
+  }
+  wbs_Clear_FromWebSocket(wbsMessages);
+  free(mergedMessages.buffer);
+  free(messages[1]);
+  free(messages[0]);
+}
+
+
 int main(void) {
   const struct CMUnitTest tests[] = {
     // unmasked requests
@@ -279,6 +363,11 @@ int main(void) {
     cmocka_unit_test(test_websockets_payload_size_small_masked),
     cmocka_unit_test(test_websockets_payload_size_medium_masked),
     cmocka_unit_test(test_websockets_payload_size_big_masked),
+    cmocka_unit_test(test_websockets_message_validity_multiple_message_valid_masked),
+    cmocka_unit_test(test_websockets_message_validity_multiple_message_invalid_masked),
+    cmocka_unit_test(test_websockets_message_split_messages_non_masked_data_masked),
+    cmocka_unit_test(test_websockets_message_split_messages_non_masked_data_invalid_multiple_messages_masked),
+    cmocka_unit_test(test_websockets_message_split_messages_non_masked_data_many_messages_masked),
   };
   return cmocka_run_group_tests(tests, NULL, NULL);
 }
