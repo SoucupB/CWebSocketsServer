@@ -30,8 +30,9 @@ void test_Util_PushString(char *src, char *dst, size_t sz) {
   memcpy(src, dst, sz);
 }
 
-char *test_Util_CreateMessages(char **messages, size_t sz) {
+WebSocketObject test_Util_CreateMessages(char **messages, size_t sz) {
   size_t totalSize = 0;
+  size_t finalMessageSize = 0;
   for(size_t i = 0; i < sz; i++) {
     totalSize += strlen(messages[i]);
   }
@@ -44,8 +45,12 @@ char *test_Util_CreateMessages(char **messages, size_t sz) {
     size_t msgSize = wbs_FullMessageSize(newMessage);
     test_Util_PushString(response, newMessage, msgSize);
     response += msgSize;
+    finalMessageSize += msgSize;
     test_Util_Delete(drr);
     free(newMessage);
   }
-  return rspCpy;
+  return (WebSocketObject) {
+    .buffer = rspCpy,
+    .sz = finalMessageSize
+  };
 }
