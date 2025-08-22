@@ -17,6 +17,7 @@ typedef enum {
 
 static inline char *wbs_PayloadBuffer(char *buffer);
 static inline uint8_t wbs_IsMasked(char *buffer);
+static inline char *wbs_MaskOffset(char *msg);
 
 static inline void wbs_SetOpcodeTo(char *buffer, Opcode code) {
   buffer[0] |= code;
@@ -154,6 +155,10 @@ static inline char *wbs_PayloadBuffer(char *buffer) {
   return buffer + 10 + maskOffset;
 }
 
+static inline void wbs_SetMask() {
+
+}
+
 char *wbs_Public_PayloadBuffer(char *buffer) {
   return wbs_PayloadBuffer(buffer);
 }
@@ -240,6 +245,20 @@ char *wbs_ToWebSocket(WebSocketObject self) {
   return response;
 }
 
+static inline void wbs_Mask_Set(char *buffer) {
+  if(!wbs_IsMasked(buffer)) {
+    return ;
+  }
+  char *maskOffset = wbs_MaskOffset(buffer);
+  char *payloadOffset = wbs_PayloadBuffer(buffer);
+  for(size_t i = 0; i < sizeof(uint32_t); i++) {
+    maskOffset[i] = (rand() & 0xFF);
+  }
+  for(size_t i = 0, c = 0, z = wbs_PayloadSize(buffer); i < z; i++, c = ((c + 1) & 3)) {
+    payloadOffset[i] ^= maskOffset[c];
+  }
+}
+
 char *wbs_Masked_ToWebSocket(WebSocketObject self) {
   char *response = malloc(wbs_Object_HeaderSize(&self, 1));
   wbs_ClearHeaderBytes(response);
@@ -249,6 +268,7 @@ char *wbs_Masked_ToWebSocket(WebSocketObject self) {
   char *cpyResponse = response;
   cpyResponse = wbs_SetPayloadCode(response, &self) + 1 /*First byte*/;
   wbs_WritePayload(cpyResponse, &self);
+  wbs_Mask_Set(response);
   return response;
 }
 
@@ -277,7 +297,7 @@ static inline char *wbs_MaskedPayload(char *msg) {
   char *maskOffset = wbs_MaskOffset(msg);
   memcpy(response, payloadPointer, msgSize);
   for(size_t i = 0, p = 0; i < msgSize; i++, p = ((p + 1) & 3)) {
-    response[i] &= maskOffset[p];
+    response[i] ^= maskOffset[p];
   }
   return response;
 }
