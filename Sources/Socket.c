@@ -38,6 +38,7 @@ PSocketServer sock_Create(uint16_t port) {
   server->maxBytesPerReadConnection = 1024 * 1024 * 10; /* 10 megabytes of reading per socket of total bytes */
   server->inputReads = vct_Init(sizeof(DataFragment));
   server->outputCommands = vct_Init(sizeof(DataFragment));
+  server->closeConnectionsQueue = vct_Init(sizeof(Connection));
   if(!_sock_StartConnections(server)) {
     sock_Delete(server);
     return NULL;
@@ -142,6 +143,50 @@ static inline void sock_ReadData(PSocketServer self, Connection *conn, char *buf
   sock_ExecuteOnReceiveMethod(&dt, self->onReceiveMessage);
 }
 
+static inline ssize_t sock_FindConnIndex(PSocketServer self, PConnection conn) {
+  Connection *connections = self->connections->buffer;
+  for(ssize_t i = 0, c = (ssize_t)self->connections->buffer; i < c; i++) {
+    if(conn->fd == connections[i].fd) {
+      return i;
+    }
+  }
+  return -1;
+}
+
+void sock_CloseConnection(PSocketServer self, size_t index) {
+  Connection conn = ((Connection *)self->connections->buffer)[index];
+  close(conn.fd);
+  vct_RemoveElement(self->connections, index);
+}
+
+void sock_PushCloseConnections(PSocketServer self, PConnection conn) {
+  ssize_t connectionIndex = sock_FindConnIndex(self, conn);
+  if(connectionIndex < 0) {
+    return ;
+  }
+  vct_Push(self->closeConnectionsQueue, &conn);
+}
+
+uint8_t sock_DoesConnectionExists(PSocketServer self, PConnection conn) {
+  Connection *connections = self->connections->buffer;
+  for(size_t i = 0, c = self->connections->size; i < c; i++) {
+    if(connections[i].fd == conn->fd) {
+      return 1;
+    }
+  }
+  return 0;
+}
+
+void sock_ClearPushedConnections(PSocketServer self) {
+  Connection *connections = self->closeConnectionsQueue->buffer;
+  for(size_t i = 0, c = self->closeConnectionsQueue->size; i < c; i++) {
+    if(sock_DoesConnectionExists(self, &connections[i])) {
+      close(connections[i].fd);
+    }
+  }
+  vct_Clear(self->closeConnectionsQueue);
+}
+
 static inline void sock_OnReceiveMessage(PSocketServer self, Connection *conn, size_t index) {
   size_t count = 0;
   int32_t error = ioctl(conn->fd, FIONREAD, &count);
@@ -236,6 +281,7 @@ static inline void sock_ProcessWriteRequests(PSocketServer self)  {
   vct_Delete(self->connections);
   vct_Delete(markedForDeletionRequests);
   self->connections = prunnedArray;
+  sock_ClearPushedConnections(self);
 }
 
 static inline void sock_ClearConnections(PSocketServer self) {
@@ -243,6 +289,8 @@ static inline void sock_ClearConnections(PSocketServer self) {
   for(size_t i = 0, c = self->connections->size; i < c; i++) {
     close(conn[i].fd);
   }
+  vct_Delete(self->closeConnectionsQueue);
+  vct_Delete(self->connections);
 }
 
 PConnection sock_FindConnectionByIndex(PSocketServer self, size_t index) {
@@ -337,7 +385,6 @@ void sock_Delete(PSocketServer self) {
   vct_Delete(self->inputReads);
   sock_ClearConnections(self);
   vct_Delete(self->outputCommands);
-  vct_Delete(self->connections);
   close(self->serverFD.fd);
   sock_Time_Delete(self);
   free(self);

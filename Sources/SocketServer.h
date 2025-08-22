@@ -19,6 +19,7 @@ typedef struct SocketServer_t {
   Vector connections;
   Vector inputReads;
   Vector outputCommands;
+  Vector closeConnectionsQueue;
   PSocketMethod onConnectionRelease;
   PSocketMethod onConnectionAquire;
   PSocketMethod onReceiveMessage;
@@ -36,6 +37,8 @@ size_t sock_ConnectionCount(PSocketServer self);
 // Default is set to 16 max connections
 void sock_SetMaxConnections(PSocketServer self, int32_t maxActiveConnections);
 void sock_AddConnectionTimeout(PSocketServer self, int64_t expireAfter);
+void sock_PushCloseConnections(PSocketServer self, PConnection conn);
+void sock_CloseConnection(PSocketServer self, size_t index);
 
 PSocketMethod sock_Method_Create(void *method, void *mirrorBuffer);
 void sock_Method_Delete(PSocketMethod self);
