@@ -30,6 +30,14 @@ static inline void wbs_ClearHeaderBytes(char *buffer) {
   buffer[1] = 0;
 }
 
+static inline void wbs_SetMask(char *buffer) {
+  buffer[1] |= (1<<7);
+}
+
+static inline uint8_t wbs_SizeCode(char *buffer) {
+  return (buffer[1] & ((1<<7) - 1));
+}
+
 static inline void wbs_RevertBytes(char *st, char *end, char *dst) {
   end--;
   for(char *it = end; it >= st; it--) {
@@ -40,7 +48,7 @@ static inline void wbs_RevertBytes(char *st, char *end, char *dst) {
 
 static inline size_t wbs_SetPayloadSize(char *buffer, const PWebSocketObject obj) {
   char *currentNumberPointer = (char *)&obj->sz;
-  switch (buffer[1])
+  switch (wbs_SizeCode(buffer))
   {
     case 126: {
       wbs_RevertBytes(currentNumberPointer, currentNumberPointer + sizeof(uint16_t), buffer + 2);
@@ -89,7 +97,7 @@ size_t wbs_Public_HeaderSize(const PWebSocketObject obj, uint8_t shouldBeMasked)
 
 static inline char *wbs_SetPayloadCode(char *buffer, const PWebSocketObject obj) {
   if(obj->sz <= 125) {
-    buffer[1] = obj->sz;
+    buffer[1] |= obj->sz;
   }
   else if(obj->sz <= (1<<16)) {
     buffer[1] |= 126;
@@ -113,14 +121,15 @@ static inline uint8_t wbs_IsMasked(char *buffer) {
 
 static inline size_t wbs_PayloadSize(char *buffer) {
   size_t result = 0;
-  if(buffer[1] < 126) {
-    return buffer[1];
+  uint8_t size = wbs_SizeCode(buffer);
+  if(size < 126) {
+    return size;
   }
-  if(buffer[1] == 126) {
+  if(size == 126) {
     wbs_RevertBytes(buffer + 2, buffer + 2 + sizeof(uint16_t), (char *)&result);
     return result;
   }
-  if(buffer[1] == 127) {
+  if(size == 127) {
     wbs_RevertBytes(buffer + 2, buffer + 2 + sizeof(uint64_t), (char *)&result);
     return result;
   }
@@ -133,10 +142,11 @@ size_t wbs_Public_PayloadSize(char *buffer) {
 
 static inline char *wbs_PayloadBuffer(char *buffer) {
   size_t maskOffset = (wbs_IsMasked(buffer) ? 4 : 0);
-  if(buffer[1] < 126) {
+  uint8_t size = wbs_SizeCode(buffer);
+  if(size < 126) {
     return buffer + 2 + maskOffset;
   }
-  if(buffer[1] == 126) {
+  if(size == 126) {
     return buffer + 4 + maskOffset;
   }
   return buffer + 10 + maskOffset;
@@ -164,10 +174,11 @@ uint8_t wbs_IsBufferValid(char *buffer, size_t sz) {
 
 static inline size_t wbs_ValidMinimumSize(char *buffer) {
   size_t maskSize = wbs_IsMasked(buffer) ? 4 : 0;
-  if(buffer[1] < 126) {
+  uint8_t size = wbs_SizeCode(buffer);
+  if(size < 126) {
     return 2 + maskSize;
   }
-  if(buffer[1] == 126) {
+  if(size == 126) {
     return 4 + maskSize;
   }
   return 10 + maskSize;
@@ -193,8 +204,9 @@ size_t wbs_FullMessageSize(char *buffer) {
 
 void wbs_Print(char *buffer) {
   printf("First byte 0x%x\n", (uint8_t)buffer[0]);
-  printf("Size cateogry byte is 0x%x\n", ((uint8_t)buffer[1] & ((1<<7) - 1)));
-  switch (buffer[1])
+  uint8_t size = wbs_SizeCode(buffer);
+  printf("Size cateogry byte is 0x%x\n", size);
+  switch (size)
   {
     case 126:
       _wbs_PrintNextBytes(buffer + 2, sizeof(uint16_t));
@@ -207,7 +219,7 @@ void wbs_Print(char *buffer) {
     default:
       break;
   }
-  printf("Mask bit is 0x%x\n", ((uint8_t)buffer[1] & (1<<7)) > 0);
+  printf("Mask bit is 0x%x\n", wbs_IsMasked(buffer));
   const size_t payloadSize = wbs_PayloadSize(buffer), messageSize = wbs_FullMessageSize(buffer);
   printf("Payload is size is %ld\n", payloadSize);
   _wbs_PrintNextBytes(wbs_PayloadBuffer(buffer), payloadSize);
@@ -219,6 +231,18 @@ char *wbs_ToWebSocket(WebSocketObject self) {
   char *response = malloc(wbs_Object_HeaderSize(&self, 0));
   wbs_ClearHeaderBytes(response);
   wbs_SetFin(response);
+  wbs_SetOpcodeTo(response, OPCODE_BINARY);
+  char *cpyResponse = response;
+  cpyResponse = wbs_SetPayloadCode(response, &self) + 1 /*First byte*/;
+  wbs_WritePayload(cpyResponse, &self);
+  return response;
+}
+
+char *wbs_Masked_ToWebSocket(WebSocketObject self) {
+  char *response = malloc(wbs_Object_HeaderSize(&self, 1));
+  wbs_ClearHeaderBytes(response);
+  wbs_SetFin(response);
+  wbs_SetMask(response);
   wbs_SetOpcodeTo(response, OPCODE_BINARY);
   char *cpyResponse = response;
   cpyResponse = wbs_SetPayloadCode(response, &self) + 1 /*First byte*/;
