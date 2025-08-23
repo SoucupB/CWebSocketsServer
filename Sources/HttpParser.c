@@ -1,6 +1,7 @@
 #include "HttpParser.h"
 #include <stdlib.h>
 #include <string.h>
+#include <stdio.h>
 
 static inline PHttpMetaData http_InitMetadata();
 static inline PURL http_URL_Init();
@@ -115,18 +116,25 @@ char *http_Path_Parse(PHttp parent, PHttpString buffer) {
 }
 
 char *http_Route_ParseType(PHttp parent, PHttpString buffer) {
-  char *bff = http_ChompString(buffer, ALPHANUMERIC, 1);
+  HttpString cpyString = *buffer;
+  char *bff = http_ChompString(&cpyString, ALPHANUMERIC, 1);
   if(!bff) {
     return NULL;
   }
-  bff = http_ChompString(buffer, "/", 0);
+  http_UpdateString(parent, &cpyString, bff);
+
+  bff = http_ChompString(&cpyString, "/", 0);
   if(!bff) {
     return NULL;
   }
-  bff = http_ChompString(buffer, ALPHANUMERIC, 1);
+  http_UpdateString(parent, &cpyString, bff);
+
+  bff = http_ChompString(&cpyString, ALPHANUMERIC, 1);
   if(!bff) {
     return NULL;
   }
+  http_UpdateString(parent, &cpyString, bff);
+
   return bff;
 }
 
@@ -195,8 +203,13 @@ void http_URL_Free(PURL self) {
   free(self);
 }
 
+void http_Metadata_Delete(PHttpMetaData self) {
+  free(self);
+}
+
 void http_Delete(PHttp self) {
   http_URL_Free(self->url);
   trh_Delete(self->headers);
+  http_Metadata_Delete(self->metadata);
   free(self);
 }

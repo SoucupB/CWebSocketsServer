@@ -11,8 +11,9 @@
 static void test_http_parser_header(void **state) {
   char *request = "\
 GET /connect HTTP/1.1\r\n\
-  ";
+";
   PHttp httpObj = http_Parse(request, strlen(request));
+  assert_non_null(httpObj);
   http_Delete(httpObj);
 }
 
