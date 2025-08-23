@@ -245,7 +245,11 @@ char *http_Route_Parse_t(PHttp parent, PHttpString buffer) {
   if(!httpType) {
     return NULL;
   }
-  memcpy(parent->url->httpType, buffer->buffer, (size_t)(httpType - buffer->buffer));
+  size_t mthSize = (size_t)(httpType - buffer->buffer);
+  if(mthSize >= sizeof(parent->url->httpType)) {
+    return NULL;
+  }
+  memcpy(parent->url->httpType, buffer->buffer, mthSize);
   http_UpdateString(parent, buffer, httpType);
 
   chompedSpace = http_ChompLineSeparator(buffer);

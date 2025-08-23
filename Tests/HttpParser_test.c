@@ -147,6 +147,16 @@ Content-Ty\x03pe:application/json\r\n\
   assert_null(httpObj);
 }
 
+static void test_http_parser_too_big_type(void **state) {
+  char *request = "\
+GET /connect HTTP/1.132324252\r\n\
+Content-Type:application/json\r\n\
+\r\n\
+";
+  PHttp httpObj = http_Parse(request, strlen(request));
+  assert_null(httpObj);
+}
+
 int main(void) {
   const struct CMUnitTest tests[] = {
     cmocka_unit_test(test_http_parser_full_http_body),
@@ -159,6 +169,7 @@ int main(void) {
     cmocka_unit_test(test_http_parser_unknown_method),
     cmocka_unit_test(test_http_parser_non_writable_bytes_in_value),
     cmocka_unit_test(test_http_parser_non_writable_bytes_in_key),
+    cmocka_unit_test(test_http_parser_too_big_type),
   };
   return cmocka_run_group_tests(tests, NULL, NULL);
 }
