@@ -94,8 +94,12 @@ uint8_t http_Header_Parse(PHttp self, PHttpString buffer) {
   char *buff;
   HttpString cpyStr = *buffer;
   while((buff = http_Header_ParseLine(self, &cpyStr)) && buff);
-  char *endOfLine = http_ChompString(buffer, "\r\n", 1);
+  char *endOfLine = http_ChompString(&cpyStr, "\r\n", 1);
   if(!endOfLine) {
+    return 0;
+  }
+  http_UpdateString(self, &cpyStr, endOfLine);
+  if(cpyStr.sz) {
     return 0;
   }
   http_UpdateString(self, buffer, endOfLine);
