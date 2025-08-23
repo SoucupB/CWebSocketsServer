@@ -14,6 +14,7 @@ GET /connect HTTP/1.1\r\n\
 ";
   PHttp httpObj = http_Parse(request, strlen(request));
   assert_non_null(httpObj);
+  assert_string_equal(httpObj->url->httpType, "HTTP/1.1");
   http_Delete(httpObj);
 }
 

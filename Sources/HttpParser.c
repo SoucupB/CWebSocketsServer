@@ -171,7 +171,7 @@ char *http_Route_Parse_t(PHttp parent, PHttpString buffer) {
   if(!httpType) {
     return NULL;
   }
-  memcpy(parent->url->httpType, httpType, (size_t)(httpType - buffer->buffer));
+  memcpy(parent->url->httpType, buffer->buffer, (size_t)(httpType - buffer->buffer));
   http_UpdateString(parent, buffer, httpType);
 
   chompedSpace = http_ChompString(buffer, "\r\n", 0);
