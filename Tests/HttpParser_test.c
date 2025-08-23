@@ -105,7 +105,7 @@ GET /connect: HTTP/1.1\r\n\
   assert_null(httpObj);
 }
 
-static void test_http_parser_missing_missing_space(void **state) {
+static void test_http_parser_missing_space(void **state) {
   char *request = "\
 GET /connect HTTP/1.1\r\n\
 Content-Type:application/json\r\n\
@@ -117,10 +117,30 @@ Content-Type:application/json\r\n\
   http_Delete(httpObj);
 }
 
-static void test_http_parser_missing_unknown_method(void **state) {
+static void test_http_parser_unknown_method(void **state) {
   char *request = "\
 TEST /connect HTTP/1.1\r\n\
 Content-Type:application/json\r\n\
+\r\n\
+";
+  PHttp httpObj = http_Parse(request, strlen(request));
+  assert_null(httpObj);
+}
+
+static void test_http_parser_non_writable_bytes_in_value(void **state) {
+  char *request = "\
+GET /connect HTTP/1.1\r\n\
+Content-Type:applicati\x03on/json\r\n\
+\r\n\
+";
+  PHttp httpObj = http_Parse(request, strlen(request));
+  assert_null(httpObj);
+}
+
+static void test_http_parser_non_writable_bytes_in_key(void **state) {
+  char *request = "\
+GET /connect HTTP/1.1\r\n\
+Content-Ty\x03pe:application/json\r\n\
 \r\n\
 ";
   PHttp httpObj = http_Parse(request, strlen(request));
@@ -135,8 +155,10 @@ int main(void) {
     cmocka_unit_test(test_http_parser_missing_ilegal_values),
     cmocka_unit_test(test_http_parser_missing_ilegal_keys),
     cmocka_unit_test(test_http_parser_missing_ilegal_path_chars),
-    cmocka_unit_test(test_http_parser_missing_missing_space),
-    cmocka_unit_test(test_http_parser_missing_unknown_method),
+    cmocka_unit_test(test_http_parser_missing_space),
+    cmocka_unit_test(test_http_parser_unknown_method),
+    cmocka_unit_test(test_http_parser_non_writable_bytes_in_value),
+    cmocka_unit_test(test_http_parser_non_writable_bytes_in_key),
   };
   return cmocka_run_group_tests(tests, NULL, NULL);
 }
