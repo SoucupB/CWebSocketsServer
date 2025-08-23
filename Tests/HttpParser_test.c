@@ -10,7 +10,7 @@
 
 static void test_http_parser_full_http_body(void **state) {
   char *request = "\
-GET /connect HTTP/1.1\r\n\
+POST /connect HTTP/1.1\r\n\
 Content-Type: application/json\r\n\
 User-Agent: PostmanRuntime/7.37.3\r\n\
 Accept: */*\r\n\
@@ -26,6 +26,7 @@ Content-Length: 0\r\n\
   assert_string_equal(httpObj->url->httpType, "HTTP/1.1");
   assert_true(httpObj->url->path.sz == 8);
   assert_memory_equal(httpObj->url->path.buffer, "/connect", httpObj->url->path.sz);
+  assert_true(httpObj->url->method == POST);
   assert_memory_equal(http_GetValue(httpObj, "Postman-Token"), "4415f19a-a8bf-4577-affa-84bed769a538", sizeof("4415f19a-a8bf-4577-affa-84bed769a538") - 1);
   assert_memory_equal(http_GetValue(httpObj, "User-Agent"), "PostmanRuntime/7.37.3", sizeof("PostmanRuntime/7.37.3") - 1);
   assert_memory_equal(http_GetValue(httpObj, "Host"), "space_bots_instance_1.api.com", sizeof("space_bots_instance_1.api.com") - 1);
@@ -116,6 +117,16 @@ Content-Type:application/json\r\n\
   http_Delete(httpObj);
 }
 
+static void test_http_parser_missing_unknown_method(void **state) {
+  char *request = "\
+TEST /connect HTTP/1.1\r\n\
+Content-Type:application/json\r\n\
+\r\n\
+";
+  PHttp httpObj = http_Parse(request, strlen(request));
+  assert_null(httpObj);
+}
+
 int main(void) {
   const struct CMUnitTest tests[] = {
     cmocka_unit_test(test_http_parser_full_http_body),
@@ -125,6 +136,7 @@ int main(void) {
     cmocka_unit_test(test_http_parser_missing_ilegal_keys),
     cmocka_unit_test(test_http_parser_missing_ilegal_path_chars),
     cmocka_unit_test(test_http_parser_missing_missing_space),
+    cmocka_unit_test(test_http_parser_missing_unknown_method),
   };
   return cmocka_run_group_tests(tests, NULL, NULL);
 }
