@@ -7,8 +7,11 @@ static inline PHttpMetaData http_InitMetadata();
 static inline PURL http_URL_Init();
 static inline void http_UpdateString(PHttp self, PHttpString string, char *buffer);
 uint8_t http_Route_Parse(PHttp parent, PHttpString buffer);
+static inline char *http_ChompString(PHttpString buff, char *like, uint8_t repeat);
+uint8_t http_Header_Parse(PHttp self, PHttpString buffer);
 
 #define ALPHANUMERIC "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_."
+#define ACCEPTED_ALPHANUMERIC_REQUEST "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_.!#$%&'*+-.^_`|~"
 
 PHttp http_Parse(char *buffer, size_t sz) {
   PHttp self = malloc(sizeof(Http));
@@ -22,6 +25,10 @@ PHttp http_Parse(char *buffer, size_t sz) {
     .sz = sz
   };
   if(!http_Route_Parse(self, &input)) {
+    http_Delete(self);
+    return NULL;
+  }
+  if(!http_Header_Parse(self, &input)) {
     http_Delete(self);
     return NULL;
   }
@@ -44,6 +51,55 @@ static inline void http_Meta_InitCodes(PHttpMetaData self) {
     };
     self->actionsSz++;
   }
+}
+
+char *http_Header_ParseLine(PHttp self, PHttpString buffer) {
+  char *key = http_ChompString(buffer, ACCEPTED_ALPHANUMERIC_REQUEST, 1);
+  if(!key) {
+    return NULL;
+  }
+  size_t keySize = (size_t)(key - buffer->buffer);
+  char *keyOffset = buffer->buffer;
+  http_UpdateString(self, buffer, key);
+
+  char *separator = http_ChompString(buffer, ":", 0);
+  if(!separator) {
+    return NULL;
+  }
+  http_UpdateString(self, buffer, separator);
+
+  char *space = http_ChompString(buffer, " ", 0);
+  if(space) {
+    http_UpdateString(self, buffer, space);
+  }
+
+  char *value = http_ChompString(buffer, ACCEPTED_ALPHANUMERIC_REQUEST, 1);
+  if(!value) {
+    return NULL;
+  }
+  size_t valueSize = (size_t)(value - buffer->buffer);
+  char *valueOffset = buffer->buffer;
+  http_UpdateString(self, buffer, value);
+
+  trh_Add(self->headers, keyOffset, keySize, valueOffset, valueSize);
+  char *endOfLine = http_ChompString(buffer, "\r\n", 1);
+  if(!endOfLine) {
+    return NULL;
+  }
+
+  return endOfLine;
+}
+
+uint8_t http_Header_Parse(PHttp self, PHttpString buffer) {
+  char *buff;
+  HttpString cpyStr = *buffer;
+  while((buff = http_Header_ParseLine(self, &cpyStr)) && buff);
+  char *endOfLine = http_ChompString(buffer, "\r\n", 1);
+  if(!endOfLine) {
+    return 0;
+  }
+  http_UpdateString(self, buffer, endOfLine);
+  return 1;
 }
 
 static inline PHttpMetaData http_InitMetadata() {

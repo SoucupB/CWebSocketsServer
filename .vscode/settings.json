@@ -29,6 +29,20 @@
     "iterator": "c",
     "map": "c",
     "set": "c",
-    "__locale": "c"
+    "__locale": "c",
+    "__node_handle": "c",
+    "optional": "c",
+    "system_error": "c",
+    "functional": "c",
+    "tuple": "c",
+    "type_traits": "c",
+    "utility": "c",
+    "__functional_base": "c",
+    "algorithm": "c",
+    "bitset": "c",
+    "chrono": "c",
+    "__memory": "c",
+    "limits": "c",
+    "memory": "c"
   }
 }
