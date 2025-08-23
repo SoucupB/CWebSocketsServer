@@ -9,9 +9,12 @@ static inline void http_UpdateString(PHttp self, PHttpString string, char *buffe
 uint8_t http_Route_Parse(PHttp parent, PHttpString buffer);
 static inline char *http_ChompString(PHttpString buff, char *like, uint8_t repeat);
 uint8_t http_Header_Parse(PHttp self, PHttpString buffer);
+char *http_GetToken(PHttpString buffer, PHttpString token);
+static inline char *http_ChompLineSeparator(PHttpString buffer);
 
 #define ALPHANUMERIC "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_."
-#define ACCEPTED_ALPHANUMERIC_REQUEST "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_.!#$%&'*+-.^_`|~"
+#define ACCEPTED_ALPHANUMERIC_KEY "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!#$%&'*+-.^_`|~"
+#define ACCEPTED_ALPHANUMERIC_VALUE "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ!\"#$%&'()*+,-./:;<=>?@[\\]^_`{|}~ "
 
 PHttp http_Parse(char *buffer, size_t sz) {
   PHttp self = malloc(sizeof(Http));
@@ -54,7 +57,7 @@ static inline void http_Meta_InitCodes(PHttpMetaData self) {
 }
 
 char *http_Header_ParseLine(PHttp self, PHttpString buffer) {
-  char *key = http_ChompString(buffer, ACCEPTED_ALPHANUMERIC_REQUEST, 1);
+  char *key = http_ChompString(buffer, ACCEPTED_ALPHANUMERIC_KEY, 1);
   if(!key) {
     return NULL;
   }
@@ -72,8 +75,7 @@ char *http_Header_ParseLine(PHttp self, PHttpString buffer) {
   if(space) {
     http_UpdateString(self, buffer, space);
   }
-
-  char *value = http_ChompString(buffer, ACCEPTED_ALPHANUMERIC_REQUEST, 1);
+  char *value = http_ChompString(buffer, ACCEPTED_ALPHANUMERIC_VALUE, 1);
   if(!value) {
     return NULL;
   }
@@ -82,19 +84,27 @@ char *http_Header_ParseLine(PHttp self, PHttpString buffer) {
   http_UpdateString(self, buffer, value);
 
   trh_Add(self->headers, keyOffset, keySize, valueOffset, valueSize);
-  char *endOfLine = http_ChompString(buffer, "\r\n", 1);
+  char *endOfLine = http_ChompLineSeparator(buffer);
   if(!endOfLine) {
     return NULL;
   }
-
+  http_UpdateString(self, buffer, endOfLine);
   return endOfLine;
+}
+
+static inline char *http_ChompLineSeparator(PHttpString buffer) {
+  HttpString lineSeparator = {
+    .buffer = "\r\n",
+    .sz = sizeof("\r\n") - 1
+  };
+  return http_GetToken(buffer, &lineSeparator);
 }
 
 uint8_t http_Header_Parse(PHttp self, PHttpString buffer) {
   char *buff;
   HttpString cpyStr = *buffer;
   while((buff = http_Header_ParseLine(self, &cpyStr)) && buff);
-  char *endOfLine = http_ChompString(&cpyStr, "\r\n", 1);
+  char *endOfLine = http_ChompLineSeparator(&cpyStr);
   if(!endOfLine) {
     return 0;
   }
@@ -234,7 +244,7 @@ char *http_Route_Parse_t(PHttp parent, PHttpString buffer) {
   memcpy(parent->url->httpType, buffer->buffer, (size_t)(httpType - buffer->buffer));
   http_UpdateString(parent, buffer, httpType);
 
-  chompedSpace = http_ChompString(buffer, "\r\n", 0);
+  chompedSpace = http_ChompLineSeparator(buffer);
   if(!chompedSpace) {
     return NULL;
   }
@@ -249,7 +259,6 @@ uint8_t http_Route_Parse(PHttp parent, PHttpString buffer) {
     return 0;
   }
   http_UpdateString(parent, buffer, urlParse);
-
   return 1;
 }
 

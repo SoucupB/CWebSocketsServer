@@ -11,6 +11,14 @@
 static void test_http_parser_header(void **state) {
   char *request = "\
 GET /connect HTTP/1.1\r\n\
+Content-Type: application/json\r\n\
+User-Agent: PostmanRuntime/7.37.3\r\n\
+Accept: */*\r\n\
+Postman-Token: 4415f19a-a8bf-4577-affa-84bed769a538\r\n\
+Host: space_bots_instance_1.api.com\r\n\
+Accept-Encoding: gzip, deflate, br\r\n\
+Connection: keep-alive\r\n\
+Content-Length: 0\r\n\
 \r\n\
 ";
   PHttp httpObj = http_Parse(request, strlen(request));
