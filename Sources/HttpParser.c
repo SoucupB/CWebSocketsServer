@@ -14,7 +14,7 @@ static inline char *http_ChompLineSeparator(PHttpString buffer);
 
 #define ALPHANUMERIC "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_."
 #define ACCEPTED_ALPHANUMERIC_KEY "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!#$%&'*+-.^_`|~"
-#define ACCEPTED_ALPHANUMERIC_VALUE "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ!\"#$%&'()*+,-./:;<=>?@[\\]^_`{|}~ "
+#define ACCEPTED_ALPHANUMERIC_VALUE "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ!\"#$%&'()*+,-./;<=>?@[\\]^_`{|}~ "
 
 PHttp http_Parse(char *buffer, size_t sz) {
   PHttp self = malloc(sizeof(Http));
@@ -98,6 +98,10 @@ static inline char *http_ChompLineSeparator(PHttpString buffer) {
     .sz = sizeof("\r\n") - 1
   };
   return http_GetToken(buffer, &lineSeparator);
+}
+
+char *http_GetValue(PHttp self, char *buffer) {
+  return trh_GetBuffer(self->headers, buffer, strlen(buffer));
 }
 
 uint8_t http_Header_Parse(PHttp self, PHttpString buffer) {

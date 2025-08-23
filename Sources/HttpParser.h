@@ -52,4 +52,5 @@ typedef struct Http_t {
 typedef Http *PHttp;
 
 PHttp http_Parse(char *buffer, size_t sz);
+char *http_GetValue(PHttp self, char *buffer);
 void http_Delete(PHttp self);
