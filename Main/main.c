@@ -2,6 +2,7 @@
 #include "SocketServer.h"
 #include <unistd.h>
 #include "TimeFragment.h"
+#include "HttpParser.h"
 
 void onConnectPlm(Connection conn, void *buffer) {
   printf("Connected mr %d\n", conn.fd);
@@ -13,7 +14,7 @@ void onReceiveMessage(DataFragment *dataFragment, void *buffer) {
     printf("%c", msg[i]);
   }
   printf("\n");
-  printf("Message receive!\n");
+  printf("Message receive! with size %d\n", dataFragment->size);
 }
 
 int main() {
