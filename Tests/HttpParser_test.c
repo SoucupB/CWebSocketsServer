@@ -1,0 +1,24 @@
+#include <stdarg.h>
+#include <stddef.h>
+#include <setjmp.h>
+#include <cmocka.h>
+#include <stdint.h>
+#include <string.h>
+#include <stdio.h>
+#include "HttpParser.h"
+#include <stdlib.h>
+
+static void test_http_parser_header(void **state) {
+  char *request = "\
+GET /connect HTTP/1.1\r\n\
+  ";
+  PHttp httpObj = http_Parse(request, strlen(request));
+  http_Delete(httpObj);
+}
+
+int main(void) {
+  const struct CMUnitTest tests[] = {
+    cmocka_unit_test(test_http_parser_header),
+  };
+  return cmocka_run_group_tests(tests, NULL, NULL);
+}

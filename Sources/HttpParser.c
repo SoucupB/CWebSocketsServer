@@ -20,7 +20,10 @@ PHttp http_Parse(char *buffer, size_t sz) {
     .buffer = buffer,
     .sz = sz
   };
-  http_Route_Parse(self, &input);
+  if(!http_Route_Parse(self, &input)) {
+    http_Delete(self);
+    return NULL;
+  }
   return self;
 }
 
