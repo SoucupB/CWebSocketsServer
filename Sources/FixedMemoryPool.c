@@ -68,12 +68,27 @@ static inline void stack_Push(PFreeStackTracker self, PMemoryFragment *memory) {
   self->sz++;
 }
 
+static inline PFixedMemoryPool fmp_FindPool(const PFixedMemoryPool self, const void *buffer) {
+  PFixedMemoryPool current = self;
+  while(1) {
+    if(!current) {
+      return NULL;
+    }
+    if(current->memory <= buffer && current->_endBuffer >= buffer) {
+      return self;
+    }
+    current = current->next;
+  }
+  return NULL;
+}
+
 void fmp_Free(PFixedMemoryPool self, void *buffer) {
+  PFixedMemoryPool currentPool = fmp_FindPool(self, buffer);
   PMemoryFragment currentMemoryFragment = fmp_StartingPointer(buffer);
   assert(*currentMemoryFragment->flag == 1);
-  stack_Push(&self->freeStack, currentMemoryFragment->self);
+  stack_Push(&currentPool->freeStack, currentMemoryFragment->self);
   *currentMemoryFragment->flag = 0;
-  self->count--;
+  currentPool->count--;
 }
 
 PMemoryFragment stack_Pop(PFixedMemoryPool self) {
