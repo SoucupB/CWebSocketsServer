@@ -33,5 +33,6 @@ typedef FixedMemoryPool *PFixedMemoryPool;
 PFixedMemoryPool fmp_Init(size_t objSize, size_t capacity);
 void *fmp_Alloc(PFixedMemoryPool self);
 void fmp_Free(PFixedMemoryPool self, void *buffer);
+void fmp_PrintMemory(PFixedMemoryPool self);
 
 void fmp_Delete(PFixedMemoryPool self);
