@@ -43,6 +43,7 @@
     "chrono": "c",
     "__memory": "c",
     "limits": "c",
-    "memory": "c"
+    "memory": "c",
+    "string.h": "c"
   }
 }
