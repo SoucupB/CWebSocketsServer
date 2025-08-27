@@ -72,11 +72,13 @@ void fmp_Free(PFixedMemoryPool self, void *buffer) {
   assert(*currentMemoryFragment->flag == 1);
   stack_Push(&self->freeStack, currentMemoryFragment->self);
   *currentMemoryFragment->flag = 0;
+  self->count--;
 }
 
-PMemoryFragment stack_Pop(PFreeStackTracker self) {
-  PMemoryFragment frag = (self->stack + sizeof(PMemoryFragment) * (self->sz - 1));
-  self->sz--;
+PMemoryFragment stack_Pop(PFixedMemoryPool self) {
+  PFreeStackTracker currentStack = &self->freeStack;
+  PMemoryFragment frag = (currentStack->stack + sizeof(PMemoryFragment) * (currentStack->sz - 1));
+  currentStack->sz--;
   *frag->flag = 1;
   return frag;
 }
@@ -111,8 +113,7 @@ void *fmp_Alloc(PFixedMemoryPool self) {
     return fmp_NextBlock(self);
   }
   if(self->freeStack.sz) {
-    self->count--;
-    return stack_Pop(&self->freeStack);
+    return stack_Pop(self);
   }
   return fmp_NormalMem(self);
 }

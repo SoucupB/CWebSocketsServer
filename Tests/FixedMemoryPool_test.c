@@ -17,10 +17,11 @@ static void test_fixed_memory_alloc_single_element(void **state) {
 }
 
 static void test_fixed_memory_alloc_single_element_free(void **state) {
-  PFixedMemoryPool memory = fmp_Init(sizeof(uint32_t), 1);
+  PFixedMemoryPool memory = fmp_Init(sizeof(uint32_t), 10);
   uint32_t *element = fmp_Alloc(memory);
   *element = 111;
   fmp_Free(memory, element);
+  assert_true(memory->count == 0);
   fmp_Delete(memory);
 }
 
