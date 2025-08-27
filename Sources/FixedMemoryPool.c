@@ -13,7 +13,9 @@ static inline void fmp_PrepareMemory(PFixedMemoryPool self) {
     return ;
   }
   self->bufferFragments = (MemoryFragment *)malloc(sizeof(MemoryFragment) * self->capacity);
-  self->memory = malloc(fmp_MemoryFragmentSize(self->objSize) * self->capacity);
+  size_t totalSize = fmp_MemoryFragmentSize(self->objSize) * self->capacity;
+  self->memory = malloc(totalSize);
+  self->_endBuffer = self->memory + totalSize;
   char *memory = self->memory;
   for(size_t i = 0, c = self->capacity; i < c; i++) {
     self->bufferFragments[i] = (MemoryFragment) {
@@ -21,7 +23,6 @@ static inline void fmp_PrepareMemory(PFixedMemoryPool self) {
       .self = (PMemoryFragment *)(memory + sizeof(size_t *)),
       .buffer = (void *)(memory + sizeof(size_t *) + sizeof(PMemoryFragment *))
     };
-    // printf("ZZZ %p %p\n", self->bufferFragments[i].buffer, self->bufferFragments[i].self);
     *self->bufferFragments[i].flag = 0;
     *self->bufferFragments[i].self = &self->bufferFragments[i];
     memory += fmp_MemoryFragmentSize(self->objSize);
@@ -77,9 +78,10 @@ void fmp_Free(PFixedMemoryPool self, void *buffer) {
 
 PMemoryFragment stack_Pop(PFixedMemoryPool self) {
   PFreeStackTracker currentStack = &self->freeStack;
-  PMemoryFragment frag = (currentStack->stack + sizeof(PMemoryFragment) * (currentStack->sz - 1));
+  PMemoryFragment frag = *(PMemoryFragment *)(currentStack->stack + sizeof(PMemoryFragment) * (currentStack->sz - 1));
   currentStack->sz--;
   *frag->flag = 1;
+  self->count++;
   return frag;
 }
 
@@ -104,7 +106,7 @@ void *fmp_NextBlock(PFixedMemoryPool self) {
   }
   PFixedMemoryPool newBuffer = fmp_Init(self->objSize, self->capacity * 10);
   self->next = newBuffer;
-  return fmp_Alloc(self->next);
+  return fmp_Alloc(newBuffer);
 }
 
 void *fmp_Alloc(PFixedMemoryPool self) {
@@ -113,7 +115,7 @@ void *fmp_Alloc(PFixedMemoryPool self) {
     return fmp_NextBlock(self);
   }
   if(self->freeStack.sz) {
-    return stack_Pop(self);
+    return stack_Pop(self)->buffer;
   }
   return fmp_NormalMem(self);
 }

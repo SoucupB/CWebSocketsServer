@@ -21,6 +21,7 @@ typedef FreeStackTracker *PFreeStackTracker;
 typedef struct FixedMemoryPool_t {
   MemoryFragment *bufferFragments;
   void *memory;
+  void *_endBuffer;
   FreeStackTracker freeStack;
   size_t count;
   size_t objSize;
