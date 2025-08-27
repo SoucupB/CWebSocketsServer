@@ -31,7 +31,8 @@ typedef struct FixedMemoryPool_t {
 
 typedef FixedMemoryPool *PFixedMemoryPool;
 
-PFixedMemoryPool fmp_Init(size_t objSize, size_t capacity);
+PFixedMemoryPool fmp_InitWithCapacity(size_t objSize, size_t capacity);
+PFixedMemoryPool fmp_Init(size_t objSize);
 void *fmp_Alloc(PFixedMemoryPool self);
 void fmp_Free(PFixedMemoryPool self, void *buffer);
 void fmp_PrintMemory(PFixedMemoryPool self);

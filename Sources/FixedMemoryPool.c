@@ -43,13 +43,17 @@ static inline FreeStackTracker stack_Init(size_t capacity) {
   return self;
 }
 
-PFixedMemoryPool fmp_Init(size_t objSize, size_t capacity) {
+PFixedMemoryPool fmp_InitWithCapacity(size_t objSize, size_t capacity) {
   PFixedMemoryPool self = malloc(sizeof(FixedMemoryPool));
   memset(self, 0, sizeof(FixedMemoryPool));
   self->objSize = objSize;
   self->capacity = capacity;
   self->freeStack = stack_Init(capacity);
   return self;
+}
+
+PFixedMemoryPool fmp_Init(size_t objSize) {
+  return fmp_InitWithCapacity(objSize, 128);
 }
 
 static inline void *fmp_NormalMem(const PFixedMemoryPool self) {
@@ -119,7 +123,7 @@ void *fmp_NextBlock(PFixedMemoryPool self) {
   if(self->next) {
     return fmp_Alloc(self->next);
   }
-  PFixedMemoryPool newBuffer = fmp_Init(self->objSize, self->capacity * 10);
+  PFixedMemoryPool newBuffer = fmp_InitWithCapacity(self->objSize, self->capacity * 10);
   self->next = newBuffer;
   return fmp_Alloc(newBuffer);
 }

@@ -9,7 +9,7 @@
 #include <string.h>
 
 static void test_fixed_memory_alloc_single_element(void **state) {
-  PFixedMemoryPool memory = fmp_Init(sizeof(uint32_t), 10);
+  PFixedMemoryPool memory = fmp_InitWithCapacity(sizeof(uint32_t), 10);
   uint32_t *element = fmp_Alloc(memory);
   *element = 43;
   assert_true(*element == 43 && memory->count == 1);
@@ -17,7 +17,7 @@ static void test_fixed_memory_alloc_single_element(void **state) {
 }
 
 static void test_fixed_memory_alloc_single_element_free(void **state) {
-  PFixedMemoryPool memory = fmp_Init(sizeof(uint32_t), 10);
+  PFixedMemoryPool memory = fmp_InitWithCapacity(sizeof(uint32_t), 10);
   uint32_t *element = fmp_Alloc(memory);
   *element = 111;
   fmp_Free(memory, element);
@@ -26,7 +26,7 @@ static void test_fixed_memory_alloc_single_element_free(void **state) {
 }
 
 static void test_fixed_memory_alloc_single_element_realloc(void **state) {
-  PFixedMemoryPool memory = fmp_Init(sizeof(uint32_t), 10);
+  PFixedMemoryPool memory = fmp_InitWithCapacity(sizeof(uint32_t), 10);
   uint32_t *element = fmp_Alloc(memory);
   *element = 111;
   fmp_Free(memory, element);
@@ -35,7 +35,7 @@ static void test_fixed_memory_alloc_single_element_realloc(void **state) {
 }
 
 static void test_fixed_memory_alloc_stack_order_allocations(void **state) {
-  PFixedMemoryPool memory = fmp_Init(sizeof(uint32_t), 10);
+  PFixedMemoryPool memory = fmp_InitWithCapacity(sizeof(uint32_t), 10);
   uint32_t *element[5];
   for(size_t i = 0; i < sizeof(element) / sizeof(uint32_t *); i++) {
     element[i] = fmp_Alloc(memory);
@@ -50,7 +50,7 @@ static void test_fixed_memory_alloc_stack_order_allocations(void **state) {
 }
 
 static void test_fixed_memory_alloc_stack_order_allocations_over_multiple_pools(void **state) {
-  PFixedMemoryPool memory = fmp_Init(sizeof(uint32_t), 1);
+  PFixedMemoryPool memory = fmp_InitWithCapacity(sizeof(uint32_t), 1);
   uint32_t *element[500];
   for(size_t i = 0; i < sizeof(element) / sizeof(uint32_t *); i++) {
     element[i] = fmp_Alloc(memory);
