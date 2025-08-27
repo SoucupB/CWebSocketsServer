@@ -69,6 +69,20 @@ void vct_DeleteWOBuffer(Vector self) {
   crm_Free(self);
 }
 
+char *vct_Last(Vector self) {
+  if(!self->size) {
+    return NULL;
+  }
+  return self->buffer + (self->size - 1) * self->objSize;
+}
+
+void vct_Pop(Vector self) {
+  if(!self->size) {
+    return ;
+  }
+  self->size--;
+}
+
 Vector vct_RemoveElements(Vector payload, Vector indexes) {
   Vector indexesCount = vct_InitWithSize(sizeof(uint8_t), payload->size);
   memset(indexesCount->buffer, 0, sizeof(uint8_t) * payload->size);

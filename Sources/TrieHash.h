@@ -22,6 +22,11 @@ typedef struct TrieNode_t {
   PTrieNode *nextNodes;
 } TrieNode;
 
+typedef struct Key_t {
+  char *key;
+  uint32_t keySize;
+} Key;
+
 PTrieHash trh_Create();
 void trh_Add(PTrieHash self, PVOID key, uint32_t keySize, PVOID value, uint32_t valueSize);
 void trh_Delete(PTrieHash self);
@@ -41,3 +46,5 @@ PVOID trh_Buffer_GetFromIndex(PTrieHash self, uint32_t id);
 void trh_Buffer_RemoveAtIndex(PTrieHash self, uint32_t id);
 
 Vector trh_GetValues(PTrieHash self, size_t valueSize);
+Vector trh_GetKeys(PTrieHash self);
+void trh_FreeKeys(Vector keys);

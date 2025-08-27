@@ -19,13 +19,6 @@ typedef struct HttpString_t {
 
 typedef HttpString *PHttpString;
 
-typedef struct Body_t {
-  char *body;
-  size_t sz;
-} Body;
-
-typedef Body *PBody;
-
 typedef struct URL_t {
   HttpString path;
   char httpType[16];
@@ -41,16 +34,36 @@ typedef struct HttpMetaData_t {
 
 typedef HttpMetaData *PHttpMetaData;
 
-typedef struct Http_t {
-  PTrieHash headers;
+typedef struct Hash_t {
+  PTrieHash hash;
+  PTrieHash valuesSize;
+} Hash;
+
+typedef struct HttpRequest_t {
+  Hash headers;
   PURL url;
-  PBody body;
+  PHttpString body;
   char *_endBuffer;
   PHttpMetaData metadata;
-} Http;
+} HttpRequest;
 
-typedef Http *PHttp;
+typedef HttpRequest *PHttpRequest;
 
-PHttp http_Parse(char *buffer, size_t sz);
-char *http_GetValue(PHttp self, char *buffer);
-void http_Delete(PHttp self);
+typedef struct HttpResponse_t {
+  char *httpCode;
+  Hash headers;
+  HttpString body;
+  uint16_t response;
+} HttpResponse;
+
+typedef HttpResponse *PHttpResponse;
+
+PHttpRequest http_Request_Parse(char *buffer, size_t sz);
+HttpString http_Request_GetValue(PHttpRequest self, char *buffer);
+void http_Request_Delete(PHttpRequest self);
+
+HttpString http_Hash_GetValue(Hash self, char *buffer, size_t bufferLen);
+PHttpResponse http_Response_Create();
+void http_Response_SetBody(PHttpResponse self, PHttpString buffer);
+void http_Response_Delete(PHttpResponse self);
+HttpString http_Response_ToString(PHttpResponse self);

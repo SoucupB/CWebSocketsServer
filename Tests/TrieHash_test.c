@@ -8,6 +8,7 @@
 #include <string.h>
 #include "TrieHash.h"
 #include "TimeFragment.h"
+#include "TrieHash_Helper_test.h"
 
 static void test_trie_hash_insertion_v1(void **state) {
   PTrieHash hash = trh_Create();
@@ -146,6 +147,62 @@ static void test_trie_hash_insertion_get_values_v2(void **state) {
   trh_Delete(hash);
 }
 
+static void test_trie_hash_collect_integer_keys(void **state) {
+  PTrieHash hash = trh_Create();
+  uint32_t values[] = {5, 2, 1, 3, 7, 4, 11, 34};
+  uint32_t sortedValues[] = {1, 2, 3, 4, 5, 7, 11, 34};
+  for(size_t i = 0, c = sizeof(values) / sizeof(uint32_t); i < c; i++) {
+    trh_Buffer_AddToIndex(hash, values[i], &i, sizeof(size_t));
+  }
+  Vector response = trh_GetKeys(hash);
+  Key *buffer = response->buffer;
+  for(size_t i = 0, c = response->size; i < c; i++) {
+    uint32_t *currentPointer = (uint32_t *)buffer[i].key;
+    assert_true(buffer[i].keySize == sizeof(uint32_t));
+    assert_true(*currentPointer == sortedValues[i]);
+  }
+  trh_FreeKeys(response);
+  trh_Delete(hash);
+}
+
+static void test_trie_hash_collect_multiple_integer_keys(void **state) {
+  PTrieHash hash = trh_Create();
+  const size_t count = 50000;
+  size_t *inputBuffer = test_Util_CreateBuffer(count);
+  for(size_t i = 0; i < count; i++) {
+    trh_Buffer_AddToIndex64(hash, inputBuffer[i], &i, sizeof(size_t));
+  }
+  Vector response = trh_GetKeys(hash);
+  Key *buffer = response->buffer;
+  size_t *keyValues = malloc(sizeof(size_t) * count);
+  for(size_t i = 0, c = response->size; i < c; i++) {
+    size_t *currentPointer = (size_t *)buffer[i].key;
+    assert_true(buffer[i].keySize == sizeof(size_t));
+    keyValues[i] = *currentPointer;
+  }
+  test_Util_TestEquivalency(inputBuffer, keyValues, count);
+  trh_FreeKeys(response);
+  trh_Delete(hash);
+  free(inputBuffer);
+  free(keyValues);
+}
+
+static void test_trie_hash_collect_string_keys(void **state) {
+  PTrieHash hash = trh_Create();
+  char *bufferInput[] = {
+    "string_1", "string_222", "string_31", "string_4", "string_5"
+  };
+  const size_t count = sizeof(bufferInput) / sizeof(char *);
+  for(size_t i = 0; i < count; i++) {
+    trh_Add(hash, bufferInput[i], strlen(bufferInput[i]), &i, sizeof(size_t));
+  }
+  Vector response = trh_GetKeys(hash);
+  Key *buffer = response->buffer;
+  test_Util_TestStringEquivalency(bufferInput, buffer, count);
+  trh_FreeKeys(response);
+  trh_Delete(hash);
+}
+
 int main() {
   const struct CMUnitTest tests[] = {
     cmocka_unit_test_prestate(test_trie_hash_insertion_v1, NULL),
@@ -155,6 +212,9 @@ int main() {
     cmocka_unit_test_prestate(test_trie_hash_insertion_v5, NULL),
     cmocka_unit_test_prestate(test_trie_hash_insertion_get_values_v1, NULL),
     cmocka_unit_test_prestate(test_trie_hash_insertion_get_values_v2, NULL),
+    cmocka_unit_test_prestate(test_trie_hash_collect_integer_keys, NULL),
+    cmocka_unit_test_prestate(test_trie_hash_collect_multiple_integer_keys, NULL),
+    cmocka_unit_test_prestate(test_trie_hash_collect_string_keys, NULL),
   };
   const uint32_t value = cmocka_run_group_tests(tests, NULL, NULL);
   return value;

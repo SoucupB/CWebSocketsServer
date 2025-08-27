@@ -135,6 +135,70 @@ Vector trh_GetValues(PTrieHash self, size_t valueSize) {
   return response;
 }
 
+void trh_Key_Push(Vector currentKey, uint8_t value, size_t position) {
+  if(!(position & 1)) {
+    value <<= 4;
+    vct_Push(currentKey, &value);
+    return ;
+  }
+  uint8_t *last = (uint8_t *)vct_Last(currentKey);
+  if(!last) {
+    return ;
+  }
+  (*last) += value;
+}
+
+static inline void trh_Key_Pop(Vector currentKey, size_t position) {
+  if(!(position & 1)) {
+    vct_Pop(currentKey);
+  }
+  else {
+    uint8_t *last = (uint8_t *)vct_Last(currentKey);
+    if(!last) {
+      return ;
+    }
+    (*last) &= 0xF0;
+  }
+}
+
+void trh_GetKeys_t(PTrieNode self, Vector keys, Vector currentKey, size_t position) {
+  if(!self) {
+    return ;
+  }
+  if(self->buffer) {
+    Key key;
+    key.keySize = currentKey->size;
+    key.key = crm_Alloc(key.keySize);
+
+    memcpy(key.key, currentKey->buffer, key.keySize);
+    vct_Push(keys, &key);
+  }
+  PTrieNode *nextNodes = self->nextNodes;
+  for(uint8_t i = 0; i < 16; i++) {
+    if(nextNodes[i]) {
+      trh_Key_Push(currentKey, i, position);
+      trh_GetKeys_t(nextNodes[i], keys, currentKey, position + 1);
+      trh_Key_Pop(currentKey, position);
+    }
+  }
+}
+
+Vector trh_GetKeys(PTrieHash self) {
+  Vector response = vct_Init(sizeof(Key));
+  Vector currentKey = vct_Init(sizeof(uint8_t));
+  trh_GetKeys_t(self->parentNode, response, currentKey, 0);
+  vct_Delete(currentKey);
+  return response;
+}
+
+void trh_FreeKeys(Vector keys) {
+  Key *buffer = (Key *)keys->buffer;
+  for(size_t i = 0, c = keys->size; i < c; i++) {
+    crm_Free(buffer[i].key);
+  }
+  vct_Delete(keys);
+}
+
 PVOID trh_GetBuffer(PTrieHash self, PVOID key, uint32_t keySize) {
   return trn_GetBuffer_t(self->parentNode, key, keySize, 0);
 }
