@@ -4,9 +4,12 @@
 #include <stddef.h>
 
 typedef struct MemoryFragment_t {
-  char *flag;
+  size_t *flag;
+  struct MemoryFragment_t **self;
   void *buffer;
 } MemoryFragment;
+
+typedef MemoryFragment *PMemoryFragment;
 
 typedef struct FreeStackTracker_t {
   void *stack;
@@ -14,7 +17,8 @@ typedef struct FreeStackTracker_t {
 } FreeStackTracker;
 
 typedef struct FixedMemoryPool_t {
-  MemoryFragment *buffer;
+  MemoryFragment *bufferFragments;
+  void *memory;
   FreeStackTracker freeStack;
   size_t count;
   size_t objSize;
@@ -24,4 +28,5 @@ typedef struct FixedMemoryPool_t {
 
 typedef FixedMemoryPool *PFixedMemoryPool;
 
-FixedMemoryPool fmp_Init(size_t objSize, size_t capacity);
+PFixedMemoryPool fmp_Init(size_t objSize, size_t capacity);
+void *fmp_Alloc(PFixedMemoryPool self);
