@@ -8,14 +8,14 @@ static inline size_t fmp_MemoryFragmentSize(size_t objSize) {
   return sizeof(MemoryFragment) - sizeof(void *) + objSize;
 }
 
-static inline void fmp_PrepareMemory(PFixedMemoryPool self) {
+static inline void fmp_PrepareMemory(const PFixedMemoryPool self) {
   if(self->bufferFragments) {
     return ;
   }
   self->bufferFragments = (MemoryFragment *)malloc(sizeof(MemoryFragment) * self->capacity);
   size_t totalSize = fmp_MemoryFragmentSize(self->objSize) * self->capacity;
   self->memory = malloc(totalSize);
-  self->_endBuffer = self->memory + totalSize;
+  self->_endBuffer = (char *)self->memory + totalSize;
   char *memory = self->memory;
   for(size_t i = 0, c = self->capacity; i < c; i++) {
     self->bufferFragments[i] = (MemoryFragment) {
@@ -75,7 +75,7 @@ static inline PFixedMemoryPool fmp_FindPool(const PFixedMemoryPool self, const v
       return NULL;
     }
     if(current->memory <= buffer && current->_endBuffer >= buffer) {
-      return self;
+      return current;
     }
     current = current->next;
   }
@@ -125,10 +125,10 @@ void *fmp_NextBlock(PFixedMemoryPool self) {
 }
 
 void *fmp_Alloc(PFixedMemoryPool self) {
-  fmp_PrepareMemory(self);
   if(self->count >= self->capacity) {
     return fmp_NextBlock(self);
   }
+  fmp_PrepareMemory(self);
   if(self->freeStack.sz) {
     return stack_Pop(self)->buffer;
   }
