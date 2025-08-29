@@ -19,5 +19,5 @@ typedef struct WebSocketServer_t {
 typedef WebSocketServer *PWebSocketServer;
 
 PWebSocketServer wss_Create(uint16_t port);
-void wss_SetOnConnect(PWebSocketServer self, PSocketMethod routine);
 void wss_OnFrame(PWebSocketServer self, uint64_t deltaMS);
+void wss_Delete(PWebSocketServer self);

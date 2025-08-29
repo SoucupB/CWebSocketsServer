@@ -468,13 +468,22 @@ void http_Response_SetDefault(PHttpResponse self) {
   http_Hash_Add(self->headers, "Connection", sizeof("Connection") - 1, "close", sizeof("close") - 1);
 }
 
-PHttpResponse http_Response_Create() {
+void http_Response_Set(PHttpResponse self, char *key, size_t keySize, char *value, size_t valueSize) {
+  http_Hash_Add(self->headers, key, keySize, value, valueSize);
+}
+
+PHttpResponse http_Response_Empty() {
   PHttpResponse self = malloc(sizeof(HttpResponse));
   memset(self, 0, sizeof(HttpResponse));
   self->headers = http_Hash_Create();
   self->httpCode = "HTTP/1.1";
   self->response = 200;
   http_Request_SetBodySize(self, 0);
+  return self;
+}
+
+PHttpResponse http_Response_Create() {
+  PHttpResponse self = http_Response_Empty();
   http_Response_SetDefault(self);
   return self;
 }
