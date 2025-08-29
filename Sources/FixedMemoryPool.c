@@ -88,6 +88,7 @@ static inline PFixedMemoryPool fmp_FindPool(const PFixedMemoryPool self, const v
 
 void fmp_Free(PFixedMemoryPool self, void *buffer) {
   PFixedMemoryPool currentPool = fmp_FindPool(self, buffer);
+  assert(currentPool != NULL);
   PMemoryFragment currentMemoryFragment = fmp_StartingPointer(buffer);
   assert(*currentMemoryFragment->flag == 1);
   stack_Push(&currentPool->freeStack, currentMemoryFragment->self);

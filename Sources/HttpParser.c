@@ -17,7 +17,7 @@ void http_Body_Process(PHttpRequest self, PHttpString buffer);
 
 #define ALPHANUMERIC "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_."
 #define ACCEPTED_ALPHANUMERIC_KEY "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!#$%&'*+-.^_`|~"
-#define ACCEPTED_ALPHANUMERIC_VALUE "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ!\"#$%&'()*+,-./;<=>?@[\\]^_`{|}~ "
+#define ACCEPTED_ALPHANUMERIC_VALUE "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ!\"#$%&'()*+,-./;:<=>?@[\\]^_`{|}~ "
 
 PHttpRequest http_Request_Parse(char *buffer, size_t sz) {
   PHttpRequest self = malloc(sizeof(HttpRequest));

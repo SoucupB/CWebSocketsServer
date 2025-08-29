@@ -69,6 +69,23 @@ GET /connect HTTP/1.1\r\n\
   http_Request_Delete(httpObj);
 }
 
+static void test_http_parser_postman_requests(void **state) {
+  char *request = "\
+GET /connect HTTP/1.1\r\n\
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MSwiaWF0IjoxNzU1MjY2MDM0LCJleHAiOjE3NTUyNzMyMzR9.2tBZhjQ6VVFnkwV9ubO4gbmY9Mmmt-FzBRWCRERJ1ss\r\n\
+User-Agent: PostmanRuntime/7.37.3\r\n\
+Accept: */*\r\n\
+Postman-Token: 5a5c413c-6676-4c67-96e0-d00ea870a010\r\n\
+Host: 127.0.0.1:8080\r\n\
+Accept-Encoding: gzip, deflate, br\r\n\
+Connection: keep-alive\r\n\
+\r\n\
+";
+  PHttpRequest httpObj = http_Request_Parse(request, strlen(request));
+  assert_non_null(httpObj);
+  http_Request_Delete(httpObj);
+}
+
 static void test_http_parser_missing_ilegal_values(void **state) {
   char *request = "\
 GET /connect HTTP/1.1\r\n\
@@ -77,24 +94,7 @@ User-Agent: PostmanRuntime/7.37.3\r\n\
 Accept: */*\r\n\
 Postman-Token: 4415f19a-a8bf-4577-affa-84bed769a538\r\n\
 Host: space_bots_instance_1.api.com\r\n\
-Accept-Encoding: gzip, deflat:e, br\r\n\
-Connection: keep-alive\r\n\
-Content-Length: 0\r\n\
-\r\n\
-";
-  PHttpRequest httpObj = http_Request_Parse(request, strlen(request));
-  assert_null(httpObj);
-}
-
-static void test_http_parser_missing_ilegal_keys(void **state) {
-  char *request = "\
-GET /connect HTTP/1.1\r\n\
-Content-Type: application/json\r\n\
-User-Agen:t: PostmanRuntime/7.37.3\r\n\
-Accept: */*\r\n\
-Postman-Token: 4415f19a-a8bf-4577-affa-84bed769a538\r\n\
-Host: space_bots_instance_1.api.com\r\n\
-Accept-Encoding: gzip, deflate, br\r\n\
+Accept-Encoding: gzip, deflat\x08e, br\r\n\
 Connection: keep-alive\r\n\
 Content-Length: 0\r\n\
 \r\n\
@@ -290,7 +290,6 @@ int main(void) {
     cmocka_unit_test(test_http_parser_missing_ending_string),
     cmocka_unit_test(test_http_parser_missing_no_headers),
     cmocka_unit_test(test_http_parser_missing_ilegal_values),
-    cmocka_unit_test(test_http_parser_missing_ilegal_keys),
     cmocka_unit_test(test_http_parser_missing_ilegal_path_chars),
     cmocka_unit_test(test_http_parser_missing_space),
     cmocka_unit_test(test_http_parser_body_invalid_missing_newline),
@@ -305,6 +304,7 @@ int main(void) {
     cmocka_unit_test(test_http_parser_body_without_length),
     cmocka_unit_test(test_http_response_to_string),
     cmocka_unit_test(test_http_response_to_small_string_reject),
+    cmocka_unit_test(test_http_parser_postman_requests),
   };
   return cmocka_run_group_tests(tests, NULL, NULL);
 }

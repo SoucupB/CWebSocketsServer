@@ -51,7 +51,7 @@ static void test_fixed_memory_alloc_stack_order_allocations(void **state) {
 
 static void test_fixed_memory_alloc_stack_order_allocations_over_multiple_pools(void **state) {
   PFixedMemoryPool memory = fmp_InitWithCapacity(sizeof(uint32_t), 1);
-  uint32_t *element[500];
+  uint32_t *element[50000];
   for(size_t i = 0; i < sizeof(element) / sizeof(uint32_t *); i++) {
     element[i] = fmp_Alloc(memory);
   }

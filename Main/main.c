@@ -9,12 +9,33 @@ void onConnectPlm(Connection conn, void *buffer) {
 }
 
 void onReceiveMessage(DataFragment *dataFragment, void *buffer) {
+  PSocketServer sv = buffer;
+  PHttpRequest req = http_Request_Parse(dataFragment->data, dataFragment->size);
+  PHttpResponse response = http_Response_Create();
+  HttpString stre = {
+    .buffer = "pengus mengus yolo",
+    .sz = sizeof("pengus mengus yolo") - 1
+  };
+  http_Response_SetBody(response, &stre);
   char *msg = dataFragment->data;
   for(size_t i = 0; i < dataFragment->size; i++) {
     printf("%c", msg[i]);
   }
   printf("\n");
-  printf("Message receive! with size %d\n", dataFragment->size);
+  printf("Message receive! with size %d %p\n", dataFragment->size, req);
+  HttpString responseBuffer = http_Response_ToString(response);
+  DataFragment fragment = {
+    .conn = dataFragment->conn,
+    .persistent = 1,
+    .data = responseBuffer.buffer,
+    .size = responseBuffer.sz
+  };
+  sock_Write_Push(sv, &fragment);
+  if(req) {
+    http_Request_Delete(req);
+  }
+  http_Response_Delete(response);
+  sock_PushCloseConnections(sv, &dataFragment->conn);
 }
 
 int main() {
@@ -25,7 +46,7 @@ int main() {
   );
   PSocketMethod onReceive = sock_Method_Create(
     (void *)onReceiveMessage,
-    NULL
+    server
   );
   server->onConnectionAquire = onConnect;
   server->onReceiveMessage = onReceive;
