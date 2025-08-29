@@ -6,6 +6,7 @@
 void wss_SetMethods(PWebSocketServer self);
 void _wss_OnConnect(PConnection connection, void *buffer);
 void _wss_OnReceive(PDataFragment dt, void *buffer);
+void _wss_OnRelease(Connection conn, void *buffer);
 
 PWebSocketServer wss_Create(uint16_t port) {
   PWebSocketServer self = malloc(sizeof(WebSocketServer));
@@ -29,11 +30,18 @@ void wss_SetMethods(PWebSocketServer self) {
   );
   self->methodsBundle._onReceive = _onReceive;
   self->socketServer->onReceiveMessage = _onReceive;
+  PSocketMethod _onRelease = sock_Method_Create(
+    _wss_OnRelease,
+    self
+  );
+  self->methodsBundle._onRelease = _onRelease;
+  self->socketServer->onConnectionRelease = _onRelease;
 }
 
 void wss_Delete(PWebSocketServer self) {
   sock_Method_Delete(self->methodsBundle._onReceive);
   sock_Method_Delete(self->methodsBundle._onConnect);
+  sock_Method_Delete(self->methodsBundle._onRelease);
   sock_Delete(self->socketServer);
   vct_Delete(self->pendingConnections);
   free(self);
@@ -137,6 +145,20 @@ void _wss_OnConnect(PConnection connection, void *buffer) {
     cMethod(connection, self->onConnect->mirrorBuffer);
   }
   vct_Push(self->pendingConnections, connection);
+}
+
+void _wss_OnRelease(Connection conn, void *buffer) {
+  PWebSocketServer self = buffer;
+  uint8_t found;
+  size_t connIndex = wss_FindConnectionOnThePull(self, &conn, &found);
+  if(found) {
+    vct_RemoveElement(self->pendingConnections, connIndex);
+    return ;
+  }
+  if(self->onRelease) {
+    void (*cMethod)(Connection, void *) = self->onRelease->method;
+    cMethod(conn, self->onRelease->mirrorBuffer);
+  }
 }
 
 void wss_OnFrame(PWebSocketServer self, uint64_t deltaMS) {

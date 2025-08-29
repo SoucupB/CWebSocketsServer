@@ -5,13 +5,14 @@
 typedef struct PrivateMethodsBundle_t {
   PSocketMethod _onConnect;
   PSocketMethod _onReceive;
-  PSocketMethod _onClose;
+  PSocketMethod _onRelease;
 } PrivateMethodsBundle;
 
 typedef struct WebSocketServer_t {
   PSocketServer socketServer;
   PSocketMethod onConnect;
   PSocketMethod onReceiveMessage;
+  PSocketMethod onRelease;
   PrivateMethodsBundle methodsBundle;
   Vector pendingConnections;
 } WebSocketServer;
