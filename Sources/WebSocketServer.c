@@ -2,6 +2,7 @@
 #include <string.h>
 #include <openssl/sha.h>
 #include <openssl/evp.h>
+#include "WebSocketsTranslator.h"
 
 void wss_SetMethods(PWebSocketServer self);
 void _wss_OnConnect(Connection connection, void *buffer);
@@ -120,21 +121,53 @@ uint8_t wss_ProcessConnectionRequest(PWebSocketServer self, PDataFragment dt) {
   return 1;
 }
 
+uint8_t wss_ReceiveMessages(PDataFragment dt, PSocketMethod routine) {
+  Vector messages = wbs_FromWebSocket(dt->data, dt->size);
+  if(!messages) {
+    return 0;
+  }
+  WebSocketObject *objects = messages->buffer;
+  void (*cMethod)(PDataFragment, void *) = routine->method;
+  DataFragment responseDt = {
+    .conn = dt->conn,
+    .data = NULL,
+    .persistent = 0,
+    .size = 0
+  };
+  for(size_t i = 0, c = messages->size; i < c; i++) {
+    responseDt.data = objects[i].buffer;
+    responseDt.size = objects[i].sz;
+    cMethod(&responseDt, routine->mirrorBuffer);
+  }
+  return 1;
+}
+
+static inline void wss_ProcessWsRequests(PWebSocketServer self, PDataFragment dt, PSocketMethod routine) {
+  if(!self->onReceiveMessage) {
+    return ;
+  }
+  if(!wss_ReceiveMessages(dt, routine)) {
+    sock_PushCloseConnections(self->socketServer, &dt->conn);
+  }
+}
+
 void _wss_OnReceive(PDataFragment dt, void *buffer) {
   PWebSocketServer self = buffer;
   uint8_t found;
   size_t connIndex = wss_FindConnectionOnThePull(self, &dt->conn, &found);
   if(!found) {
-    if(self->onReceiveMessage) {
-      void (*cMethod)(PDataFragment, void *) = self->onReceiveMessage->method;
-      cMethod(dt, self->onReceiveMessage->mirrorBuffer);
-    }
+    wss_ProcessWsRequests(self, dt, self->onReceiveMessage);
     return ;
   }
+  vct_RemoveElement(self->pendingConnections, connIndex);
   if(!wss_ProcessConnectionRequest(self, dt)) {
     sock_PushCloseConnections(self->socketServer, &dt->conn);
+    return ;
   }
-  vct_RemoveElement(self->pendingConnections, connIndex);
+  if(self->onConnect) {
+    void (*cMethod)(PConnection, void *) = self->onConnect->method;
+    cMethod(&dt->conn, self->onConnect->mirrorBuffer);
+  }
 }
 
 size_t wss_ConnectionsCount(PWebSocketServer self) {
@@ -143,10 +176,6 @@ size_t wss_ConnectionsCount(PWebSocketServer self) {
 
 void _wss_OnConnect(Connection connection, void *buffer) {
   PWebSocketServer self = buffer;
-  if(self->onConnect) {
-    void (*cMethod)(PConnection, void *) = self->onConnect->method;
-    cMethod(&connection, self->onConnect->mirrorBuffer);
-  }
   vct_Push(self->pendingConnections, &connection);
 }
 

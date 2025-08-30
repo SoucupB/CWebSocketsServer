@@ -46,6 +46,7 @@
     "memory": "c",
     "string.h": "c",
     "sha.h": "c",
-    "socketclient.h": "c"
+    "socketclient.h": "c",
+    "websocketserver_helper_test.h": "c"
   }
 }

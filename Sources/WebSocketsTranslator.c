@@ -169,7 +169,7 @@ uint8_t wbs_IsBufferValid(char *buffer, size_t sz) {
     }
     buffer = nextBuffer;
   }
-  return buffer <= endBuffer;
+  return buffer == endBuffer;
 }
 
 static inline size_t wbs_ValidMinimumSize(char *buffer) {
