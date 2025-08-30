@@ -1,6 +1,10 @@
 #include "WebSocketServer_Helper_Test.h"
 #include "Socket_Helper_test.h"
 #include "WebSocketsTranslator.h"
+#include <stdarg.h>
+#include <stddef.h>
+#include <setjmp.h>
+#include <cmocka.h>
 
 PConnection test_Wss_Util_Connect(PWebSocketServer wssServer, char *input) {
   PConnection connection = test_Util_Connect(wssServer->socketServer);
@@ -56,4 +60,21 @@ void test_Wss_Util_Delete(PWebSocketServer self) {
     sock_Method_Delete(self->onRelease);
   }
   wss_Delete(self);
+}
+
+void test_Wss_Expect(PConnection conn, char *buffer, size_t sz) {
+  DataFragment dt = sock_Client_Receive(conn);
+  Vector receivedData = wbs_FromWebSocket(dt.data, dt.size);
+  assert_non_null(receivedData);
+  WebSocketObject *objects = receivedData->buffer;
+  uint8_t objectFound = 0;
+  for(size_t i = 0, c = receivedData->size; i < c; i++) {
+    if(!memcmp(objects[i].buffer, buffer, sz)) {
+      objectFound = 1;
+      break;
+    }
+  }
+  assert_true(objectFound);
+  free(dt.data);
+  vct_Delete(receivedData);
 }

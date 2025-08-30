@@ -151,7 +151,7 @@ static void test_connect_and_send_back_messages(void **state) {
     DataFragment fragment = {
       .conn = dt->conn,
       .data = "dadadada",
-      .size = sizeof("dadadada")
+      .size = sizeof("dadadada") - 1
     };
     wss_SendMessage(self, &fragment);
   }
@@ -162,8 +162,9 @@ static void test_connect_and_send_back_messages(void **state) {
   );
   wssServer->onReceiveMessage = onReceiveMethod;
   PConnection connection = test_Wss_Util_ExchangeConnection(wssServer);
-  test_Wss_SendMessage(wssServer, connection, "some_test_message", sizeof("some_test_message") - 1);
+  test_Wss_SendMessage(wssServer, connection, "sender", sizeof("sender") - 1);
   test_Wss_RepeatFramesDiff(wssServer, 32, 10);
+  test_Wss_Expect(connection, "dadadada", sizeof("dadadada") - 1);
   test_Wss_Util_Delete(wssServer);
   sock_Client_Free(connection);
 }
