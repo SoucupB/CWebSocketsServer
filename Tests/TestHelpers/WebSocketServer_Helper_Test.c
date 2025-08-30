@@ -1,5 +1,6 @@
 #include "WebSocketServer_Helper_Test.h"
 #include "Socket_Helper_test.h"
+#include "WebSocketsTranslator.h"
 
 PConnection test_Wss_Util_Connect(PWebSocketServer wssServer, char *input) {
   PConnection connection = test_Util_Connect(wssServer->socketServer);
@@ -32,6 +33,16 @@ void test_Wss_RepeatFramesDiff(PWebSocketServer self, uint64_t deltaMS, uint32_t
   while(repeats--) {
     wss_OnFrame(self, deltaMS);
   }
+}
+
+void test_Wss_SendMessage(PWebSocketServer wssServer, PConnection conn, char *buffer, size_t sz) {
+  WebSocketObject wssObj = (WebSocketObject) {
+    .buffer = buffer,
+    .sz = sz
+  };
+  char *message = wbs_Masked_ToWebSocket(wssObj);
+  test_Util_SendMessage(wssServer->socketServer, conn, message, wbs_FullMessageSize(message));
+  free(message);
 }
 
 void test_Wss_Util_Delete(PWebSocketServer self) {

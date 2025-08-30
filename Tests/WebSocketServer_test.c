@@ -128,6 +128,23 @@ Sec-WebSocket-Version: 13\r\n\
   sock_Client_Free(connection);
 }
 
+static void test_connect_on_send_messages(void **state) {
+  void onReceiveMessages(PDataFragment dt, void *buffer) {
+    assert_true(dt->size == sizeof("some_test_message") - 1);
+    assert_memory_equal(dt->data, "some_test_message", dt->size);
+  }
+  PWebSocketServer wssServer = newServer();
+  PSocketMethod onReceiveMethod = sock_Method_Create(
+    onReceiveMessages,
+    NULL
+  );
+  wssServer->onReceiveMessage = onReceiveMethod;
+  PConnection connection = test_Wss_Util_ExchangeConnection(wssServer);
+  test_Wss_SendMessage(wssServer, connection, "some_test_message", sizeof("some_test_message") - 1);
+  test_Wss_Util_Delete(wssServer);
+  sock_Client_Free(connection);
+}
+
 int main(void) {
   const struct CMUnitTest tests[] = {
     cmocka_unit_test(test_connect_to_wss_server),
@@ -135,6 +152,7 @@ int main(void) {
     cmocka_unit_test(test_connect_on_connect_multiple_connections),
     cmocka_unit_test(test_connect_on_connect_faulty_http_handshake_missing_key),
     cmocka_unit_test(test_connect_on_connect_faulty_http_handshake_malformed_request),
+    cmocka_unit_test(test_connect_on_send_messages),
   };
   return cmocka_run_group_tests(tests, NULL, NULL);
 }
