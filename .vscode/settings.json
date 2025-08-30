@@ -45,6 +45,7 @@
     "limits": "c",
     "memory": "c",
     "string.h": "c",
-    "sha.h": "c"
+    "sha.h": "c",
+    "socketclient.h": "c"
   }
 }
