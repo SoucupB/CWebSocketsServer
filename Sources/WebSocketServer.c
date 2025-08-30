@@ -139,6 +139,7 @@ uint8_t wss_ReceiveMessages(PDataFragment dt, PSocketMethod routine) {
     responseDt.size = objects[i].sz;
     cMethod(&responseDt, routine->mirrorBuffer);
   }
+  vct_Delete(messages);
   return 1;
 }
 
