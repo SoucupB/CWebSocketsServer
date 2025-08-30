@@ -4,7 +4,7 @@
 #include <openssl/evp.h>
 
 void wss_SetMethods(PWebSocketServer self);
-void _wss_OnConnect(PConnection connection, void *buffer);
+void _wss_OnConnect(Connection connection, void *buffer);
 void _wss_OnReceive(PDataFragment dt, void *buffer);
 void _wss_OnRelease(Connection conn, void *buffer);
 
@@ -84,7 +84,6 @@ char *webSocketKey(PHttpString sec_websocket_key) {
 PHttpResponse wss_Response(PWebSocketServer self, PHttpRequest req) {
   PHttpResponse response = http_Response_Empty();
   response->response = 101;
-  response->httpCode = "Switching Protocols";
   http_Response_Set(response, "Upgrade", sizeof("Upgrade") - 1, "websocket", sizeof("websocket") - 1);
   http_Response_Set(response, "Connection", sizeof("Connection") - 1, "Upgrade", sizeof("Upgrade") - 1);
   HttpString key = http_Request_GetValue(req, "Sec-WebSocket-Key");
@@ -138,13 +137,17 @@ void _wss_OnReceive(PDataFragment dt, void *buffer) {
   vct_RemoveElement(self->pendingConnections, connIndex);
 }
 
-void _wss_OnConnect(PConnection connection, void *buffer) {
+size_t wss_ConnectionsCount(PWebSocketServer self) {
+  return sock_ConnectionCount(self->socketServer);
+}
+
+void _wss_OnConnect(Connection connection, void *buffer) {
   PWebSocketServer self = buffer;
   if(self->onConnect) {
     void (*cMethod)(PConnection, void *) = self->onConnect->method;
-    cMethod(connection, self->onConnect->mirrorBuffer);
+    cMethod(&connection, self->onConnect->mirrorBuffer);
   }
-  vct_Push(self->pendingConnections, connection);
+  vct_Push(self->pendingConnections, &connection);
 }
 
 void _wss_OnRelease(Connection conn, void *buffer) {

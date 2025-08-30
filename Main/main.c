@@ -23,6 +23,10 @@ void onReceiveMessage(DataFragment *dataFragment, void *buffer) {
   }
   printf("\n");
   printf("Message receive! with size %d %p\n", dataFragment->size, req);
+  HttpString echoValue = http_Request_GetValue(req, "echo");
+  if(echoValue.buffer) {
+    http_Response_Set(response, "vola", sizeof("vola") - 1, echoValue.buffer, echoValue.sz);
+  }
   HttpString responseBuffer = http_Response_ToString(response);
   DataFragment fragment = {
     .conn = dataFragment->conn,
