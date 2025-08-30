@@ -22,3 +22,16 @@ Upgrade: websocket\r\n\
   test_Util_Expect(connection, handshakeAccepted, strlen(handshakeAccepted));
   return connection;
 }
+
+void test_Wss_Util_Delete(PWebSocketServer self) {
+  if(self->onConnect) {
+    sock_Method_Delete(self->onConnect);
+  }
+  if(self->onReceiveMessage) {
+    sock_Method_Delete(self->onReceiveMessage);
+  }
+  if(self->onRelease) {
+    sock_Method_Delete(self->onRelease);
+  }
+  wss_Delete(self);
+}
