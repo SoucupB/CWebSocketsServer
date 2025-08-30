@@ -18,6 +18,10 @@ PWebSocketServer wss_Create(uint16_t port) {
   return self;
 }
 
+void wss_EnablePingPongTimeout(PWebSocketServer self, uint64_t timeout) {
+
+}
+
 void wss_SetMethods(PWebSocketServer self) {
   PSocketMethod _onConnect = sock_Method_Create(
     _wss_OnConnect,
@@ -96,6 +100,22 @@ PHttpResponse wss_Response(PWebSocketServer self, PHttpRequest req) {
   http_Response_Set(response, "Sec-WebSocket-Accept", sizeof("Sec-WebSocket-Accept") - 1, newKey, strlen(newKey));
   free(newKey);
   return response;
+}
+
+void wss_SendMessage(PWebSocketServer self, PDataFragment dt) {
+  WebSocketObject objs = {
+    .buffer = dt->data,
+    .sz = dt->size
+  };
+  char *response = wbs_ToWebSocket(objs);
+  DataFragment fragment = {
+    .conn = dt->conn,
+    .data = response,
+    .size = wbs_FullMessageSize(response),
+    .persistent = 1
+  };
+  sock_Write_Push(self->socketServer, &fragment);
+  free(response);
 }
 
 uint8_t wss_ProcessConnectionRequest(PWebSocketServer self, PDataFragment dt) {
