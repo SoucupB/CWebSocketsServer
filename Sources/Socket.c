@@ -308,8 +308,8 @@ static inline void sock_Time_OnFrame(PSocketServer self, uint64_t deltaMS) {
 
 void sock_OnFrame(PSocketServer self, uint64_t deltaMS) {
   sock_AcceptConnectionsRoutine(self);
-  sock_ProcessWriteRequests(self);
   sock_ProcessReadMessage(self);
+  sock_ProcessWriteRequests(self);
   sock_Time_OnFrame(self, deltaMS);
 }
 

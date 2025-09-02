@@ -1,10 +1,12 @@
 #include "WebSocketServer_Helper_Test.h"
 #include "Socket_Helper_test.h"
 #include "WebSocketsTranslator.h"
+#include "TimeFragment.h"
 #include <stdarg.h>
 #include <stddef.h>
 #include <setjmp.h>
 #include <cmocka.h>
+#include <unistd.h>
 
 PConnection test_Wss_Util_Connect(PWebSocketServer wssServer, char *input) {
   PConnection connection = test_Util_Connect(wssServer->socketServer);
@@ -47,6 +49,22 @@ void test_Wss_SendMessage(PWebSocketServer wssServer, PConnection conn, char *bu
   char *message = wbs_Masked_ToWebSocket(wssObj);
   test_Util_SendMessage(wssServer->socketServer, conn, message, wbs_FullMessageSize(message));
   free(message);
+}
+
+void test_Wss_WaitAndRunUntil(PWebSocketServer sv, int64_t timeout, uint8_t (*method)(void *), void *buffer) {
+  int64_t crtTime = tf_CurrentTimeMS();
+  while(1) {
+    if(method(buffer)) {
+      return ;
+    }
+    assert_true(timeout >= 0);
+    usleep(10 * 1000);
+    int64_t currentTime = tf_CurrentTimeMS();
+    int64_t deltaMS = currentTime - crtTime;
+    timeout -= deltaMS;
+    wss_OnFrame(sv, deltaMS);
+    crtTime = currentTime;  
+  }
 }
 
 void test_Wss_Util_Delete(PWebSocketServer self) {
