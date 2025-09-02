@@ -192,6 +192,7 @@ static void test_connect_and_send_back_multiple_messages(void **state) {
   test_Wss_WaitAndRunUntil(wssServer, 5000, checkerMethod, &receivedCount);
   assert_true(receivedCount == 5);
   sock_Client_Free(connection);
+  test_Wss_Util_Delete(wssServer);
 }
 
 int main(void) {
