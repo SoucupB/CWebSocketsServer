@@ -163,11 +163,19 @@ uint8_t wss_ReceiveMessages(PDataFragment dt, PSocketMethod routine) {
   return 1;
 }
 
+static inline void wss_ProcessReleaseMethod(PWebSocketServer self, PDataFragment dt, PSocketMethod routine) {
+  if(self->onRelease) {
+    void (*cMethod)(PConnection, void *) = self->onRelease->method;
+    cMethod(&dt->conn, self->onRelease->mirrorBuffer);
+  }
+}
+
 static inline void wss_ProcessWsRequests(PWebSocketServer self, PDataFragment dt, PSocketMethod routine) {
   if(!self->onReceiveMessage) {
     return ;
   }
   if(!wss_ReceiveMessages(dt, routine)) {
+    wss_ProcessReleaseMethod(self, dt, routine);
     sock_PushCloseConnections(self->socketServer, &dt->conn);
   }
 }
