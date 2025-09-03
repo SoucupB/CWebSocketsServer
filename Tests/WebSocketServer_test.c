@@ -195,6 +195,32 @@ static void test_connect_and_send_back_multiple_messages(void **state) {
   test_Wss_Util_Delete(wssServer);
 }
 
+static void test_connect_and_send_back_buffered_messages(void **state) {
+  uint32_t receivedCount = 0;
+  void onReceiveMessages(PDataFragment dt, void *buffer) {
+    uint32_t *msg = buffer;
+    (*msg)++;
+  }
+  uint8_t checkerMethod(void *buffer) {
+    uint32_t *msg = buffer;
+    return *msg == 55;
+  }
+  PWebSocketServer wssServer = newServer();
+  PSocketMethod onReceiveMethod = sock_Method_Create(
+    onReceiveMessages,
+    &receivedCount
+  );
+  wssServer->onReceiveMessage = onReceiveMethod;
+  PConnection connection = test_Wss_Util_ExchangeConnection(wssServer);
+  for(size_t i = 0; i < 55; i++) {
+    test_Wss_BufferMessage(wssServer, connection, "sender", sizeof("sender") - 1);
+  }
+  test_Wss_WaitAndRunUntil(wssServer, 5000, checkerMethod, &receivedCount);
+  assert_true(receivedCount == 55);
+  sock_Client_Free(connection);
+  test_Wss_Util_Delete(wssServer);
+}
+
 int main(void) {
   const struct CMUnitTest tests[] = {
     cmocka_unit_test(test_connect_to_wss_server),
@@ -205,6 +231,7 @@ int main(void) {
     cmocka_unit_test(test_connect_on_send_messages),
     cmocka_unit_test(test_connect_and_send_back_messages),
     cmocka_unit_test(test_connect_and_send_back_multiple_messages),
+    cmocka_unit_test(test_connect_and_send_back_buffered_messages),
   };
   return cmocka_run_group_tests(tests, NULL, NULL);
 }

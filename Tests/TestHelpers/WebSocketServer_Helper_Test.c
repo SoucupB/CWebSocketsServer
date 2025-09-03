@@ -41,6 +41,16 @@ void test_Wss_RepeatFramesDiff(PWebSocketServer self, uint64_t deltaMS, uint32_t
   }
 }
 
+void test_Wss_BufferMessage(PWebSocketServer wssServer, PConnection conn, char *buffer, size_t sz) {
+  WebSocketObject wssObj = (WebSocketObject) {
+    .buffer = buffer,
+    .sz = sz
+  };
+  char *message = wbs_Masked_ToWebSocket(wssObj);
+  test_Util_BufferMessage(wssServer->socketServer, conn, message, wbs_FullMessageSize(message));
+  free(message);
+}
+
 void test_Wss_SendMessage(PWebSocketServer wssServer, PConnection conn, char *buffer, size_t sz) {
   WebSocketObject wssObj = (WebSocketObject) {
     .buffer = buffer,

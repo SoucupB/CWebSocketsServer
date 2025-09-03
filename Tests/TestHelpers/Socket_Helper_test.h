@@ -12,3 +12,4 @@ void test_Util_Release(PSocketServer self);
 void test_Util_Expect(PConnection conn, char *buffer, size_t sz);
 PConnection test_Util_Connect(PSocketServer server);
 void test_Util_SendMessage(PSocketServer server, PConnection conn, char *msg, size_t sz);
+void test_Util_BufferMessage(PSocketServer server, PConnection conn, char *msg, size_t sz);

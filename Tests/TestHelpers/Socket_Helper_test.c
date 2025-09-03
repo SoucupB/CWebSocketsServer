@@ -68,7 +68,7 @@ PConnection test_Util_Connect(PSocketServer server) {
   return conn;
 }
 
-void test_Util_SendMessage(PSocketServer server, PConnection conn, char *msg, size_t sz) {
+void test_Util_BufferMessage(PSocketServer server, PConnection conn, char *msg, size_t sz) {
   DataFragment dt = (DataFragment) {
     .conn = *conn,
     .data = msg,
@@ -76,6 +76,10 @@ void test_Util_SendMessage(PSocketServer server, PConnection conn, char *msg, si
     .size = sz
   };
   sock_Client_SendMessage(&dt);
+}
+
+void test_Util_SendMessage(PSocketServer server, PConnection conn, char *msg, size_t sz) {
+  test_Util_BufferMessage(server, conn, msg, sz);
   for(size_t i = 0; i < 10; i++) {
     sock_OnFrame(server, 32);
   }
