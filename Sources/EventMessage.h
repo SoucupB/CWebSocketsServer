@@ -10,7 +10,7 @@ typedef Auth *PAuth;
 
 typedef struct EventBuffer_t {
   char *buffer;
-  size_t size;
+  uint32_t size;
 } EventBuffer;
 
 typedef EventBuffer *PEventBuffer;

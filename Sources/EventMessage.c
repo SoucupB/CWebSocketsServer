@@ -22,7 +22,7 @@ static inline char *evm_Out_HeaderAuthPointer(const PEventMessage self, char *bu
 }
 
 static inline char *evm_Out_PayloadPointer(const PEventMessage self, char *buffer) {
-  if(evm_Out_IsAuthed(self)) {
+  if(!evm_Out_IsAuthed(self)) {
     return evm_Out_HeaderPointer(self, buffer) + sizeof(self->headerCode);
   }
   return evm_Out_HeaderPointer(self, buffer) + sizeof(self->headerCode) + sizeof(Auth);
@@ -60,7 +60,7 @@ static inline char *evm_In_AuthPointer(char *buffer) {
 }
 
 static inline char *evm_In_PayloadPointer(char *buffer) {
-  return evm_In_HeaderPointer(buffer) + (size_t)evm_In_AuthPointer(buffer) * sizeof(Auth);
+  return evm_In_HeaderPointer(buffer) + (size_t)evm_In_AuthPointer(buffer) * sizeof(Auth) + sizeof(uint32_t);
 }
 
 static inline char *evm_In_EndPointer(char *buffer) {
