@@ -1,10 +1,8 @@
 #!/bin/bash
 set -e
-
 SRC_DIR="Sources"
 BIN_DIR="bin"
 OUT_FILE="$BIN_DIR/svv.c"
-
 mkdir -p "$BIN_DIR"
 : > "$OUT_FILE"
 find "$SRC_DIR" -type f -name "*.c" | sort | while read -r f; do
