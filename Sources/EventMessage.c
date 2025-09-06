@@ -60,7 +60,7 @@ static inline char *evm_In_AuthPointer(char *buffer) {
 }
 
 static inline char *evm_In_PayloadPointer(char *buffer) {
-  return evm_In_HeaderPointer(buffer) + (size_t)evm_In_AuthPointer(buffer) * sizeof(Auth) + sizeof(uint32_t);
+  return evm_In_HeaderPointer(buffer) + ((size_t)evm_In_AuthPointer(buffer) != 0) * sizeof(Auth) + sizeof(uint32_t);
 }
 
 static inline char *evm_In_EndPointer(char *buffer) {
