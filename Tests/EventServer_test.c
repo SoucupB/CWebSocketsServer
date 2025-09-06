@@ -3,6 +3,7 @@
 #include <setjmp.h>
 #include <cmocka.h>
 #include <stdint.h>
+#include "Structs.h"
 #include "SocketClient.h"
 #include "SocketServer.h"
 #include "WebSocketServer.h"

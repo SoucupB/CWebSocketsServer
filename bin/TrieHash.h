@@ -2,30 +2,7 @@
 #include <stddef.h>
 #include <stdint.h>
 #include "Vector.h"
-
-#define PVOID void*
-#define crm_Alloc malloc
-#define crm_Free free
-
-typedef struct TrieNode_t *PTrieNode;
-
-typedef struct TrieHash_t {
-  uint32_t count;
-  PTrieNode parentNode;
-} TrieHash;
-
-typedef TrieHash *PTrieHash;
-
-typedef struct TrieNode_t {
-  uint32_t count;
-  void *buffer;
-  PTrieNode *nextNodes;
-} TrieNode;
-
-typedef struct Key_t {
-  char *key;
-  uint32_t keySize;
-} Key;
+#include "Structs.h"
 
 PTrieHash trh_Create();
 void trh_Add(PTrieHash self, PVOID key, uint32_t keySize, PVOID value, uint32_t valueSize);

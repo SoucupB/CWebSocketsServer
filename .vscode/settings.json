@@ -49,6 +49,10 @@
     "socketclient.h": "c",
     "websocketserver_helper_test.h": "c",
     "queue": "c",
-    "websocketserver.h": "c"
+    "websocketserver.h": "c",
+    "eventserver_helper_test.h": "c",
+    "eventserver.h": "c",
+    "structs.h": "c",
+    "stddef.h": "c"
   }
 }

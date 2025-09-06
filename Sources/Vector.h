@@ -1,15 +1,7 @@
 #pragma once
 #include <stdlib.h>
 #include <stdint.h>
-
-struct Vector_t {
-  void *buffer;
-  size_t size;
-  size_t capacity;
-  size_t objSize;
-};
-
-typedef struct Vector_t *Vector;
+#include "Structs.h"
 
 Vector vct_Init(size_t size);
 Vector vct_InitWithCapacity(size_t size, size_t count);

@@ -1,4 +1,5 @@
 #pragma once
+#include "Structs.h"
 #include "SocketClient.h"
 #include "SocketServer.h"
 #include "WebSocketServer.h"

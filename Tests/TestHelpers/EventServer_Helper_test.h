@@ -1,4 +1,5 @@
 #pragma once
+#include "Structs.h"
 #include "EventServer.h"
 
 void test_Util_Evs_Delete(PEventServer self);

@@ -1,4 +1,5 @@
 #pragma once
+#include "Structs.h"
 #include <stddef.h>
 #include <stdint.h>
 #include "TrieHash.h"

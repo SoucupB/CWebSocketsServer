@@ -97,6 +97,10 @@ typedef long int intptr_t;
 typedef unsigned long int uintptr_t;
 typedef __intmax_t intmax_t;
 typedef __uintmax_t uintmax_t;
+       
+struct WebSocketServer_t;
+typedef struct WebSocketServer_t WebSocketServer;
+typedef WebSocketServer *PWebSocketServer;
 typedef struct Auth_t {
   uint8_t bff[8];
 } Auth;
@@ -112,7 +116,154 @@ typedef struct EventMessage_t {
   Auth uniqueCode;
   EventBuffer str;
 } EventMessage;
+typedef struct WebSocketObject_t {
+  char *buffer;
+  size_t sz;
+} WebSocketObject;
+typedef WebSocketObject *PWebSocketObject;
 typedef EventMessage *PEventMessage;
+typedef struct SocketMethod_t {
+  void *method;
+  void *mirrorBuffer;
+} SocketMethod;
+typedef struct Connection_t {
+  int32_t fd;
+} Connection;
+typedef struct DataFragment_t {
+  uint32_t size;
+  uint8_t persistent;
+  Connection conn;
+  char *data;
+} DataFragment;
+typedef SocketMethod *PSocketMethod;
+typedef Connection *PConnection;
+typedef DataFragment *PDataFragment;
+typedef struct EventServer_t {
+  PWebSocketServer wsServer;
+  PSocketMethod onReceive;
+  PSocketMethod onClose;
+} EventServer;
+typedef struct ResponseObject_t {
+  EventMessage metaData;
+  PConnection conn;
+} ResponseObject;
+typedef ResponseObject *PResponseObject;
+typedef EventServer *PEventServer;
+typedef struct PrivateMethodsBundle_t {
+  PSocketMethod _onConnect;
+  PSocketMethod _onReceive;
+  PSocketMethod _onRelease;
+} PrivateMethodsBundle;
+typedef struct TimeMethod_t {
+  void *method;
+  void *buffer;
+} TimeMethod;
+typedef struct TimeFragment_t {
+  TimeMethod methodFragment;
+  int64_t executeAfter;
+} TimeFragment;
+struct Vector_t {
+  void *buffer;
+  size_t size;
+  size_t capacity;
+  size_t objSize;
+};
+typedef struct Vector_t *Vector;
+typedef struct TimeServer_t {
+  Vector methods;
+} TimeServer;
+typedef TimeServer *PTimeServer;
+typedef struct Timeout_t {
+  uint64_t timeout;
+  PTimeServer server;
+} Timeout;
+typedef Timeout *PTimeout;
+typedef struct Timers_t {
+  PTimeServer timeServer;
+  int64_t timeout;
+} Timers;
+typedef struct SocketServer_t {
+  uint16_t port;
+  int32_t maxActiveConnections;
+  int32_t maxBytesPerReadConnection;
+  Connection serverFD;
+  Vector connections;
+  Vector inputReads;
+  Vector outputCommands;
+  Vector closeConnectionsQueue;
+  PSocketMethod onConnectionRelease;
+  PSocketMethod onConnectionAquire;
+  PSocketMethod onReceiveMessage;
+  Timers timeServer;
+} SocketServer;
+typedef SocketServer *PSocketServer;
+typedef struct WebSocketServer_t {
+  PSocketServer socketServer;
+  PSocketMethod onConnect;
+  PSocketMethod onReceiveMessage;
+  PSocketMethod onRelease;
+  PrivateMethodsBundle methodsBundle;
+  Vector pendingConnections;
+  PTimeout timeServer;
+} WebSocketServer;
+typedef WebSocketServer *PWebSocketServer;
+typedef enum {
+  GET,
+  POST,
+  PUT,
+  PATCH,
+  DELETE
+} HttpAction;
+typedef struct HttpString_t {
+  char *buffer;
+  size_t sz;
+} HttpString;
+typedef HttpString *PHttpString;
+typedef struct URL_t {
+  HttpString path;
+  char httpType[16];
+  HttpAction method;
+} URL;
+typedef URL *PURL;
+typedef struct HttpMetaData_t {
+  HttpString codes[10];
+  size_t actionsSz;
+} HttpMetaData;
+typedef HttpMetaData *PHttpMetaData;
+typedef struct TrieNode_t *PTrieNode;
+typedef struct TrieHash_t {
+  uint32_t count;
+  PTrieNode parentNode;
+} TrieHash;
+typedef TrieHash *PTrieHash;
+typedef struct TrieNode_t {
+  uint32_t count;
+  void *buffer;
+  PTrieNode *nextNodes;
+} TrieNode;
+typedef struct Key_t {
+  char *key;
+  uint32_t keySize;
+} Key;
+typedef struct Hash_t {
+  PTrieHash hash;
+  PTrieHash valuesSize;
+} Hash;
+typedef struct HttpRequest_t {
+  Hash headers;
+  PURL url;
+  PHttpString body;
+  char *_endBuffer;
+  PHttpMetaData metadata;
+} HttpRequest;
+typedef HttpRequest *PHttpRequest;
+typedef struct HttpResponse_t {
+  char *httpCode;
+  Hash headers;
+  HttpString body;
+  uint16_t response;
+} HttpResponse;
+typedef HttpResponse *PHttpResponse;
 EventBuffer evm_New_Transform(const PEventMessage self);
 EventBuffer evm_Reuse_Transform(const PEventMessage self, char *buffer);
 EventMessage evm_Parse(EventBuffer buffer, uint8_t *valid);
@@ -982,13 +1133,6 @@ EventMessage evm_Parse(EventBuffer inp, uint8_t *valid) {
        
        
        
-struct Vector_t {
-  void *buffer;
-  size_t size;
-  size_t capacity;
-  size_t objSize;
-};
-typedef struct Vector_t *Vector;
 Vector vct_Init(size_t size);
 Vector vct_InitWithCapacity(size_t size, size_t count);
 void vct_Push(Vector self, void *buffer);
@@ -1002,59 +1146,12 @@ Vector vct_InitWithSize(size_t objSize, size_t count);
 char *vct_Last(Vector self);
 void vct_Pop(Vector self);
        
-typedef struct TimeMethod_t {
-  void *method;
-  void *buffer;
-} TimeMethod;
-typedef struct TimeFragment_t {
-  TimeMethod methodFragment;
-  int64_t executeAfter;
-} TimeFragment;
-typedef struct TimeServer_t {
-  Vector methods;
-} TimeServer;
-typedef TimeServer *PTimeServer;
 PTimeServer tf_Create();
 void tf_OnFrame(PTimeServer self, uint64_t deltaMS);
 void tf_Delete(PTimeServer self);
 void tf_ExecuteAfter(PTimeServer self, TimeMethod currentMethod, uint64_t afterMS);
 uint64_t tf_CurrentTimeMS();
        
-typedef struct SocketMethod_t {
-  void *method;
-  void *mirrorBuffer;
-} SocketMethod;
-typedef struct Connection_t {
-  int32_t fd;
-} Connection;
-typedef struct DataFragment_t {
-  uint32_t size;
-  uint8_t persistent;
-  Connection conn;
-  char *data;
-} DataFragment;
-typedef SocketMethod *PSocketMethod;
-typedef Connection *PConnection;
-typedef DataFragment *PDataFragment;
-typedef struct Timers_t {
-  PTimeServer timeServer;
-  int64_t timeout;
-} Timers;
-typedef struct SocketServer_t {
-  uint16_t port;
-  int32_t maxActiveConnections;
-  int32_t maxBytesPerReadConnection;
-  Connection serverFD;
-  Vector connections;
-  Vector inputReads;
-  Vector outputCommands;
-  Vector closeConnectionsQueue;
-  PSocketMethod onConnectionRelease;
-  PSocketMethod onConnectionAquire;
-  PSocketMethod onReceiveMessage;
-  Timers timeServer;
-} SocketServer;
-typedef SocketServer *PSocketServer;
 PSocketServer sock_Create(uint16_t port);
 void sock_Delete(PSocketServer self);
 void sock_OnFrame(PSocketServer self, uint64_t deltaMS);
@@ -1069,21 +1166,6 @@ PSocketMethod sock_Method_Create(void *method, void *mirrorBuffer);
 void sock_Method_Delete(PSocketMethod self);
        
        
-typedef struct TrieNode_t *PTrieNode;
-typedef struct TrieHash_t {
-  uint32_t count;
-  PTrieNode parentNode;
-} TrieHash;
-typedef TrieHash *PTrieHash;
-typedef struct TrieNode_t {
-  uint32_t count;
-  void *buffer;
-  PTrieNode *nextNodes;
-} TrieNode;
-typedef struct Key_t {
-  char *key;
-  uint32_t keySize;
-} Key;
 PTrieHash trh_Create();
 void trh_Add(PTrieHash self, void* key, uint32_t keySize, void* value, uint32_t valueSize);
 void trh_Delete(PTrieHash self);
@@ -1101,48 +1183,6 @@ void trh_Buffer_RemoveAtIndex(PTrieHash self, uint32_t id);
 Vector trh_GetValues(PTrieHash self, size_t valueSize);
 Vector trh_GetKeys(PTrieHash self);
 void trh_FreeKeys(Vector keys);
-typedef enum {
-  GET,
-  POST,
-  PUT,
-  PATCH,
-  DELETE
-} HttpAction;
-typedef struct HttpString_t {
-  char *buffer;
-  size_t sz;
-} HttpString;
-typedef HttpString *PHttpString;
-typedef struct URL_t {
-  HttpString path;
-  char httpType[16];
-  HttpAction method;
-} URL;
-typedef URL *PURL;
-typedef struct HttpMetaData_t {
-  HttpString codes[10];
-  size_t actionsSz;
-} HttpMetaData;
-typedef HttpMetaData *PHttpMetaData;
-typedef struct Hash_t {
-  PTrieHash hash;
-  PTrieHash valuesSize;
-} Hash;
-typedef struct HttpRequest_t {
-  Hash headers;
-  PURL url;
-  PHttpString body;
-  char *_endBuffer;
-  PHttpMetaData metadata;
-} HttpRequest;
-typedef HttpRequest *PHttpRequest;
-typedef struct HttpResponse_t {
-  char *httpCode;
-  Hash headers;
-  HttpString body;
-  uint16_t response;
-} HttpResponse;
-typedef HttpResponse *PHttpResponse;
 PHttpRequest http_Request_Parse(char *buffer, size_t sz);
 HttpString http_Request_GetValue(PHttpRequest self, char *buffer);
 void http_Request_Delete(PHttpRequest self);
@@ -1153,43 +1193,12 @@ void http_Response_Delete(PHttpResponse self);
 HttpString http_Response_ToString(PHttpResponse self);
 PHttpResponse http_Response_Empty();
 void http_Response_Set(PHttpResponse self, char *key, size_t keySize, char *value, size_t valueSize) ;
-typedef struct PrivateMethodsBundle_t {
-  PSocketMethod _onConnect;
-  PSocketMethod _onReceive;
-  PSocketMethod _onRelease;
-} PrivateMethodsBundle;
-typedef struct Timeout_t {
-  uint64_t timeout;
-  PTimeServer server;
-} Timeout;
-typedef Timeout *PTimeout;
-typedef struct WebSocketServer_t {
-  PSocketServer socketServer;
-  PSocketMethod onConnect;
-  PSocketMethod onReceiveMessage;
-  PSocketMethod onRelease;
-  PrivateMethodsBundle methodsBundle;
-  Vector pendingConnections;
-  PTimeout timeServer;
-} WebSocketServer;
-typedef WebSocketServer *PWebSocketServer;
 PWebSocketServer wss_Create(uint16_t port);
 size_t wss_ConnectionsCount(PWebSocketServer self);
 void wss_OnFrame(PWebSocketServer self, uint64_t deltaMS);
 void wss_EnablePingPongTimeout(PWebSocketServer self, uint64_t timeout);
 void wss_Delete(PWebSocketServer self);
 void wss_SendMessage(PWebSocketServer self, PDataFragment dt);
-typedef struct EventServer_t {
-  PWebSocketServer wsServer;
-  PSocketMethod onReceive;
-  PSocketMethod onClose;
-} EventServer;
-typedef struct ResponseObject_t {
-  EventMessage metaData;
-  PConnection conn;
-} ResponseObject;
-typedef ResponseObject *PResponseObject;
-typedef EventServer *PEventServer;
 PEventServer evs_Create(uint16_t port);
 void evs_Delete(PEventServer self);
 void evs_OnFrame(PEventServer self, uint64_t deltaMS);
@@ -8309,11 +8318,6 @@ OSSL_LIB_CTX *EVP_PKEY_CTX_get0_libctx(EVP_PKEY_CTX *ctx);
 const char *EVP_PKEY_CTX_get0_propq(const EVP_PKEY_CTX *ctx);
 const OSSL_PROVIDER *EVP_PKEY_CTX_get0_provider(const EVP_PKEY_CTX *ctx);
        
-typedef struct WebSocketObject_t {
-  char *buffer;
-  size_t sz;
-} WebSocketObject;
-typedef WebSocketObject *PWebSocketObject;
 char *wbs_ToWebSocket(WebSocketObject self);
 Vector wbs_FromWebSocket(char *msg, size_t bufferSize);
 void wbs_Print(char *buffer);

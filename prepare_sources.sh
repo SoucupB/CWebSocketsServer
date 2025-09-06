@@ -10,9 +10,8 @@ find "$SRC_DIR" -type f -name "*.c" | sort | while read -r f; do
   echo "" >> "$OUT_FILE"
   echo "Added $f to combined.c"
 done
-
 echo "✅ All .c files combined into $OUT_FILE"
+cp $SRC_DIR/*.h bin/
 gcc -E -P $BIN_DIR/svv.c -o $BIN_DIR/server.c -O9 -lcrypto
 rm $BIN_DIR/svv.c
-find . -path "*/$SRC_DIR/*.h" -exec cp {} bin/ \;
 echo "✅ Copied header files into destination folder"

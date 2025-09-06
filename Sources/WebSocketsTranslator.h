@@ -1,14 +1,8 @@
 #pragma once
 #include <stdint.h>
 #include <stddef.h>
+#include "Structs.h"
 #include "Vector.h"
-
-typedef struct WebSocketObject_t {
-  char *buffer;
-  size_t sz;
-} WebSocketObject;
-
-typedef WebSocketObject *PWebSocketObject;
 
 char *wbs_ToWebSocket(WebSocketObject self);
 Vector/*WebSocketObject*/ wbs_FromWebSocket(char *msg, size_t bufferSize);

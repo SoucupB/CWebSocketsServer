@@ -1,30 +1,7 @@
 #pragma once
 #include <stddef.h>
 #include <stdint.h>
-
-typedef struct Auth_t {
-  uint8_t bff[8];
-} Auth;
-
-typedef Auth *PAuth;
-
-typedef struct EventBuffer_t {
-  char *buffer;
-  uint32_t size;
-} EventBuffer;
-
-typedef EventBuffer *PEventBuffer;
-
-typedef struct EventMessage_t {
-  uint8_t isAuthed;
-  uint32_t headerCode; // request code 3 bytes
-  Auth uniqueCode;
-  EventBuffer str;
-} EventMessage;
-
-// <payload_size> <header> <auth_code> (if necessary) <payload>
-
-typedef EventMessage *PEventMessage;
+#include "Structs.h"
 
 EventBuffer evm_New_Transform(const PEventMessage self);
 EventBuffer evm_Reuse_Transform(const PEventMessage self, char *buffer);
