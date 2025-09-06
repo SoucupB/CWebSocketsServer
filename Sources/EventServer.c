@@ -80,8 +80,8 @@ PEventServer evs_Create(uint16_t port) {
 }
 
 void evs_FreeMethods(PEventServer self) {
-  sock_Method_Delete(self->onClose);
-  sock_Method_Delete(self->onReceive);
+  sock_Method_Delete(self->wsServer->onReceiveMessage);
+  sock_Method_Delete(self->wsServer->onRelease);
 }
 
 void evs_OnFrame(PEventServer self, uint64_t deltaMS) {
