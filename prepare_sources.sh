@@ -12,7 +12,7 @@ find "$SRC_DIR" -type f -name "*.c" | sort | while read -r f; do
 done
 echo "✅ All .c files combined into $OUT_FILE"
 cp $SRC_DIR/*.h bin/
-gcc -E -P $BIN_DIR/svv.c -o $BIN_DIR/server.c -O9 -lcrypto
+gcc -E -P $BIN_DIR/svv.c -o $BIN_DIR/ServerSource.c -O9 -lcrypto
 ./_remove_headers.sh
 rm $BIN_DIR/svv.c
 echo "✅ Copied header files into destination folder"
