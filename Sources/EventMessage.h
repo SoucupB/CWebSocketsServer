@@ -6,6 +6,8 @@ typedef struct Auth_t {
   uint8_t bff[8];
 } Auth;
 
+typedef Auth *PAuth;
+
 typedef struct EventBuffer_t {
   char *buffer;
   size_t size;
@@ -14,12 +16,16 @@ typedef struct EventBuffer_t {
 typedef EventBuffer *PEventBuffer;
 
 typedef struct EventMessage_t {
-  uint32_t header; // request code + is_authed
+  uint8_t isAuthed;
+  uint32_t headerCode; // request code + is_authed
   Auth uniqueCode;
   EventBuffer str;
 } EventMessage;
 
+// <payload_size> <header> <auth_code> (if necessary) <payload>
+
 typedef EventMessage *PEventMessage;
 
-EventBuffer evm_Transform(PEventMessage self);
-EventMessage evm_Parse(char *buffer, size_t size, uint8_t *valid);
+EventBuffer evm_New_Transform(const PEventMessage self);
+EventBuffer evm_Reuse_Transform(const PEventMessage self, char *buffer);
+EventMessage evm_Parse(EventBuffer buffer, uint8_t *valid);
