@@ -17,7 +17,7 @@ typedef EventBuffer *PEventBuffer;
 
 typedef struct EventMessage_t {
   uint8_t isAuthed;
-  uint32_t headerCode; // request code + is_authed
+  uint32_t headerCode; // request code 3 bytes
   Auth uniqueCode;
   EventBuffer str;
 } EventMessage;

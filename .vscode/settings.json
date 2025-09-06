@@ -48,6 +48,7 @@
     "sha.h": "c",
     "socketclient.h": "c",
     "websocketserver_helper_test.h": "c",
-    "queue": "c"
+    "queue": "c",
+    "websocketserver.h": "c"
   }
 }
