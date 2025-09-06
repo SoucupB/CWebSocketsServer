@@ -75,6 +75,34 @@ static void test_send_message_correctness(void **state) {
   sock_Client_Free(connection);
 }
 
+static void test_send_message_correctness_with_auth(void **state) {
+  uint32_t onReceiveCount = 0;
+  void onReceive(PResponseObject msg, void *buffer) {
+    if(!buffer) {
+      return ;
+    }
+    uint32_t *number = buffer;
+    (*number)++;
+    assert_true(msg->metaData.headerCode == 33221);
+    assert_true(msg->metaData.isAuthed == 1);
+    assert_true(msg->metaData.str.size == sizeof("some_message") - 1);
+    assert_memory_equal(msg->metaData.str.buffer, "some_message", msg->metaData.str.size);
+    assert_memory_equal(msg->metaData.uniqueCode.bff, "abc123ef", sizeof(Auth));
+  }
+  PSocketMethod onReceiveMessage = sock_Method_Create(
+    onReceive,
+    &onReceiveCount
+  );
+  PEventServer evServer = newServer();
+  evServer->onReceive = onReceiveMessage;
+  PConnection connection = test_Wss_Util_ExchangeConnection(evServer->wsServer);
+  assert_non_null(evServer);
+  test_Util_Evs_SendAuthMessage(evServer, connection, "some_message", sizeof("some_message") - 1, "abc123ef", 33221);
+  assert_true(onReceiveCount == 1);
+  test_Util_Evs_Delete(evServer);
+  sock_Client_Free(connection);
+}
+
 static void test_on_malformed_message(void **state) {
   uint32_t onReceiveCount = 0;
   uint32_t onCloseCount = 0;
@@ -117,6 +145,7 @@ int main(void) {
     cmocka_unit_test(test_connect_to_evs_server),
     cmocka_unit_test(test_send_message),
     cmocka_unit_test(test_send_message_correctness),
+    cmocka_unit_test(test_send_message_correctness_with_auth),
     cmocka_unit_test(test_on_malformed_message),
   };
   return cmocka_run_group_tests(tests, NULL, NULL);
