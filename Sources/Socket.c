@@ -159,6 +159,7 @@ void sock_CloseConnection(PSocketServer self, size_t index) {
   vct_RemoveElement(self->connections, index);
 }
 
+// This method will not trigger a release callback.
 void sock_PushCloseConnections(PSocketServer self, PConnection conn) {
   ssize_t connectionIndex = sock_FindConnIndex(self, conn);
   if(connectionIndex < 0) {

@@ -20,3 +20,4 @@ typedef EventServer *PEventServer;
 
 PEventServer evs_Create(uint16_t port);
 void evs_Delete(PEventServer self);
+void evs_OnFrame(PEventServer self, uint64_t deltaMS);
