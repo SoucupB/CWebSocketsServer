@@ -71,6 +71,10 @@ static inline uint32_t evm_Out_TotalSize(const PEventMessage self) {
   return self->str.size + sizeof(self->headerCode) + sizeof(self->str.size) + sizeof(Auth) * evm_Out_IsAuthed(self);
 }
 
+uint32_t evm_Out_Public_TotalSize(PEventMessage self) {
+  return evm_Out_TotalSize(self);
+}
+
 EventBuffer evm_Reuse_Transform(const PEventMessage self, char *buffer) {
   uint32_t totalSize = evm_Out_TotalSize(self);
   memcpy(evm_Out_PayloadSizePointer(self, buffer), &self->str.size, sizeof(self->str.size));

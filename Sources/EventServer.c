@@ -1,11 +1,35 @@
 #include "EventServer.h"
 #include <string.h>
+#define MAX_BYTES_SWITCH_STACK (1<<12)
 
 static inline void evs_ProcessClosingConn(PEventServer self, PConnection conn) {
   if(self->onClose) {
     void (*method)(PConnection, void *) = self->onClose->method;
     method(conn, self->onClose->mirrorBuffer);
   }
+}
+
+static inline void evs_PushEventBuffer(PEventServer self, PEventBuffer bff, PConnection conn) {
+  DataFragment nextFrag = {
+    .conn = *conn,
+    .data = bff->buffer,
+    .size = bff->size
+  };
+  wss_SendMessage(self->wsServer, &nextFrag);
+}
+
+void evs_PushMessage(PEventServer self, PResponseObject msg) {
+  uint32_t msgSize = evm_Out_Public_TotalSize(&msg->metaData);
+  if(msgSize < MAX_BYTES_SWITCH_STACK) {
+    char buffer[MAX_BYTES_SWITCH_STACK];
+    EventBuffer response = evm_Reuse_Transform(&msg->metaData, buffer);
+    evs_PushEventBuffer(self, &response, msg->conn);
+    return ;
+  }
+  char *buffer = malloc(msgSize);
+  EventBuffer response = evm_Reuse_Transform(&msg->metaData, buffer);
+  evs_PushEventBuffer(self, &response, msg->conn);
+  free(buffer);
 }
 
 void _evs_OnClose(Connection conn, void *buffer) {
