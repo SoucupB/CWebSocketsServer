@@ -3,6 +3,7 @@
 #include <string.h>
 #include <stdio.h>
 #include <ctype.h>
+#include "TrieHash.h"
 
 static inline PHttpMetaData http_InitMetadata();
 static inline PURL http_URL_Init();

@@ -1,5 +1,10 @@
 #include "EventServer.h"
+#include "WebSocketServer.h"
+#include "SocketServer.h"
+#include "EventMessage.h"
 #include <string.h>
+#include <stdlib.h>
+
 #define MAX_BYTES_SWITCH_STACK (1<<12)
 
 static inline void evs_ProcessClosingConn(PEventServer self, PConnection conn) {

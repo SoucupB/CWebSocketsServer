@@ -3,6 +3,7 @@
 #include <stddef.h>
 #include <setjmp.h>
 #include <cmocka.h>
+#include <stdlib.h>
 
 PSocketServer test_Util_PrepareServer(uint16_t port, void *method, void *buffer) {
   PSocketServer server = sock_Create(port);

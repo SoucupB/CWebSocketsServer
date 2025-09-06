@@ -1,6 +1,4 @@
 #pragma once
-
-// #include "SocketCommon.h"
 #include "Structs.h"
 
 PConnection sock_Client_Connect(uint16_t port, char *ip);

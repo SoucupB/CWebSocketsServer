@@ -1,5 +1,6 @@
 #include "WebSocketServer_Helper_Test.h"
 #include "Socket_Helper_test.h"
+#include "Vector.h"
 #include "WebSocketsTranslator.h"
 #include "TimeFragment.h"
 #include <stdarg.h>
@@ -7,6 +8,7 @@
 #include <setjmp.h>
 #include <cmocka.h>
 #include <unistd.h>
+#include <stdlib.h>
 
 PConnection test_Wss_Util_Connect(PWebSocketServer wssServer, char *input) {
   PConnection connection = test_Util_Connect(wssServer->socketServer);

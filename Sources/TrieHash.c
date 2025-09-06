@@ -1,5 +1,6 @@
 #include "TrieHash.h"
 #include <string.h>
+#include "Vector.h"
 
 PTrieNode trn_Create();
 uint8_t trn_AddValues(PTrieNode self, PVOID key, uint32_t keySize, PVOID value, uint32_t valueSize, uint32_t position);

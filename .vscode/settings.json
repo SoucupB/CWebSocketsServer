@@ -53,6 +53,7 @@
     "eventserver_helper_test.h": "c",
     "eventserver.h": "c",
     "structs.h": "c",
-    "stddef.h": "c"
+    "stddef.h": "c",
+    "evp.h": "c"
   }
 }

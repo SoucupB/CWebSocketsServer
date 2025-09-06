@@ -1,8 +1,12 @@
 #include "WebSocketServer.h"
+#include "HttpParser.h"
+#include "TimeFragment.h"
 #include <string.h>
 #include <openssl/sha.h>
 #include <openssl/evp.h>
 #include "WebSocketsTranslator.h"
+#include "SocketServer.h"
+#include "Vector.h"
 
 void wss_SetMethods(PWebSocketServer self);
 void _wss_OnConnect(Connection connection, void *buffer);

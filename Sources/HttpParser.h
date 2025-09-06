@@ -2,7 +2,6 @@
 
 #include <stdint.h>
 #include <stddef.h>
-#include "TrieHash.h"
 #include "Structs.h"
 
 PHttpRequest http_Request_Parse(char *buffer, size_t sz);

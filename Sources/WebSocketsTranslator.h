@@ -2,7 +2,6 @@
 #include <stdint.h>
 #include <stddef.h>
 #include "Structs.h"
-#include "Vector.h"
 
 char *wbs_ToWebSocket(WebSocketObject self);
 Vector/*WebSocketObject*/ wbs_FromWebSocket(char *msg, size_t bufferSize);

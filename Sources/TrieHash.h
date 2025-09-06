@@ -1,7 +1,6 @@
 #pragma once
 #include <stddef.h>
 #include <stdint.h>
-#include "Vector.h"
 #include "Structs.h"
 
 PTrieHash trh_Create();

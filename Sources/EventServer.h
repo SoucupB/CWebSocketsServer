@@ -2,8 +2,6 @@
 #include <stdint.h>
 #include <stddef.h>
 #include "Structs.h"
-#include "WebSocketServer.h"
-#include "EventMessage.h"
 
 PEventServer evs_Create(uint16_t port);
 void evs_Delete(PEventServer self);

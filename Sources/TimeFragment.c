@@ -1,5 +1,6 @@
 #include "TimeFragment.h"
 #include <sys/time.h>
+#include "Vector.h"
 
 uint64_t tf_CurrentTimeMS() {
   struct timeval tv;

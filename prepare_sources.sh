@@ -13,5 +13,6 @@ done
 echo "✅ All .c files combined into $OUT_FILE"
 cp $SRC_DIR/*.h bin/
 gcc -E -P $BIN_DIR/svv.c -o $BIN_DIR/server.c -O9 -lcrypto
+./_remove_headers.sh
 rm $BIN_DIR/svv.c
 echo "✅ Copied header files into destination folder"
