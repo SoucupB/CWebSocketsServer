@@ -228,15 +228,19 @@ void wbs_Print(char *buffer) {
   _wbs_PrintNextBytes(buffer, messageSize);
 }
 
-char *wbs_ToWebSocket(WebSocketObject self) {
+static inline char *_wbs_ToWebSocket(WebSocketObject self, Opcode opcode) {
   char *response = malloc(wbs_Object_HeaderSize(&self, 0));
   wbs_ClearHeaderBytes(response);
   wbs_SetFin(response);
-  wbs_SetOpcodeTo(response, OPCODE_BINARY);
+  wbs_SetOpcodeTo(response, opcode);
   char *cpyResponse = response;
   cpyResponse = wbs_SetPayloadCode(response, &self) + 1 /*First byte*/;
   wbs_WritePayload(cpyResponse, &self);
   return response;
+}
+
+char *wbs_ToWebSocket(WebSocketObject self) {
+  return _wbs_ToWebSocket(self, OPCODE_BINARY);
 }
 
 void wbs_MaskSwitch(char *buffer) {
@@ -269,6 +273,10 @@ char *wbs_Masked_ToWebSocket(WebSocketObject self) {
   wbs_WritePayload(cpyResponse, &self);
   wbs_Mask_Set(response);
   return response;
+}
+
+char *wbs_Ping(WebSocketObject self) {
+  return _wbs_ToWebSocket(self, OPCODE_PING);
 }
 
 static inline char *wbs_UnmaskedBuffer(char *msg) {

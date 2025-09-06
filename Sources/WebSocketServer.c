@@ -22,8 +22,21 @@ PWebSocketServer wss_Create(uint16_t port) {
   return self;
 }
 
-void wss_SetMethod(PWebSocketServer self) {
+void _wss_LoopPingPong(void *buffer) {
+  PWebSocketServer self = buffer;
   
+  Connection *conns = self->socketServer->connections->buffer;
+  for(size_t i = 0, c = self->socketServer->connections->size; i < c; i++) {
+    
+  }
+}
+
+void wss_SetMethod(PWebSocketServer self) {
+  TimeMethod timeFragment = (TimeMethod) {
+    .method = (void *)_wss_LoopPingPong,
+    .buffer = self
+  };
+  tf_ExecuteLoop(self->timeServer->server, timeFragment, self->timeServer->timeout);
 }
 
 void wss_EnablePingPongTimeout(PWebSocketServer self, uint64_t timeout) {
@@ -56,10 +69,19 @@ void wss_SetMethods(PWebSocketServer self) {
   self->socketServer->onConnectionRelease = _onRelease;
 }
 
+static inline void wss_Tf_Delete(PWebSocketServer self) {
+  if(!self->timeServer) {
+    return ;
+  }
+  tf_Delete(self->timeServer->server);
+  free(self);
+}
+
 void wss_Delete(PWebSocketServer self) {
   sock_Method_Delete(self->methodsBundle._onReceive);
   sock_Method_Delete(self->methodsBundle._onConnect);
   sock_Method_Delete(self->methodsBundle._onRelease);
+  wss_Tf_Delete(self);
   sock_Delete(self->socketServer);
   vct_Delete(self->pendingConnections);
   free(self);
@@ -235,9 +257,13 @@ void _wss_OnRelease(Connection conn, void *buffer) {
   }
 }
 
-void wss_OnFrame(PWebSocketServer self, uint64_t deltaMS) {
-  sock_OnFrame(self->socketServer, deltaMS);
+static inline void wss_Tf_OnFrame(PWebSocketServer self, uint64_t deltaMS) {
   if(self->timeServer) {
     tf_OnFrame(self->timeServer->server, deltaMS);
   }
+}
+
+void wss_OnFrame(PWebSocketServer self, uint64_t deltaMS) {
+  sock_OnFrame(self->socketServer, deltaMS);
+  wss_Tf_OnFrame(self, deltaMS);
 }
