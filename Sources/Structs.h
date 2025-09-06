@@ -85,6 +85,7 @@ typedef struct TimeMethod_t {
 typedef struct TimeFragment_t {
   TimeMethod methodFragment;
   int64_t executeAfter;
+  int64_t time;
 } TimeFragment;
 
 struct Vector_t {
@@ -98,6 +99,7 @@ typedef struct Vector_t *Vector;
 
 typedef struct TimeServer_t {
   Vector methods;
+  Vector loopMethods;
 } TimeServer;
 
 typedef TimeServer *PTimeServer;

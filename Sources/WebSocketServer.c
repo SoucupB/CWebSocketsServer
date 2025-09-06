@@ -22,8 +22,17 @@ PWebSocketServer wss_Create(uint16_t port) {
   return self;
 }
 
-void wss_EnablePingPongTimeout(PWebSocketServer self, uint64_t timeout) {
+void wss_SetMethod(PWebSocketServer self) {
+  
+}
 
+void wss_EnablePingPongTimeout(PWebSocketServer self, uint64_t timeout) {
+  if(!self->timeServer) {
+    self->timeServer = malloc(sizeof(Timers));
+    self->timeServer->server = tf_Create();
+  }
+  self->timeServer->timeout = timeout;
+  wss_SetMethod(self);
 }
 
 void wss_SetMethods(PWebSocketServer self) {
@@ -228,4 +237,7 @@ void _wss_OnRelease(Connection conn, void *buffer) {
 
 void wss_OnFrame(PWebSocketServer self, uint64_t deltaMS) {
   sock_OnFrame(self->socketServer, deltaMS);
+  if(self->timeServer) {
+    tf_OnFrame(self->timeServer->server, deltaMS);
+  }
 }
