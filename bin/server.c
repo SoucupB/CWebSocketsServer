@@ -1130,27 +1130,16 @@ EventMessage evm_Parse(EventBuffer inp, uint8_t *valid) {
   return response;
 }
        
+PEventServer evs_Create(uint16_t port);
+void evs_Delete(PEventServer self);
+void evs_OnFrame(PEventServer self, uint64_t deltaMS);
        
-       
-       
-Vector vct_Init(size_t size);
-Vector vct_InitWithCapacity(size_t size, size_t count);
-void vct_Push(Vector self, void *buffer);
-void vct_Delete(Vector self);
-void vct_DeleteWOBuffer(Vector self);
-void vct_Clear(Vector self);
-void vct_RemoveElement(Vector payload, size_t index);
-Vector vct_RemoveElements(Vector payload, Vector indexes);
-int64_t vct_Find(Vector payload, void *element);
-Vector vct_InitWithSize(size_t objSize, size_t count);
-char *vct_Last(Vector self);
-void vct_Pop(Vector self);
-       
-PTimeServer tf_Create();
-void tf_OnFrame(PTimeServer self, uint64_t deltaMS);
-void tf_Delete(PTimeServer self);
-void tf_ExecuteAfter(PTimeServer self, TimeMethod currentMethod, uint64_t afterMS);
-uint64_t tf_CurrentTimeMS();
+PWebSocketServer wss_Create(uint16_t port);
+size_t wss_ConnectionsCount(PWebSocketServer self);
+void wss_OnFrame(PWebSocketServer self, uint64_t deltaMS);
+void wss_EnablePingPongTimeout(PWebSocketServer self, uint64_t timeout);
+void wss_Delete(PWebSocketServer self);
+void wss_SendMessage(PWebSocketServer self, PDataFragment dt);
        
 PSocketServer sock_Create(uint16_t port);
 void sock_Delete(PSocketServer self);
@@ -1164,44 +1153,6 @@ void sock_PushCloseConnections(PSocketServer self, PConnection conn);
 void sock_CloseConnection(PSocketServer self, size_t index);
 PSocketMethod sock_Method_Create(void *method, void *mirrorBuffer);
 void sock_Method_Delete(PSocketMethod self);
-       
-       
-PTrieHash trh_Create();
-void trh_Add(PTrieHash self, void* key, uint32_t keySize, void* value, uint32_t valueSize);
-void trh_Delete(PTrieHash self);
-void trh_RemoveNode(PTrieHash self, void* key, uint32_t keySize);
-void* trh_GetBuffer(PTrieHash self, void* key, uint32_t keySize);
-void trh_Integer32_Insert(PTrieHash self, uint32_t key, uint32_t value);
-void* trh_Integer32_Get(PTrieHash self, uint32_t key);
-void trh_Integer32_RemoveElement(PTrieHash self, uint32_t key);
-void trh_Buffer_AddToIndex64(PTrieHash self, uint64_t id, void* buffer, uint32_t bufferSize);
-void* trh_Buffer_GetFromIndex64(PTrieHash self, uint64_t id);
-void trh_Buffer_RemoveAtIndex64(PTrieHash self, uint64_t id);
-void trh_Buffer_AddToIndex(PTrieHash self, uint32_t id, void* buffer, uint32_t bufferSize);
-void* trh_Buffer_GetFromIndex(PTrieHash self, uint32_t id);
-void trh_Buffer_RemoveAtIndex(PTrieHash self, uint32_t id);
-Vector trh_GetValues(PTrieHash self, size_t valueSize);
-Vector trh_GetKeys(PTrieHash self);
-void trh_FreeKeys(Vector keys);
-PHttpRequest http_Request_Parse(char *buffer, size_t sz);
-HttpString http_Request_GetValue(PHttpRequest self, char *buffer);
-void http_Request_Delete(PHttpRequest self);
-HttpString http_Hash_GetValue(Hash self, char *buffer, size_t bufferLen);
-PHttpResponse http_Response_Create();
-void http_Response_SetBody(PHttpResponse self, PHttpString buffer);
-void http_Response_Delete(PHttpResponse self);
-HttpString http_Response_ToString(PHttpResponse self);
-PHttpResponse http_Response_Empty();
-void http_Response_Set(PHttpResponse self, char *key, size_t keySize, char *value, size_t valueSize) ;
-PWebSocketServer wss_Create(uint16_t port);
-size_t wss_ConnectionsCount(PWebSocketServer self);
-void wss_OnFrame(PWebSocketServer self, uint64_t deltaMS);
-void wss_EnablePingPongTimeout(PWebSocketServer self, uint64_t timeout);
-void wss_Delete(PWebSocketServer self);
-void wss_SendMessage(PWebSocketServer self, PDataFragment dt);
-PEventServer evs_Create(uint16_t port);
-void evs_Delete(PEventServer self);
-void evs_OnFrame(PEventServer self, uint64_t deltaMS);
 static inline void evs_ProcessClosingConn(PEventServer self, PConnection conn) {
   if(self->onClose) {
     void (*method)(PConnection, void *) = self->onClose->method;
@@ -1807,9 +1758,9 @@ static inline PFixedMemoryPool fmp_FindPool(const PFixedMemoryPool self, const v
 }
 void fmp_Free(PFixedMemoryPool self, void *buffer) {
   PFixedMemoryPool currentPool = fmp_FindPool(self, buffer);
-  ((void) sizeof ((currentPool != ((void *)0)) ? 1 : 0), __extension__ ({ if (currentPool != ((void *)0)) ; else __assert_fail ("currentPool != NULL", "bin/svv.c", 306, __extension__ __PRETTY_FUNCTION__); }));
+  ((void) sizeof ((currentPool != ((void *)0)) ? 1 : 0), __extension__ ({ if (currentPool != ((void *)0)) ; else __assert_fail ("currentPool != NULL", "bin/svv.c", 311, __extension__ __PRETTY_FUNCTION__); }));
   PMemoryFragment currentMemoryFragment = fmp_StartingPointer(buffer);
-  ((void) sizeof ((*currentMemoryFragment->flag == 1) ? 1 : 0), __extension__ ({ if (*currentMemoryFragment->flag == 1) ; else __assert_fail ("*currentMemoryFragment->flag == 1", "bin/svv.c", 308, __extension__ __PRETTY_FUNCTION__); }));
+  ((void) sizeof ((*currentMemoryFragment->flag == 1) ? 1 : 0), __extension__ ({ if (*currentMemoryFragment->flag == 1) ; else __assert_fail ("*currentMemoryFragment->flag == 1", "bin/svv.c", 313, __extension__ __PRETTY_FUNCTION__); }));
   stack_Push(&currentPool->freeStack, currentMemoryFragment->self);
   *currentMemoryFragment->flag = 0;
   currentPool->count--;
@@ -1854,6 +1805,17 @@ void *fmp_Alloc(PFixedMemoryPool self) {
   }
   return fmp_NormalMem(self);
 }
+       
+PHttpRequest http_Request_Parse(char *buffer, size_t sz);
+HttpString http_Request_GetValue(PHttpRequest self, char *buffer);
+void http_Request_Delete(PHttpRequest self);
+HttpString http_Hash_GetValue(Hash self, char *buffer, size_t bufferLen);
+PHttpResponse http_Response_Create();
+void http_Response_SetBody(PHttpResponse self, PHttpString buffer);
+void http_Response_Delete(PHttpResponse self);
+HttpString http_Response_ToString(PHttpResponse self);
+PHttpResponse http_Response_Empty();
+void http_Response_Set(PHttpResponse self, char *key, size_t keySize, char *value, size_t valueSize) ;
 
 enum
 {
@@ -1921,6 +1883,24 @@ extern int tolower_l (int __c, locale_t __l) __attribute__ ((__nothrow__ , __lea
 extern int __toupper_l (int __c, locale_t __l) __attribute__ ((__nothrow__ , __leaf__));
 extern int toupper_l (int __c, locale_t __l) __attribute__ ((__nothrow__ , __leaf__));
 
+       
+PTrieHash trh_Create();
+void trh_Add(PTrieHash self, void* key, uint32_t keySize, void* value, uint32_t valueSize);
+void trh_Delete(PTrieHash self);
+void trh_RemoveNode(PTrieHash self, void* key, uint32_t keySize);
+void* trh_GetBuffer(PTrieHash self, void* key, uint32_t keySize);
+void trh_Integer32_Insert(PTrieHash self, uint32_t key, uint32_t value);
+void* trh_Integer32_Get(PTrieHash self, uint32_t key);
+void trh_Integer32_RemoveElement(PTrieHash self, uint32_t key);
+void trh_Buffer_AddToIndex64(PTrieHash self, uint64_t id, void* buffer, uint32_t bufferSize);
+void* trh_Buffer_GetFromIndex64(PTrieHash self, uint64_t id);
+void trh_Buffer_RemoveAtIndex64(PTrieHash self, uint64_t id);
+void trh_Buffer_AddToIndex(PTrieHash self, uint32_t id, void* buffer, uint32_t bufferSize);
+void* trh_Buffer_GetFromIndex(PTrieHash self, uint32_t id);
+void trh_Buffer_RemoveAtIndex(PTrieHash self, uint32_t id);
+Vector trh_GetValues(PTrieHash self, size_t valueSize);
+Vector trh_GetKeys(PTrieHash self);
+void trh_FreeKeys(Vector keys);
 static inline PHttpMetaData http_InitMetadata();
 static inline PURL http_URL_Init();
 static inline void http_UpdateString(PHttpRequest self, PHttpString string, char *buffer);
@@ -4079,6 +4059,25 @@ struct termio
 };
 extern int ioctl (int __fd, unsigned long int __request, ...) __attribute__ ((__nothrow__ , __leaf__));
 
+       
+Vector vct_Init(size_t size);
+Vector vct_InitWithCapacity(size_t size, size_t count);
+void vct_Push(Vector self, void *buffer);
+void vct_Delete(Vector self);
+void vct_DeleteWOBuffer(Vector self);
+void vct_Clear(Vector self);
+void vct_RemoveElement(Vector payload, size_t index);
+Vector vct_RemoveElements(Vector payload, Vector indexes);
+int64_t vct_Find(Vector payload, void *element);
+Vector vct_InitWithSize(size_t objSize, size_t count);
+char *vct_Last(Vector self);
+void vct_Pop(Vector self);
+       
+PTimeServer tf_Create();
+void tf_OnFrame(PTimeServer self, uint64_t deltaMS);
+void tf_Delete(PTimeServer self);
+void tf_ExecuteAfter(PTimeServer self, TimeMethod currentMethod, uint64_t afterMS);
+uint64_t tf_CurrentTimeMS();
 typedef struct CloseConnStruct_t {
   PSocketServer self;
   Connection conn;
@@ -4126,7 +4125,7 @@ void sock_PushCloseConnMethod(PSocketServer self, Connection conn, size_t index)
   tf_ExecuteAfter(self->timeServer.timeServer, timeFragment, self->timeServer.timeout);
 }
 void sock_SetMaxConnections(PSocketServer self, int32_t maxActiveConnections) {
-  ((void) sizeof ((maxActiveConnections < 1024) ? 1 : 0), __extension__ ({ if (maxActiveConnections < 1024) ; else __assert_fail ("maxActiveConnections < MAX_CONNECTIONS_PER_SERVER", "bin/svv.c", 925, __extension__ __PRETTY_FUNCTION__); }));
+  ((void) sizeof ((maxActiveConnections < 1024) ? 1 : 0), __extension__ ({ if (maxActiveConnections < 1024) ; else __assert_fail ("maxActiveConnections < MAX_CONNECTIONS_PER_SERVER", "bin/svv.c", 933, __extension__ __PRETTY_FUNCTION__); }));
   self->maxActiveConnections = maxActiveConnections;
 }
 void sock_Write_Push(PSocketServer self, DataFragment *dt) {
@@ -4412,91 +4411,6 @@ void sock_Delete(PSocketServer self) {
   close(self->serverFD.fd);
   sock_Time_Delete(self);
   free(self);
-}
-       
-struct Splitter_t {
-  Vector lines;
-};
-typedef struct Splitter_t Splitter;
-Splitter split(char *buffer, size_t size, char *splitter, size_t splitterSize);
-char *splitter_GetLine(Splitter self, size_t index);
-size_t splitter_GetSize(Splitter self, size_t index);
-size_t splitter_Count(Splitter self);
-void splitter_Free(Splitter self);
-uint8_t areStringsEqual(char *child, char *parent, size_t childSize, size_t parentSize);
-Vector extract(char *buffer, size_t left, size_t right, size_t size);
-void splitString(struct Splitter_t self, char *buffer, size_t size, char *splitter, size_t splitterSize);
-Splitter split(char *buffer, size_t size, char *splitter, size_t splitterSize) {
-  Splitter self;
-  self.lines = vct_Init(sizeof(char *));
-  if(size) {
-    splitString(self, buffer, size, splitter, splitterSize);
-  }
-  return self;
-}
-void splitString(Splitter self, char *buffer, size_t size, char *splitter, size_t splitterSize) {
-  size_t lastIndex = 0;
-  size_t i = 0;
-  while(i < size) {
-    if(areStringsEqual(splitter, buffer + i, splitterSize, size - i)) {
-      Vector currentSlice = extract(buffer, lastIndex, i - 1, size);
-      vct_Push(self.lines, &currentSlice);
-      i += splitterSize;
-      lastIndex = i;
-    }
-    else {
-      i++;
-    }
-  }
-  Vector currentSlice = extract(buffer, lastIndex, size - 1, size);
-  vct_Push(self.lines, &currentSlice);
-}
-Vector extract(char *buffer, size_t left, size_t right, size_t size) {
-  Vector result = vct_Init(sizeof(char));
-  for(size_t i = left; i <= right; i++) {
-    vct_Push(result, &buffer[i]);
-  }
-  char endCharacter = '\0';
-  vct_Push(result, &endCharacter);
-  return result;
-}
-uint8_t areStringsEqual(char *child, char *parent, size_t childSize, size_t parentSize) {
-  if(parentSize < childSize) {
-    return 0;
-  }
-  for(size_t i = 0; i < childSize; i++) {
-    if(child[i] != parent[i]) {
-      return 0;
-    }
-  }
-  return 1;
-}
-char *splitter_GetLine(Splitter self, size_t index) {
-  if(index >= self.lines->size) {
-    return ((void *)0);
-  }
-  Vector *lines = self.lines->buffer;
-  return lines[index]->buffer;
-}
-size_t splitter_Count(Splitter self) {
-  return self.lines->size;
-}
-size_t splitter_GetSize(Splitter self, size_t index) {
-  if(index >= self.lines->size) {
-    return 0;
-  }
-  Vector *lines = self.lines->buffer;
-  if(!lines[index]->size) {
-    return 0;
-  }
-  return lines[index]->size - 1;
-}
-void splitter_Free(Splitter self) {
-  Vector *lines = self.lines->buffer;
-  for(size_t i = 0, c = self.lines->size; i < c; i++) {
-    vct_Delete(lines[i]);
-  }
-  vct_Delete(self.lines);
 }
 
 struct timezone
@@ -4833,7 +4747,7 @@ void vct_Push(Vector self, void *buffer) {
   copyData(self, buffer);
 }
 void vct_RemoveElement(Vector self, size_t index) {
-  ((void) sizeof ((self->size != 0) ? 1 : 0), __extension__ ({ if (self->size != 0) ; else __assert_fail ("self->size != 0", "bin/svv.c", 1683, __extension__ __PRETTY_FUNCTION__); }));
+  ((void) sizeof ((self->size != 0) ? 1 : 0), __extension__ ({ if (self->size != 0) ; else __assert_fail ("self->size != 0", "bin/svv.c", 1608, __extension__ __PRETTY_FUNCTION__); }));
   if(index >= self->size) {
     return ;
   }

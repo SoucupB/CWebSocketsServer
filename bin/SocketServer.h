@@ -2,9 +2,7 @@
 
 #include <stdint.h>
 #include <stddef.h>
-#include "Vector.h"
-#include "TimeFragment.h"
-#include "SocketCommon.h"
+#include "Structs.h"
 
 PSocketServer sock_Create(uint16_t port);
 void sock_Delete(PSocketServer self);
