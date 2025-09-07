@@ -163,10 +163,6 @@ void sock_CloseConnection(PSocketServer self, size_t index) {
 
 // This method will not trigger a release callback.
 void sock_PushCloseConnections(PSocketServer self, PConnection conn) {
-  ssize_t connectionIndex = sock_FindConnIndex(self, conn);
-  if(connectionIndex < 0) {
-    return ;
-  }
   vct_Push(self->closeConnectionsQueue, conn);
 }
 

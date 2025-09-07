@@ -4221,10 +4221,6 @@ void sock_CloseConnection(PSocketServer self, size_t index) {
   vct_RemoveElement(self->connections, index);
 }
 void sock_PushCloseConnections(PSocketServer self, PConnection conn) {
-  ssize_t connectionIndex = sock_FindConnIndex(self, conn);
-  if(connectionIndex < 0) {
-    return ;
-  }
   vct_Push(self->closeConnectionsQueue, conn);
 }
 size_t sock_DoesConnectionExists(PSocketServer self, PConnection conn, uint8_t *found) {
@@ -4245,6 +4241,7 @@ void sock_ClearPushedConnections(PSocketServer self) {
   for(size_t i = 0, c = self->closeConnectionsQueue->size; i < c; i++) {
     size_t connIndex = sock_DoesConnectionExists(self, &connections[i], &found);
     if(found) {
+      close(connections[i].fd);
       vct_Push(indexes, &connIndex);
     }
   }
@@ -4790,7 +4787,7 @@ void vct_Push(Vector self, void *buffer) {
   copyData(self, buffer);
 }
 void vct_RemoveElement(Vector self, size_t index) {
-  ((void) sizeof ((self->size != 0) ? 1 : 0), __extension__ ({ if (self->size != 0) ; else __assert_fail ("self->size != 0", "bin/svv.c", 1639, __extension__ __PRETTY_FUNCTION__); }));
+  ((void) sizeof ((self->size != 0) ? 1 : 0), __extension__ ({ if (self->size != 0) ; else __assert_fail ("self->size != 0", "bin/svv.c", 1636, __extension__ __PRETTY_FUNCTION__); }));
   if(index >= self->size) {
     return ;
   }
@@ -8295,6 +8292,7 @@ size_t wbs_Public_PayloadSize(char *buffer);
 size_t wbs_Public_PayloadSize(char *buffer);
 size_t wbs_Raw_Public_HeaderSize(char *buffer);
 char *wbs_Public_PayloadBuffer(char *buffer);
+uint8_t wbs_Public_GetCode(char *buffer);
 void wss_SetMethods(PWebSocketServer self);
 void _wss_OnConnect(Connection connection, void *buffer);
 void _wss_OnReceive(PDataFragment dt, void *buffer);
@@ -8522,7 +8520,11 @@ uint8_t wss_ReceiveMessages(PWebSocketServer self, PDataFragment dt, PSocketMeth
   for(size_t i = 0, c = messages->size; i < c; i++) {
     responseDt.data = objects[i].buffer;
     responseDt.size = objects[i].sz;
-    if(!validConnection && wss_RemovePingRequest(self, &responseDt)) {
+    if(objects[i].opcode == OPCODE_CONNECTION_CLOSE) {
+      wss_CloseConnections(self, responseDt.conn);
+      continue;
+    }
+    if(!validConnection && objects[i].opcode == OPCODE_PONG && wss_RemovePingRequest(self, &responseDt)) {
       validConnection = 1;
       continue;
     }
@@ -8624,6 +8626,12 @@ static inline void wbs_SetOpcodeTo(char *buffer, Opcode code) {
 }
 static inline void wbs_SetFin(char *buffer) {
   buffer[0] |= (1<<7);
+}
+static inline uint8_t wbs_GetCode(char *buffer) {
+  return buffer[0] & ((1<<7) - 1);
+}
+uint8_t wbs_Public_GetCode(char *buffer) {
+  return wbs_GetCode(buffer);
 }
 static inline void wbs_ClearHeaderBytes(char *buffer) {
   buffer[0] = 0;
@@ -8872,7 +8880,8 @@ Vector wbs_FromWebSocket(char *msg, size_t bufferSize) {
   while(msg < endBuffer) {
     WebSocketObject obj = (WebSocketObject) {
       .buffer = wbs_ExtractPayload(msg),
-      .sz = wbs_PayloadSize(msg)
+      .sz = wbs_PayloadSize(msg),
+      .opcode = wbs_GetCode(msg)
     };
     if(!obj.buffer) {
       wbs_Clear_FromWebSocket(buffer);

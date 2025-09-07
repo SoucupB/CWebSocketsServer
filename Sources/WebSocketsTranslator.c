@@ -19,6 +19,14 @@ static inline void wbs_SetFin(char *buffer) {
   buffer[0] |= (1<<7);
 }
 
+static inline uint8_t wbs_GetCode(char *buffer) {
+  return buffer[0] & ((1<<7) - 1);
+}
+
+uint8_t wbs_Public_GetCode(char *buffer) {
+  return wbs_GetCode(buffer);
+}
+
 static inline void wbs_ClearHeaderBytes(char *buffer) {
   buffer[0] = 0;
   buffer[1] = 0;
@@ -303,7 +311,8 @@ Vector wbs_FromWebSocket(char *msg, size_t bufferSize) {
   while(msg < endBuffer) {
     WebSocketObject obj = (WebSocketObject) {
       .buffer = wbs_ExtractPayload(msg),
-      .sz = wbs_PayloadSize(msg)
+      .sz = wbs_PayloadSize(msg),
+      .opcode = wbs_GetCode(msg)
     };
     if(!obj.buffer) {
       wbs_Clear_FromWebSocket(buffer);

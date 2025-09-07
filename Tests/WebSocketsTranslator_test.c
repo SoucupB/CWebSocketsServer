@@ -14,6 +14,7 @@ static void test_websockets_payload_size_small(void **state) {
   char *bff = wbs_ToWebSocket(drr);
   assert_true(wbs_Public_PayloadSize(bff) == sizeof("some super specs") - 1);
   assert_true(wbs_Raw_Public_HeaderSize(bff) == 2);
+  assert_true(wbs_Public_GetCode(bff) == OPCODE_BINARY);
   assert_true(memcmp(wbs_Public_PayloadBuffer(bff), drr.buffer, wbs_Public_PayloadSize(bff)) == 0);
   test_Util_Delete(drr);
   free(bff);

@@ -252,7 +252,11 @@ uint8_t wss_ReceiveMessages(PWebSocketServer self, PDataFragment dt, PSocketMeth
   for(size_t i = 0, c = messages->size; i < c; i++) {
     responseDt.data = objects[i].buffer;
     responseDt.size = objects[i].sz;
-    if(!validConnection && wss_RemovePingRequest(self, &responseDt)) {
+    if(objects[i].opcode == OPCODE_CONNECTION_CLOSE) {
+      wss_CloseConnections(self, responseDt.conn);
+      continue;
+    }
+    if(!validConnection && objects[i].opcode == OPCODE_PONG && wss_RemovePingRequest(self, &responseDt)) {
       validConnection = 1;
       continue;
     }
