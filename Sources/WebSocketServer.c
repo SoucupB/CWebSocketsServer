@@ -282,7 +282,6 @@ static inline uint8_t wss_RemovePingRequest(PWebSocketServer self, PDataFragment
   for(size_t i = 0, c = self->pendingPingRequests->size; i < c; i++) {
     if(dt->size == sizeof(uint64_t) && pingBuffer[i].payload == *(uint64_t *)dt->data) {
       vct_RemoveElement(self->pendingPingRequests, i);
-      printf("Received pong request with number %ld\n", *(uint64_t *)dt->data);
       return 1;
     }
   }

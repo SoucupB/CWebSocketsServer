@@ -137,7 +137,7 @@ typedef struct WebSocketServer_t {
   PSocketServer socketServer;
   PSocketMethod onConnect;
   PSocketMethod onReceiveMessage;
-  PSocketMethod onRelease; // (*cMethod)(Connection, void *)
+  PSocketMethod onRelease; // (*cMethod)(PConnection, void *)
   PrivateMethodsBundle methodsBundle;
   Vector pendingConnections;
   Vector pendingPingRequests;

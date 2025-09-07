@@ -4216,7 +4216,7 @@ void sock_PushCloseConnections(PSocketServer self, PConnection conn) {
   if(connectionIndex < 0) {
     return ;
   }
-  vct_Push(self->closeConnectionsQueue, &conn);
+  vct_Push(self->closeConnectionsQueue, conn);
 }
 size_t sock_DoesConnectionExists(PSocketServer self, PConnection conn, uint8_t *found) {
   *found = 0;
@@ -4328,7 +4328,6 @@ static inline void sock_ProcessWriteRequests(PSocketServer self) {
   vct_Delete(self->connections);
   vct_Delete(markedForDeletionRequests);
   self->connections = prunnedArray;
-  sock_ClearPushedConnections(self);
 }
 static inline void sock_ClearConnections(PSocketServer self) {
   Connection *conn = self->connections->buffer;
@@ -4354,6 +4353,7 @@ void sock_OnFrame(PSocketServer self, uint64_t deltaMS) {
   sock_AcceptConnectionsRoutine(self);
   sock_ProcessReadMessage(self);
   sock_ProcessWriteRequests(self);
+  sock_ClearPushedConnections(self);
   sock_Time_OnFrame(self, deltaMS);
 }
 static inline void sock_Time_Delete(PSocketServer self) {
@@ -8540,7 +8540,6 @@ static inline uint8_t wss_RemovePingRequest(PWebSocketServer self, PDataFragment
   for(size_t i = 0, c = self->pendingPingRequests->size; i < c; i++) {
     if(dt->size == sizeof(uint64_t) && pingBuffer[i].payload == *(uint64_t *)dt->data) {
       vct_RemoveElement(self->pendingPingRequests, i);
-      printf("Received pong request with number %ld\n", *(uint64_t *)dt->data);
       return 1;
     }
   }

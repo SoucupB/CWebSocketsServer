@@ -167,7 +167,7 @@ void sock_PushCloseConnections(PSocketServer self, PConnection conn) {
   if(connectionIndex < 0) {
     return ;
   }
-  vct_Push(self->closeConnectionsQueue, &conn);
+  vct_Push(self->closeConnectionsQueue, conn);
 }
 
 size_t sock_DoesConnectionExists(PSocketServer self, PConnection conn, uint8_t *found) {
@@ -290,7 +290,6 @@ static inline void sock_ProcessWriteRequests(PSocketServer self)  {
   vct_Delete(self->connections);
   vct_Delete(markedForDeletionRequests);
   self->connections = prunnedArray;
-  sock_ClearPushedConnections(self);
 }
 
 static inline void sock_ClearConnections(PSocketServer self) {
@@ -320,6 +319,7 @@ void sock_OnFrame(PSocketServer self, uint64_t deltaMS) {
   sock_AcceptConnectionsRoutine(self);
   sock_ProcessReadMessage(self);
   sock_ProcessWriteRequests(self);
+  sock_ClearPushedConnections(self);
   sock_Time_OnFrame(self, deltaMS);
 }
 
