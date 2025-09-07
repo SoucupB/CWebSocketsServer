@@ -54,6 +54,7 @@
     "eventserver.h": "c",
     "structs.h": "c",
     "stddef.h": "c",
-    "evp.h": "c"
+    "evp.h": "c",
+    "eventmessage.h": "c"
   }
 }

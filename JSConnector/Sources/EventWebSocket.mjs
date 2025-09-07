@@ -1,5 +1,5 @@
 import WebSocket from 'ws';
-import { eventParseMethod } from './EventMessageParser.mjs';
+import { eventParseMethod, eventCreateMessage } from './EventMessageParser.mjs';
 
 export default class EventWebSocket {
   constructor(host) {
