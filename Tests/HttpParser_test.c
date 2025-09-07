@@ -112,6 +112,12 @@ GET /connect: HTTP/1.1\r\n\
   assert_null(httpObj);
 }
 
+static void test_http_null_data(void **state) {
+  char *request = "";
+  PHttpRequest httpObj = http_Request_Parse(request, strlen(request));
+  assert_null(httpObj);
+}
+
 static void test_http_parser_missing_space(void **state) {
   char *request = "\
 GET /connect HTTP/1.1\r\n\
@@ -303,6 +309,7 @@ int main(void) {
     cmocka_unit_test(test_http_parser_body_invalid_overlow),
     cmocka_unit_test(test_http_parser_body_without_length),
     cmocka_unit_test(test_http_response_to_string),
+    cmocka_unit_test(test_http_null_data),
     cmocka_unit_test(test_http_response_to_small_string_reject),
     cmocka_unit_test(test_http_parser_postman_requests),
   };

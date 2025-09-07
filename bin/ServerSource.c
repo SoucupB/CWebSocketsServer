@@ -1122,6 +1122,9 @@ EventBuffer evm_New_Transform(const PEventMessage self) {
 }
 EventMessage evm_Parse(EventBuffer inp, uint8_t *valid) {
   *valid = 0;
+  if(inp.size < 8) {
+    return (EventMessage) {};
+  }
   char *endBuffer = evm_In_EndPointer(inp.buffer);
   if(endBuffer != inp.size + inp.buffer) {
     return (EventMessage) {};
@@ -1145,6 +1148,7 @@ EventMessage evm_Parse(EventBuffer inp, uint8_t *valid) {
 PEventServer evs_Create(uint16_t port);
 void evs_Delete(PEventServer self);
 void evs_OnFrame(PEventServer self, uint64_t deltaMS);
+void evs_PushMessage(PEventServer self, PResponseObject msg);
        
 PWebSocketServer wss_Create(uint16_t port);
 size_t wss_ConnectionsCount(PWebSocketServer self);
@@ -1770,9 +1774,9 @@ static inline PFixedMemoryPool fmp_FindPool(const PFixedMemoryPool self, const v
 }
 void fmp_Free(PFixedMemoryPool self, void *buffer) {
   PFixedMemoryPool currentPool = fmp_FindPool(self, buffer);
-  ((void) sizeof ((currentPool != ((void *)0)) ? 1 : 0), __extension__ ({ if (currentPool != ((void *)0)) ; else __assert_fail ("currentPool != NULL", "bin/svv.c", 311, __extension__ __PRETTY_FUNCTION__); }));
+  ((void) sizeof ((currentPool != ((void *)0)) ? 1 : 0), __extension__ ({ if (currentPool != ((void *)0)) ; else __assert_fail ("currentPool != NULL", "bin/svv.c", 314, __extension__ __PRETTY_FUNCTION__); }));
   PMemoryFragment currentMemoryFragment = fmp_StartingPointer(buffer);
-  ((void) sizeof ((*currentMemoryFragment->flag == 1) ? 1 : 0), __extension__ ({ if (*currentMemoryFragment->flag == 1) ; else __assert_fail ("*currentMemoryFragment->flag == 1", "bin/svv.c", 313, __extension__ __PRETTY_FUNCTION__); }));
+  ((void) sizeof ((*currentMemoryFragment->flag == 1) ? 1 : 0), __extension__ ({ if (*currentMemoryFragment->flag == 1) ; else __assert_fail ("*currentMemoryFragment->flag == 1", "bin/svv.c", 316, __extension__ __PRETTY_FUNCTION__); }));
   stack_Push(&currentPool->freeStack, currentMemoryFragment->self);
   *currentMemoryFragment->flag = 0;
   currentPool->count--;
@@ -4139,7 +4143,7 @@ void sock_PushCloseConnMethod(PSocketServer self, Connection conn, size_t index)
   tf_ExecuteAfter(self->timeServer.timeServer, timeFragment, self->timeServer.timeout);
 }
 void sock_SetMaxConnections(PSocketServer self, int32_t maxActiveConnections) {
-  ((void) sizeof ((maxActiveConnections < 1024) ? 1 : 0), __extension__ ({ if (maxActiveConnections < 1024) ; else __assert_fail ("maxActiveConnections < MAX_CONNECTIONS_PER_SERVER", "bin/svv.c", 933, __extension__ __PRETTY_FUNCTION__); }));
+  ((void) sizeof ((maxActiveConnections < 1024) ? 1 : 0), __extension__ ({ if (maxActiveConnections < 1024) ; else __assert_fail ("maxActiveConnections < MAX_CONNECTIONS_PER_SERVER", "bin/svv.c", 936, __extension__ __PRETTY_FUNCTION__); }));
   self->maxActiveConnections = maxActiveConnections;
 }
 void sock_Write_Push(PSocketServer self, DataFragment *dt) {
@@ -4787,7 +4791,7 @@ void vct_Push(Vector self, void *buffer) {
   copyData(self, buffer);
 }
 void vct_RemoveElement(Vector self, size_t index) {
-  ((void) sizeof ((self->size != 0) ? 1 : 0), __extension__ ({ if (self->size != 0) ; else __assert_fail ("self->size != 0", "bin/svv.c", 1636, __extension__ __PRETTY_FUNCTION__); }));
+  ((void) sizeof ((self->size != 0) ? 1 : 0), __extension__ ({ if (self->size != 0) ; else __assert_fail ("self->size != 0", "bin/svv.c", 1639, __extension__ __PRETTY_FUNCTION__); }));
   if(index >= self->size) {
     return ;
   }
