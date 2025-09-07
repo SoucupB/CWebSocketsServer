@@ -1,4 +1,5 @@
 import WebSocket from 'ws';
+import eventParseMethod from './EventMessageParser.mjs';
 
 export default class EventWebSocket {
   constructor(host) {
@@ -48,10 +49,3 @@ export default class EventWebSocket {
     return true;
   }
 }
-
-// const ws = new WebSocket('ws://localhost:8080');
-
-// ws.on('open', () => {
-//   console.log('Connected');
-//   ws.send('Hello server!');
-// });
