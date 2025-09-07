@@ -14,6 +14,7 @@ void _wss_OnReceive(PDataFragment dt, void *buffer);
 void _wss_OnRelease(Connection conn, void *buffer);
 static inline void wss_RunCloseConnRouting(PWebSocketServer self, Connection conn);
 static inline uint8_t wss_RemovePingRequest(PWebSocketServer self, PDataFragment dt);
+static inline uint8_t wss_IsPingRequestIssued(PWebSocketServer self, PDataFragment dt);
 
 typedef struct PingConnData_t {
   Connection conn;
@@ -42,7 +43,6 @@ PWebSocketServer wss_Create(uint16_t port) {
 
 void _wss_LoopPingPong(void *buffer) {
   PWebSocketServer self = buffer;
-  
   Connection *conns = self->socketServer->connections->buffer;
   for(size_t i = 0, c = self->socketServer->connections->size; i < c; i++) {
     PingConnData pingDt = (PingConnData) {
@@ -51,6 +51,18 @@ void _wss_LoopPingPong(void *buffer) {
       .payload = _wss_Rand()
     };
     vct_Push(self->pendingPingRequests, &pingDt);
+    char *pingRequest = wbs_Ping((WebSocketObject) {
+      .buffer = (char *)&((PingConnData *)vct_Last(self->pendingPingRequests))->payload,
+      .sz = sizeof(uint64_t)
+    });
+    DataFragment fragment = {
+      .conn = conns[i],
+      .data = pingRequest,
+      .size = wbs_FullMessageSize(pingRequest),
+      .persistent = 1
+    };
+    sock_Write_Push(self->socketServer, &fragment);
+    free(pingRequest);
   }
 }
 
@@ -234,12 +246,13 @@ uint8_t wss_ReceiveMessages(PWebSocketServer self, PDataFragment dt, PSocketMeth
     .persistent = 0,
     .size = 0
   };
-  uint8_t validConnection = 0;
+  uint8_t validConnection = !wss_IsPingRequestIssued(self, &responseDt);
   for(size_t i = 0, c = messages->size; i < c; i++) {
     responseDt.data = objects[i].buffer;
     responseDt.size = objects[i].sz;
     if(!validConnection && wss_RemovePingRequest(self, &responseDt)) {
       validConnection = 1;
+      continue;
     }
     cMethod(&responseDt, routine->mirrorBuffer);
   }
@@ -265,13 +278,11 @@ static inline uint8_t wss_IsPingRequestIssued(PWebSocketServer self, PDataFragme
 }
 
 static inline uint8_t wss_RemovePingRequest(PWebSocketServer self, PDataFragment dt) {
-  if(!wss_IsPingRequestIssued(self, dt)) {
-    return 1;
-  }
   PingConnData *pingBuffer = self->pendingPingRequests->buffer;
   for(size_t i = 0, c = self->pendingPingRequests->size; i < c; i++) {
     if(dt->size == sizeof(uint64_t) && pingBuffer[i].payload == *(uint64_t *)dt->data) {
       vct_RemoveElement(self->pendingPingRequests, i);
+      printf("Received pong request with number %ld\n", *(uint64_t *)dt->data);
       return 1;
     }
   }

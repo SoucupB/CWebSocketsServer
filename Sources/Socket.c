@@ -170,11 +170,13 @@ void sock_PushCloseConnections(PSocketServer self, PConnection conn) {
   vct_Push(self->closeConnectionsQueue, &conn);
 }
 
-uint8_t sock_DoesConnectionExists(PSocketServer self, PConnection conn) {
+size_t sock_DoesConnectionExists(PSocketServer self, PConnection conn, uint8_t *found) {
+  *found = 0;
   Connection *connections = self->connections->buffer;
   for(size_t i = 0, c = self->connections->size; i < c; i++) {
     if(connections[i].fd == conn->fd) {
-      return 1;
+      *found = 1;
+      return i;
     }
   }
   return 0;
@@ -182,11 +184,16 @@ uint8_t sock_DoesConnectionExists(PSocketServer self, PConnection conn) {
 
 void sock_ClearPushedConnections(PSocketServer self) {
   Connection *connections = self->closeConnectionsQueue->buffer;
+  Vector indexes = vct_Init(sizeof(size_t));
+  uint8_t found;
   for(size_t i = 0, c = self->closeConnectionsQueue->size; i < c; i++) {
-    if(sock_DoesConnectionExists(self, &connections[i])) {
-      close(connections[i].fd);
+    size_t connIndex = sock_DoesConnectionExists(self, &connections[i], &found);
+    if(found) {
+      vct_Push(indexes, &connIndex);
     }
   }
+  vct_RemoveElementsWithReplacing(&self->connections, indexes);
+  vct_Delete(indexes);
   vct_Clear(self->closeConnectionsQueue);
 }
 

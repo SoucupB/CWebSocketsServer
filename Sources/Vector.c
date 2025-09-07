@@ -105,6 +105,12 @@ Vector vct_RemoveElements(Vector payload, Vector indexes) {
   return payloadWithMissingElements;
 }
 
+void vct_RemoveElementsWithReplacing(Vector *self, Vector indexes) {
+  Vector deleted = vct_RemoveElements(*self, indexes);
+  vct_Delete(*self);
+  *self = deleted;
+}
+
 int64_t vct_Find(Vector payload, void *element) {
   void *startingPointer = payload->buffer;
   size_t objSize = payload->objSize;

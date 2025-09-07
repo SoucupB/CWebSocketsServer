@@ -4075,6 +4075,7 @@ int64_t vct_Find(Vector payload, void *element);
 Vector vct_InitWithSize(size_t objSize, size_t count);
 char *vct_Last(Vector self);
 void vct_Pop(Vector self);
+void vct_RemoveElementsWithReplacing(Vector *self, Vector indexes);
        
 PTimeServer tf_Create();
 void tf_OnFrame(PTimeServer self, uint64_t deltaMS);
@@ -4217,22 +4218,29 @@ void sock_PushCloseConnections(PSocketServer self, PConnection conn) {
   }
   vct_Push(self->closeConnectionsQueue, &conn);
 }
-uint8_t sock_DoesConnectionExists(PSocketServer self, PConnection conn) {
+size_t sock_DoesConnectionExists(PSocketServer self, PConnection conn, uint8_t *found) {
+  *found = 0;
   Connection *connections = self->connections->buffer;
   for(size_t i = 0, c = self->connections->size; i < c; i++) {
     if(connections[i].fd == conn->fd) {
-      return 1;
+      *found = 1;
+      return i;
     }
   }
   return 0;
 }
 void sock_ClearPushedConnections(PSocketServer self) {
   Connection *connections = self->closeConnectionsQueue->buffer;
+  Vector indexes = vct_Init(sizeof(size_t));
+  uint8_t found;
   for(size_t i = 0, c = self->closeConnectionsQueue->size; i < c; i++) {
-    if(sock_DoesConnectionExists(self, &connections[i])) {
-      close(connections[i].fd);
+    size_t connIndex = sock_DoesConnectionExists(self, &connections[i], &found);
+    if(found) {
+      vct_Push(indexes, &connIndex);
     }
   }
+  vct_RemoveElementsWithReplacing(&self->connections, indexes);
+  vct_Delete(indexes);
   vct_Clear(self->closeConnectionsQueue);
 }
 static inline void sock_OnReceiveMessage(PSocketServer self, Connection *conn, size_t index) {
@@ -4773,7 +4781,7 @@ void vct_Push(Vector self, void *buffer) {
   copyData(self, buffer);
 }
 void vct_RemoveElement(Vector self, size_t index) {
-  ((void) sizeof ((self->size != 0) ? 1 : 0), __extension__ ({ if (self->size != 0) ; else __assert_fail ("self->size != 0", "bin/svv.c", 1632, __extension__ __PRETTY_FUNCTION__); }));
+  ((void) sizeof ((self->size != 0) ? 1 : 0), __extension__ ({ if (self->size != 0) ; else __assert_fail ("self->size != 0", "bin/svv.c", 1639, __extension__ __PRETTY_FUNCTION__); }));
   if(index >= self->size) {
     return ;
   }
@@ -4820,6 +4828,11 @@ Vector vct_RemoveElements(Vector payload, Vector indexes) {
   }
   vct_Delete(indexesCount);
   return payloadWithMissingElements;
+}
+void vct_RemoveElementsWithReplacing(Vector *self, Vector indexes) {
+  Vector deleted = vct_RemoveElements(*self, indexes);
+  vct_Delete(*self);
+  *self = deleted;
 }
 int64_t vct_Find(Vector payload, void *element) {
   void *startingPointer = payload->buffer;
@@ -8279,6 +8292,7 @@ void _wss_OnReceive(PDataFragment dt, void *buffer);
 void _wss_OnRelease(Connection conn, void *buffer);
 static inline void wss_RunCloseConnRouting(PWebSocketServer self, Connection conn);
 static inline uint8_t wss_RemovePingRequest(PWebSocketServer self, PDataFragment dt);
+static inline uint8_t wss_IsPingRequestIssued(PWebSocketServer self, PDataFragment dt);
 typedef struct PingConnData_t {
   Connection conn;
   uint64_t payload;
@@ -8311,6 +8325,18 @@ void _wss_LoopPingPong(void *buffer) {
       .payload = _wss_Rand()
     };
     vct_Push(self->pendingPingRequests, &pingDt);
+    char *pingRequest = wbs_Ping((WebSocketObject) {
+      .buffer = (char *)&((PingConnData *)vct_Last(self->pendingPingRequests))->payload,
+      .sz = sizeof(uint64_t)
+    });
+    DataFragment fragment = {
+      .conn = conns[i],
+      .data = pingRequest,
+      .size = wbs_FullMessageSize(pingRequest),
+      .persistent = 1
+    };
+    sock_Write_Push(self->socketServer, &fragment);
+    free(pingRequest);
   }
 }
 void wss_SetMethod(PWebSocketServer self) {
@@ -8481,12 +8507,13 @@ uint8_t wss_ReceiveMessages(PWebSocketServer self, PDataFragment dt, PSocketMeth
     .persistent = 0,
     .size = 0
   };
-  uint8_t validConnection = 0;
+  uint8_t validConnection = !wss_IsPingRequestIssued(self, &responseDt);
   for(size_t i = 0, c = messages->size; i < c; i++) {
     responseDt.data = objects[i].buffer;
     responseDt.size = objects[i].sz;
     if(!validConnection && wss_RemovePingRequest(self, &responseDt)) {
       validConnection = 1;
+      continue;
     }
     cMethod(&responseDt, routine->mirrorBuffer);
   }
@@ -8509,13 +8536,11 @@ static inline uint8_t wss_IsPingRequestIssued(PWebSocketServer self, PDataFragme
   return 0;
 }
 static inline uint8_t wss_RemovePingRequest(PWebSocketServer self, PDataFragment dt) {
-  if(!wss_IsPingRequestIssued(self, dt)) {
-    return 1;
-  }
   PingConnData *pingBuffer = self->pendingPingRequests->buffer;
   for(size_t i = 0, c = self->pendingPingRequests->size; i < c; i++) {
     if(dt->size == sizeof(uint64_t) && pingBuffer[i].payload == *(uint64_t *)dt->data) {
       vct_RemoveElement(self->pendingPingRequests, i);
+      printf("Received pong request with number %ld\n", *(uint64_t *)dt->data);
       return 1;
     }
   }

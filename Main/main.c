@@ -21,6 +21,10 @@ void onReceiveMessage(PDataFragment frag, void *buffer) {
   printf("Message echo back\n");
 }
 
+void onDisconnectRoutine(Connection conn, void *buffer) {
+  printf("Disconnected from %d\n", conn.fd);
+}
+
 int main() {
   PWebSocketServer server = wss_Create(8080);
   uint64_t currentTimestamp = tf_CurrentTimeMS();
@@ -33,8 +37,14 @@ int main() {
     (void *)onReceiveMessage,
     server
   );
+  PSocketMethod onDisconnect = sock_Method_Create(
+    (void *)onDisconnectRoutine,
+    server
+  );
   server->onConnect = onConnect;
   server->onReceiveMessage = onReceive;
+  server->onRelease = onDisconnect;
+  wss_EnablePingPongTimeout(server, 5000);
   while(1) {
     uint64_t currentTime = tf_CurrentTimeMS();
     wss_OnFrame(server, currentTime - currentTimestamp);
@@ -44,6 +54,7 @@ int main() {
   wss_Delete(server);
   sock_Method_Delete(onConnect);
   sock_Method_Delete(onReceive);
+  sock_Method_Delete(onDisconnect);
 }
 
 // void onReceiveMessage(DataFragment *dataFragment, void *buffer) {

@@ -15,3 +15,4 @@ int64_t vct_Find(Vector payload, void *element);
 Vector vct_InitWithSize(size_t objSize, size_t count);
 char *vct_Last(Vector self);
 void vct_Pop(Vector self);
+void vct_RemoveElementsWithReplacing(Vector *self, Vector indexes);
