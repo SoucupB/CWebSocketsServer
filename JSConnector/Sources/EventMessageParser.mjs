@@ -23,10 +23,10 @@ const payload = (buffer, view) => {
   if(!isAuthed(view)) {
     offset = 8;
   }
-  return buffer.subarray(8 + offset, payloadSize(view));
+  return buffer.subarray(8 + offset, 8 + offset + payloadSize(view));
 }
 
-export default function eventParseMethod(buffer) {
+export function eventParseMethod(buffer) {
   if(buffer.length < 8) {
     return null;
   }
