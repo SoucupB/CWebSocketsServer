@@ -51,9 +51,10 @@ void _wss_LoopPingPong(void *buffer) {
       .payload = _wss_Rand()
     };
     vct_Push(self->pendingPingRequests, &pingDt);
-    char *pingRequest = wbs_Ping((WebSocketObject) {
+    char *pingRequest = wbs_ToWebSocket((WebSocketObject) {
       .buffer = (char *)&((PingConnData *)vct_Last(self->pendingPingRequests))->payload,
-      .sz = sizeof(uint64_t)
+      .sz = sizeof(uint64_t),
+      .opcode = OPCODE_PING
     });
     DataFragment fragment = {
       .conn = conns[i],
@@ -197,7 +198,8 @@ PHttpResponse wss_Response(PWebSocketServer self, PHttpRequest req) {
 void wss_SendMessage(PWebSocketServer self, PDataFragment dt) {
   WebSocketObject objs = {
     .buffer = dt->data,
-    .sz = dt->size
+    .sz = dt->size,
+    .opcode = OPCODE_BINARY
   };
   char *response = wbs_ToWebSocket(objs);
   DataFragment fragment = {

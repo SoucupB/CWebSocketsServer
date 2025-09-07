@@ -6,6 +6,15 @@ struct WebSocketServer_t;
 typedef struct WebSocketServer_t WebSocketServer;
 typedef WebSocketServer *PWebSocketServer;
 
+typedef enum {
+  OPCODE_CONTINUATION_FRAME = 0x0,
+  OPCODE_TEXT_FRAME = 0x1,
+  OPCODE_BINARY = 0x2,
+  OPCODE_CONNECTION_CLOSE = 0x8,
+  OPCODE_PING = 0x9,
+  OPCODE_PONG = 0xA
+} Opcode;
+
 typedef struct Auth_t {
   uint8_t bff[8];
 } Auth;
@@ -29,6 +38,7 @@ typedef struct EventMessage_t {
 typedef struct WebSocketObject_t {
   char *buffer;
   size_t sz;
+  uint8_t opcode;
 } WebSocketObject;
 
 typedef WebSocketObject *PWebSocketObject;

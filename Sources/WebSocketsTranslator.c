@@ -7,15 +7,6 @@
 
 #define MAX_FRAME_SIZE (1024 * 1024 * 1024) 
 
-typedef enum {
-  OPCODE_CONTINUATION_FRAME = 0x0,
-  OPCODE_TEXT_FRAME = 0x1,
-  OPCODE_BINARY = 0x2,
-  OPCODE_CONNECTION_CLOSE = 0x8,
-  OPCODE_PING = 0x9,
-  OPCODE_PONG = 0xA
-} Opcode;
-
 static inline char *wbs_PayloadBuffer(char *buffer);
 static inline uint8_t wbs_IsMasked(char *buffer);
 static inline char *wbs_MaskOffset(char *msg);
@@ -240,7 +231,7 @@ static inline char *_wbs_ToWebSocket(WebSocketObject self, Opcode opcode) {
 }
 
 char *wbs_ToWebSocket(WebSocketObject self) {
-  return _wbs_ToWebSocket(self, OPCODE_BINARY);
+  return _wbs_ToWebSocket(self, self.opcode);
 }
 
 void wbs_MaskSwitch(char *buffer) {

@@ -101,6 +101,14 @@ typedef __uintmax_t uintmax_t;
 struct WebSocketServer_t;
 typedef struct WebSocketServer_t WebSocketServer;
 typedef WebSocketServer *PWebSocketServer;
+typedef enum {
+  OPCODE_CONTINUATION_FRAME = 0x0,
+  OPCODE_TEXT_FRAME = 0x1,
+  OPCODE_BINARY = 0x2,
+  OPCODE_CONNECTION_CLOSE = 0x8,
+  OPCODE_PING = 0x9,
+  OPCODE_PONG = 0xA
+} Opcode;
 typedef struct Auth_t {
   uint8_t bff[8];
 } Auth;
@@ -119,6 +127,7 @@ typedef struct EventMessage_t {
 typedef struct WebSocketObject_t {
   char *buffer;
   size_t sz;
+  uint8_t opcode;
 } WebSocketObject;
 typedef WebSocketObject *PWebSocketObject;
 typedef EventMessage *PEventMessage;
@@ -8325,9 +8334,10 @@ void _wss_LoopPingPong(void *buffer) {
       .payload = _wss_Rand()
     };
     vct_Push(self->pendingPingRequests, &pingDt);
-    char *pingRequest = wbs_Ping((WebSocketObject) {
+    char *pingRequest = wbs_ToWebSocket((WebSocketObject) {
       .buffer = (char *)&((PingConnData *)vct_Last(self->pendingPingRequests))->payload,
-      .sz = sizeof(uint64_t)
+      .sz = sizeof(uint64_t),
+      .opcode = OPCODE_PING
     });
     DataFragment fragment = {
       .conn = conns[i],
@@ -8460,7 +8470,8 @@ PHttpResponse wss_Response(PWebSocketServer self, PHttpRequest req) {
 void wss_SendMessage(PWebSocketServer self, PDataFragment dt) {
   WebSocketObject objs = {
     .buffer = dt->data,
-    .sz = dt->size
+    .sz = dt->size,
+    .opcode = OPCODE_BINARY
   };
   char *response = wbs_ToWebSocket(objs);
   DataFragment fragment = {
@@ -8605,14 +8616,6 @@ void wss_OnFrame(PWebSocketServer self, uint64_t deltaMS) {
   sock_OnFrame(self->socketServer, deltaMS);
   wss_Tf_OnFrame(self, deltaMS);
 }
-typedef enum {
-  OPCODE_CONTINUATION_FRAME = 0x0,
-  OPCODE_TEXT_FRAME = 0x1,
-  OPCODE_BINARY = 0x2,
-  OPCODE_CONNECTION_CLOSE = 0x8,
-  OPCODE_PING = 0x9,
-  OPCODE_PONG = 0xA
-} Opcode;
 static inline char *wbs_PayloadBuffer(char *buffer);
 static inline uint8_t wbs_IsMasked(char *buffer);
 static inline char *wbs_MaskOffset(char *msg);
@@ -8807,7 +8810,7 @@ static inline char *_wbs_ToWebSocket(WebSocketObject self, Opcode opcode) {
   return response;
 }
 char *wbs_ToWebSocket(WebSocketObject self) {
-  return _wbs_ToWebSocket(self, OPCODE_BINARY);
+  return _wbs_ToWebSocket(self, self.opcode);
 }
 void wbs_MaskSwitch(char *buffer) {
   char *maskOffset = wbs_MaskOffset(buffer);

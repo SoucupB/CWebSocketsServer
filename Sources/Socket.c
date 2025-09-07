@@ -189,6 +189,7 @@ void sock_ClearPushedConnections(PSocketServer self) {
   for(size_t i = 0, c = self->closeConnectionsQueue->size; i < c; i++) {
     size_t connIndex = sock_DoesConnectionExists(self, &connections[i], &found);
     if(found) {
+      close(connections[i].fd);
       vct_Push(indexes, &connIndex);
     }
   }

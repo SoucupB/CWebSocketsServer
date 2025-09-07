@@ -5,7 +5,8 @@
 WebSocketObject test_Util_Transform(char *buffer, size_t sz) {
   WebSocketObject sockObj = (WebSocketObject) {
     .buffer = malloc(sz),
-    .sz = sz
+    .sz = sz,
+    .opcode = OPCODE_BINARY
   };
   memcpy(sockObj.buffer, buffer, sz);
   return sockObj;
