@@ -8297,9 +8297,10 @@ void wss_SetMethods(PWebSocketServer self);
 void _wss_OnConnect(Connection connection, void *buffer);
 void _wss_OnReceive(PDataFragment dt, void *buffer);
 void _wss_OnRelease(Connection conn, void *buffer);
-static inline void wss_RunCloseConnRouting(PWebSocketServer self, Connection conn);
+static inline void wss_RunCloseConnRoutine(PWebSocketServer self, Connection conn);
 static inline uint8_t wss_RemovePingRequest(PWebSocketServer self, PDataFragment dt);
 static inline uint8_t wss_IsPingRequestIssued(PWebSocketServer self, PDataFragment dt);
+static inline size_t wss_FindConnectionOnThePull(PWebSocketServer self, PConnection conn, uint8_t *found);
 typedef struct PingConnData_t {
   Connection conn;
   uint64_t payload;
@@ -8326,9 +8327,14 @@ void _wss_LoopPingPong(void *buffer) {
   PWebSocketServer self = buffer;
   Connection *conns = self->socketServer->connections->buffer;
   for(size_t i = 0, c = self->socketServer->connections->size; i < c; i++) {
+    uint8_t found;
+    (void)!wss_FindConnectionOnThePull(self, &conns[i], &found);
+    if(found) {
+      continue;
+    }
     PingConnData pingDt = (PingConnData) {
       .conn = conns[i],
-      .remainingTime = self->timeServer->timeout,
+      .remainingTime = self->timeServer->timeout / 2,
       .payload = _wss_Rand()
     };
     vct_Push(self->pendingPingRequests, &pingDt);
@@ -8390,7 +8396,7 @@ static inline void wss_Tf_Delete(PWebSocketServer self) {
   free(self->timeServer);
 }
 static inline void wss_CloseConnections(PWebSocketServer self, Connection conn) {
-  wss_RunCloseConnRouting(self, conn);
+  wss_RunCloseConnRoutine(self, conn);
   sock_PushCloseConnections(self->socketServer, &conn);
 }
 void wss_ProcessTimeoutPingRequests(PWebSocketServer self, uint64_t deltaMS) {
@@ -8538,8 +8544,8 @@ uint8_t wss_ReceiveMessages(PWebSocketServer self, PDataFragment dt, PSocketMeth
 }
 static inline void wss_ProcessReleaseMethod(PWebSocketServer self, PDataFragment dt, PSocketMethod routine) {
   if(self->onRelease) {
-    void (*cMethod)(PConnection, void *) = self->onRelease->method;
-    cMethod(&dt->conn, self->onRelease->mirrorBuffer);
+    void (*cMethod)(Connection, void *) = self->onRelease->method;
+    cMethod(dt->conn, self->onRelease->mirrorBuffer);
   }
 }
 static inline uint8_t wss_IsPingRequestIssued(PWebSocketServer self, PDataFragment dt) {
@@ -8592,7 +8598,7 @@ void _wss_OnConnect(Connection connection, void *buffer) {
   PWebSocketServer self = buffer;
   vct_Push(self->pendingConnections, &connection);
 }
-static inline void wss_RunCloseConnRouting(PWebSocketServer self, Connection conn) {
+static inline void wss_RunCloseConnRoutine(PWebSocketServer self, Connection conn) {
   if(self->onRelease) {
     void (*cMethod)(Connection, void *) = self->onRelease->method;
     cMethod(conn, self->onRelease->mirrorBuffer);
@@ -8606,7 +8612,7 @@ void _wss_OnRelease(Connection conn, void *buffer) {
     vct_RemoveElement(self->pendingConnections, connIndex);
     return ;
   }
-  wss_RunCloseConnRouting(self, conn);
+  wss_RunCloseConnRoutine(self, conn);
 }
 static inline void wss_Tf_OnFrame(PWebSocketServer self, uint64_t deltaMS) {
   if(self->timeServer) {

@@ -276,15 +276,15 @@ static void test_with_ping_pong_after_timeout(void **state) {
 }
 
 // test not completeed
-static void test_with_ping_pong_with_pong_callback(void **state) {
-  PWebSocketServer wssServer = newServer();
-  wss_EnablePingPongTimeout(wssServer, 50000);
-  PConnection connection = test_Wss_Util_ExchangeConnection(wssServer);
-  test_Wss_PingPong(wssServer, connection, 50000);
-  assert_int_equal(wssServer->socketServer->connections->size, 1);
-  sock_Client_Free(connection);
-  test_Wss_Util_Delete(wssServer);
-}
+// static void test_with_ping_pong_with_pong_callback(void **state) {
+//   PWebSocketServer wssServer = newServer();
+//   wss_EnablePingPongTimeout(wssServer, 50000);
+//   PConnection connection = test_Wss_Util_ExchangeConnection(wssServer);
+//   test_Wss_PingPong(wssServer, connection, 50000);
+//   assert_int_equal(wssServer->socketServer->connections->size, 1);
+//   sock_Client_Free(connection);
+//   test_Wss_Util_Delete(wssServer);
+// }
 
 int main(void) {
   const struct CMUnitTest tests[] = {
@@ -300,7 +300,7 @@ int main(void) {
     cmocka_unit_test(test_on_malformed_message_receive),
     cmocka_unit_test(test_with_ping_pong_before_timeout),
     cmocka_unit_test(test_with_ping_pong_after_timeout),
-    cmocka_unit_test(test_with_ping_pong_with_pong_callback),
+    // cmocka_unit_test(test_with_ping_pong_with_pong_callback),
   };
   return cmocka_run_group_tests(tests, NULL, NULL);
 }

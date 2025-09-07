@@ -44,7 +44,7 @@ int main() {
   server->onConnect = onConnect;
   server->onReceiveMessage = onReceive;
   server->onRelease = onDisconnect;
-  wss_EnablePingPongTimeout(server, 5000);
+  wss_EnablePingPongTimeout(server, 2500);
   while(1) {
     uint64_t currentTime = tf_CurrentTimeMS();
     wss_OnFrame(server, currentTime - currentTimestamp);
