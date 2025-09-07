@@ -266,7 +266,7 @@ char *wbs_Masked_ToWebSocket(WebSocketObject self) {
   wbs_ClearHeaderBytes(response);
   wbs_SetFin(response);
   wbs_SetMaskFlag(response);
-  wbs_SetOpcodeTo(response, OPCODE_BINARY);
+  wbs_SetOpcodeTo(response, self.opcode);
   char *cpyResponse = response;
   cpyResponse = wbs_SetPayloadCode(response, &self) + 1 /*First byte*/;
   wbs_WritePayload(cpyResponse, &self);

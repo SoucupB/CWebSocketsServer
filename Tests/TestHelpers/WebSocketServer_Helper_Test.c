@@ -46,17 +46,48 @@ void test_Wss_RepeatFramesDiff(PWebSocketServer self, uint64_t deltaMS, uint32_t
 void test_Wss_BufferMessage(PWebSocketServer wssServer, PConnection conn, char *buffer, size_t sz) {
   WebSocketObject wssObj = (WebSocketObject) {
     .buffer = buffer,
-    .sz = sz
+    .sz = sz,
+    .opcode = OPCODE_BINARY
   };
   char *message = wbs_Masked_ToWebSocket(wssObj);
   test_Util_BufferMessage(wssServer->socketServer, conn, message, wbs_FullMessageSize(message));
   free(message);
 }
 
+void test_Wss_PingPong(PWebSocketServer wssServer, PConnection conn, uint64_t pingAt) {
+  wss_OnFrame(wssServer, pingAt / 2);
+  wss_OnFrame(wssServer, pingAt / 2 - 1);
+  test_Wss_SendPong(wssServer, conn);
+  wss_OnFrame(wssServer, pingAt / 2);
+}
+
 void test_Wss_SendMessage(PWebSocketServer wssServer, PConnection conn, char *buffer, size_t sz) {
   WebSocketObject wssObj = (WebSocketObject) {
     .buffer = buffer,
-    .sz = sz
+    .sz = sz,
+    .opcode = OPCODE_BINARY
+  };
+  char *message = wbs_Masked_ToWebSocket(wssObj);
+  test_Util_SendMessage(wssServer->socketServer, conn, message, wbs_FullMessageSize(message));
+  free(message);
+}
+
+void test_Wss_SendPing(PWebSocketServer wssServer, PConnection conn) {
+  WebSocketObject wssObj = (WebSocketObject) {
+    .buffer = "1000",
+    .sz = sizeof("1000") - 1,
+    .opcode = OPCODE_PING
+  };
+  char *message = wbs_Masked_ToWebSocket(wssObj);
+  test_Util_SendMessage(wssServer->socketServer, conn, message, wbs_FullMessageSize(message));
+  free(message);
+}
+
+void test_Wss_SendPong(PWebSocketServer wssServer, PConnection conn) {
+  WebSocketObject wssObj = (WebSocketObject) {
+    .buffer = "1000",
+    .sz = sizeof("1000") - 1,
+    .opcode = OPCODE_PONG
   };
   char *message = wbs_Masked_ToWebSocket(wssObj);
   test_Util_SendMessage(wssServer->socketServer, conn, message, wbs_FullMessageSize(message));

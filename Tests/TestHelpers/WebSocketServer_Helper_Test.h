@@ -12,3 +12,6 @@ void test_Wss_SendMessage(PWebSocketServer sv, PConnection conn, char *buffer, s
 void test_Wss_BufferMessage(PWebSocketServer wssServer, PConnection conn, char *buffer, size_t sz);
 void test_Wss_Expect(PConnection conn, char *buffer, size_t sz);
 void test_Wss_WaitAndRunUntil(PWebSocketServer sv, int64_t timeout, uint8_t (*method)(void *), void *buffer);
+void test_Wss_SendPing(PWebSocketServer wssServer, PConnection conn);
+void test_Wss_SendPong(PWebSocketServer wssServer, PConnection conn);
+void test_Wss_PingPong(PWebSocketServer wssServer, PConnection conn, uint64_t pingAt);

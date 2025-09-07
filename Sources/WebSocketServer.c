@@ -110,7 +110,7 @@ static inline void wss_Tf_Delete(PWebSocketServer self) {
     return ;
   }
   tf_Delete(self->timeServer->server);
-  free(self);
+  free(self->timeServer);
 }
 
 static inline void wss_CloseConnections(PWebSocketServer self, Connection conn) {
@@ -139,9 +139,9 @@ void wss_Delete(PWebSocketServer self) {
   sock_Method_Delete(self->methodsBundle._onConnect);
   sock_Method_Delete(self->methodsBundle._onRelease);
   wss_Tf_Delete(self);
-  sock_Delete(self->socketServer);
   vct_Delete(self->pendingConnections);
   vct_Delete(self->pendingPingRequests);
+  sock_Delete(self->socketServer);
   free(self);
 }
 
@@ -241,7 +241,6 @@ uint8_t wss_ReceiveMessages(PWebSocketServer self, PDataFragment dt, PSocketMeth
     return 0;
   }
   WebSocketObject *objects = messages->buffer;
-  void (*cMethod)(PDataFragment, void *) = routine->method;
   DataFragment responseDt = {
     .conn = dt->conn,
     .data = NULL,
@@ -260,6 +259,10 @@ uint8_t wss_ReceiveMessages(PWebSocketServer self, PDataFragment dt, PSocketMeth
       validConnection = 1;
       continue;
     }
+    if(!routine || (objects[i].opcode != OPCODE_BINARY && objects[i].opcode != OPCODE_TEXT_FRAME)) {
+      continue;
+    }
+    void (*cMethod)(PDataFragment, void *) = routine->method;
     cMethod(&responseDt, routine->mirrorBuffer);
   }
   vct_Delete(messages);
@@ -295,9 +298,6 @@ static inline uint8_t wss_RemovePingRequest(PWebSocketServer self, PDataFragment
 }
 
 static inline void wss_ProcessWsRequests(PWebSocketServer self, PDataFragment dt, PSocketMethod routine) {
-  if(!self->onReceiveMessage) {
-    return ;
-  }
   if(!wss_ReceiveMessages(self, dt, routine)) {
     wss_ProcessReleaseMethod(self, dt, routine);
     sock_PushCloseConnections(self->socketServer, &dt->conn);
@@ -357,7 +357,7 @@ static inline void wss_Tf_OnFrame(PWebSocketServer self, uint64_t deltaMS) {
 }
 
 void wss_OnFrame(PWebSocketServer self, uint64_t deltaMS) {
+  wss_Tf_OnFrame(self, deltaMS);
   wss_ProcessTimeoutPingRequests(self, deltaMS);
   sock_OnFrame(self->socketServer, deltaMS);
-  wss_Tf_OnFrame(self, deltaMS);
 }
