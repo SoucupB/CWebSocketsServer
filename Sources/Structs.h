@@ -140,6 +140,7 @@ typedef struct WebSocketServer_t {
   PSocketMethod onRelease;
   PrivateMethodsBundle methodsBundle;
   Vector pendingConnections;
+  Vector pendingPingRequests;
   PTimeout timeServer;
 } WebSocketServer;
 

@@ -161,6 +161,7 @@ typedef struct TimeMethod_t {
 typedef struct TimeFragment_t {
   TimeMethod methodFragment;
   int64_t executeAfter;
+  int64_t time;
 } TimeFragment;
 struct Vector_t {
   void *buffer;
@@ -171,6 +172,7 @@ struct Vector_t {
 typedef struct Vector_t *Vector;
 typedef struct TimeServer_t {
   Vector methods;
+  Vector loopMethods;
 } TimeServer;
 typedef TimeServer *PTimeServer;
 typedef struct Timeout_t {
@@ -204,6 +206,7 @@ typedef struct WebSocketServer_t {
   PSocketMethod onRelease;
   PrivateMethodsBundle methodsBundle;
   Vector pendingConnections;
+  Vector pendingPingRequests;
   PTimeout timeServer;
 } WebSocketServer;
 typedef WebSocketServer *PWebSocketServer;
@@ -4077,6 +4080,7 @@ PTimeServer tf_Create();
 void tf_OnFrame(PTimeServer self, uint64_t deltaMS);
 void tf_Delete(PTimeServer self);
 void tf_ExecuteAfter(PTimeServer self, TimeMethod currentMethod, uint64_t afterMS);
+void tf_ExecuteLoop(PTimeServer self, TimeMethod currentMethod, uint64_t afterMS);
 uint64_t tf_CurrentTimeMS();
 typedef struct CloseConnStruct_t {
   PSocketServer self;
@@ -4456,10 +4460,12 @@ uint64_t tf_CurrentTimeMS() {
 PTimeServer tf_Create() {
   PTimeServer self = malloc(sizeof(TimeServer));
   self->methods = vct_Init(sizeof(TimeFragment));
+  self->loopMethods = vct_Init(sizeof(TimeFragment));
   return self;
 }
 void tf_Delete(PTimeServer self) {
   vct_Delete(self->methods);
+  vct_Delete(self->loopMethods);
   free(self);
 }
 void tf_ExecuteAfter(PTimeServer self, TimeMethod currentMethod, uint64_t afterMS) {
@@ -4469,7 +4475,7 @@ void tf_ExecuteAfter(PTimeServer self, TimeMethod currentMethod, uint64_t afterM
   };
   vct_Push(self->methods, &fragment);
 }
-static inline void tf_ExecuteMethods(PTimeServer self, uint64_t deltaMS) {
+static inline void tf_ExecuteFragMethods(PTimeServer self, uint64_t deltaMS) {
   TimeFragment *fragment = self->methods->buffer;
   Vector fragmentsToRemove = vct_Init(sizeof(size_t));
   for(size_t i = 0, c = self->methods->size; i < c; i++) {
@@ -4485,8 +4491,28 @@ static inline void tf_ExecuteMethods(PTimeServer self, uint64_t deltaMS) {
   self->methods = cpyVector;
   vct_Delete(fragmentsToRemove);
 }
+static inline void tf_ExecuteLoopMethods(PTimeServer self, uint64_t deltaMS) {
+  TimeFragment *fragment = self->loopMethods->buffer;
+  for(size_t i = 0, c = self->loopMethods->size; i < c; i++) {
+    fragment[i].executeAfter -= (int64_t)deltaMS;
+    if(fragment[i].executeAfter <= 0) {
+      void (*method)(void *) = fragment[i].methodFragment.method;
+      method(fragment[i].methodFragment.buffer);
+      fragment[i].executeAfter = fragment[i].time;
+    }
+  }
+}
+void tf_ExecuteLoop(PTimeServer self, TimeMethod currentMethod, uint64_t afterMS) {
+  TimeFragment fragment = (TimeFragment) {
+    .executeAfter = afterMS,
+    .methodFragment = currentMethod,
+    .time = afterMS
+  };
+  vct_Push(self->loopMethods, &fragment);
+}
 void tf_OnFrame(PTimeServer self, uint64_t deltaMS) {
-  tf_ExecuteMethods(self, deltaMS);
+  tf_ExecuteFragMethods(self, deltaMS);
+  tf_ExecuteLoopMethods(self, deltaMS);
 }
 PTrieNode trn_Create();
 uint8_t trn_AddValues(PTrieNode self, void* key, uint32_t keySize, void* value, uint32_t valueSize, uint32_t position);
@@ -4747,7 +4773,7 @@ void vct_Push(Vector self, void *buffer) {
   copyData(self, buffer);
 }
 void vct_RemoveElement(Vector self, size_t index) {
-  ((void) sizeof ((self->size != 0) ? 1 : 0), __extension__ ({ if (self->size != 0) ; else __assert_fail ("self->size != 0", "bin/svv.c", 1608, __extension__ __PRETTY_FUNCTION__); }));
+  ((void) sizeof ((self->size != 0) ? 1 : 0), __extension__ ({ if (self->size != 0) ; else __assert_fail ("self->size != 0", "bin/svv.c", 1632, __extension__ __PRETTY_FUNCTION__); }));
   if(index >= self->size) {
     return ;
   }
@@ -8241,6 +8267,7 @@ uint8_t wbs_IsBufferValid(char *buffer, size_t sz);
 void wbs_Clear_FromWebSocket(Vector objects);
 char *wbs_Masked_ToWebSocket(WebSocketObject self);
 void wbs_MaskSwitch(char *buffer);
+char *wbs_Ping(WebSocketObject self);
 size_t wbs_Public_HeaderSize(const PWebSocketObject obj, uint8_t shouldBeMasked);
 size_t wbs_Public_PayloadSize(char *buffer);
 size_t wbs_Public_PayloadSize(char *buffer);
@@ -8250,15 +8277,56 @@ void wss_SetMethods(PWebSocketServer self);
 void _wss_OnConnect(Connection connection, void *buffer);
 void _wss_OnReceive(PDataFragment dt, void *buffer);
 void _wss_OnRelease(Connection conn, void *buffer);
+static inline void wss_RunCloseConnRouting(PWebSocketServer self, Connection conn);
+static inline uint8_t wss_RemovePingRequest(PWebSocketServer self, PDataFragment dt);
+typedef struct PingConnData_t {
+  Connection conn;
+  uint64_t payload;
+  int64_t remainingTime;
+} PingConnData;
+static inline uint64_t _wss_Rand() {
+  uint64_t response;
+  char *buffer = (char *)&response;
+  for(size_t i = 0; i < sizeof(uint64_t); i++) {
+    buffer[i] = (rand() & 255);
+  }
+  return response;
+}
 PWebSocketServer wss_Create(uint16_t port) {
   PWebSocketServer self = malloc(sizeof(WebSocketServer));
   memset(self, 0, sizeof(WebSocketServer));
   self->socketServer = sock_Create(port);
   self->pendingConnections = vct_Init(sizeof(Connection));
+  self->pendingPingRequests = vct_Init(sizeof(PingConnData));
   wss_SetMethods(self);
   return self;
 }
+void _wss_LoopPingPong(void *buffer) {
+  PWebSocketServer self = buffer;
+  Connection *conns = self->socketServer->connections->buffer;
+  for(size_t i = 0, c = self->socketServer->connections->size; i < c; i++) {
+    PingConnData pingDt = (PingConnData) {
+      .conn = conns[i],
+      .remainingTime = self->timeServer->timeout,
+      .payload = _wss_Rand()
+    };
+    vct_Push(self->pendingPingRequests, &pingDt);
+  }
+}
+void wss_SetMethod(PWebSocketServer self) {
+  TimeMethod timeFragment = (TimeMethod) {
+    .method = (void *)_wss_LoopPingPong,
+    .buffer = self
+  };
+  tf_ExecuteLoop(self->timeServer->server, timeFragment, self->timeServer->timeout);
+}
 void wss_EnablePingPongTimeout(PWebSocketServer self, uint64_t timeout) {
+  if(!self->timeServer) {
+    self->timeServer = malloc(sizeof(Timers));
+    self->timeServer->server = tf_Create();
+  }
+  self->timeServer->timeout = timeout;
+  wss_SetMethod(self);
 }
 void wss_SetMethods(PWebSocketServer self) {
   PSocketMethod _onConnect = sock_Method_Create(
@@ -8280,12 +8348,40 @@ void wss_SetMethods(PWebSocketServer self) {
   self->methodsBundle._onRelease = _onRelease;
   self->socketServer->onConnectionRelease = _onRelease;
 }
+static inline void wss_Tf_Delete(PWebSocketServer self) {
+  if(!self->timeServer) {
+    return ;
+  }
+  tf_Delete(self->timeServer->server);
+  free(self);
+}
+static inline void wss_CloseConnections(PWebSocketServer self, Connection conn) {
+  wss_RunCloseConnRouting(self, conn);
+  sock_PushCloseConnections(self->socketServer, &conn);
+}
+void wss_ProcessTimeoutPingRequests(PWebSocketServer self, uint64_t deltaMS) {
+  PingConnData *pings = self->pendingPingRequests->buffer;
+  Vector indexesToRemove = vct_Init(sizeof(size_t));
+  for(size_t i = 0, c = self->pendingPingRequests->size; i < c; i++) {
+    pings[i].remainingTime -= (int64_t)deltaMS;
+    if(pings[i].remainingTime <= 0) {
+      vct_Push(indexesToRemove, &i);
+      wss_CloseConnections(self, pings[i].conn);
+    }
+  }
+  Vector cpyVector = vct_RemoveElements(self->pendingPingRequests, indexesToRemove);
+  vct_Delete(self->pendingPingRequests);
+  self->pendingPingRequests = cpyVector;
+  vct_Delete(indexesToRemove);
+}
 void wss_Delete(PWebSocketServer self) {
   sock_Method_Delete(self->methodsBundle._onReceive);
   sock_Method_Delete(self->methodsBundle._onConnect);
   sock_Method_Delete(self->methodsBundle._onRelease);
+  wss_Tf_Delete(self);
   sock_Delete(self->socketServer);
   vct_Delete(self->pendingConnections);
+  vct_Delete(self->pendingPingRequests);
   free(self);
 }
 static inline size_t wss_FindConnectionOnThePull(PWebSocketServer self, PConnection conn, uint8_t *found) {
@@ -8372,7 +8468,7 @@ uint8_t wss_ProcessConnectionRequest(PWebSocketServer self, PDataFragment dt) {
   free(responseChar.buffer);
   return 1;
 }
-uint8_t wss_ReceiveMessages(PDataFragment dt, PSocketMethod routine) {
+uint8_t wss_ReceiveMessages(PWebSocketServer self, PDataFragment dt, PSocketMethod routine) {
   Vector messages = wbs_FromWebSocket(dt->data, dt->size);
   if(!messages) {
     return 0;
@@ -8385,13 +8481,17 @@ uint8_t wss_ReceiveMessages(PDataFragment dt, PSocketMethod routine) {
     .persistent = 0,
     .size = 0
   };
+  uint8_t validConnection = 0;
   for(size_t i = 0, c = messages->size; i < c; i++) {
     responseDt.data = objects[i].buffer;
     responseDt.size = objects[i].sz;
+    if(!validConnection && wss_RemovePingRequest(self, &responseDt)) {
+      validConnection = 1;
+    }
     cMethod(&responseDt, routine->mirrorBuffer);
   }
   vct_Delete(messages);
-  return 1;
+  return validConnection;
 }
 static inline void wss_ProcessReleaseMethod(PWebSocketServer self, PDataFragment dt, PSocketMethod routine) {
   if(self->onRelease) {
@@ -8399,11 +8499,33 @@ static inline void wss_ProcessReleaseMethod(PWebSocketServer self, PDataFragment
     cMethod(&dt->conn, self->onRelease->mirrorBuffer);
   }
 }
+static inline uint8_t wss_IsPingRequestIssued(PWebSocketServer self, PDataFragment dt) {
+  PingConnData *pingBuffer = self->pendingPingRequests->buffer;
+  for(size_t i = 0, c = self->pendingPingRequests->size; i < c; i++) {
+    if(pingBuffer[i].conn.fd == dt->conn.fd) {
+      return 1;
+    }
+  }
+  return 0;
+}
+static inline uint8_t wss_RemovePingRequest(PWebSocketServer self, PDataFragment dt) {
+  if(!wss_IsPingRequestIssued(self, dt)) {
+    return 1;
+  }
+  PingConnData *pingBuffer = self->pendingPingRequests->buffer;
+  for(size_t i = 0, c = self->pendingPingRequests->size; i < c; i++) {
+    if(dt->size == sizeof(uint64_t) && pingBuffer[i].payload == *(uint64_t *)dt->data) {
+      vct_RemoveElement(self->pendingPingRequests, i);
+      return 1;
+    }
+  }
+  return 0;
+}
 static inline void wss_ProcessWsRequests(PWebSocketServer self, PDataFragment dt, PSocketMethod routine) {
   if(!self->onReceiveMessage) {
     return ;
   }
-  if(!wss_ReceiveMessages(dt, routine)) {
+  if(!wss_ReceiveMessages(self, dt, routine)) {
     wss_ProcessReleaseMethod(self, dt, routine);
     sock_PushCloseConnections(self->socketServer, &dt->conn);
   }
@@ -8433,6 +8555,12 @@ void _wss_OnConnect(Connection connection, void *buffer) {
   PWebSocketServer self = buffer;
   vct_Push(self->pendingConnections, &connection);
 }
+static inline void wss_RunCloseConnRouting(PWebSocketServer self, Connection conn) {
+  if(self->onRelease) {
+    void (*cMethod)(Connection, void *) = self->onRelease->method;
+    cMethod(conn, self->onRelease->mirrorBuffer);
+  }
+}
 void _wss_OnRelease(Connection conn, void *buffer) {
   PWebSocketServer self = buffer;
   uint8_t found;
@@ -8441,13 +8569,17 @@ void _wss_OnRelease(Connection conn, void *buffer) {
     vct_RemoveElement(self->pendingConnections, connIndex);
     return ;
   }
-  if(self->onRelease) {
-    void (*cMethod)(Connection, void *) = self->onRelease->method;
-    cMethod(conn, self->onRelease->mirrorBuffer);
+  wss_RunCloseConnRouting(self, conn);
+}
+static inline void wss_Tf_OnFrame(PWebSocketServer self, uint64_t deltaMS) {
+  if(self->timeServer) {
+    tf_OnFrame(self->timeServer->server, deltaMS);
   }
 }
 void wss_OnFrame(PWebSocketServer self, uint64_t deltaMS) {
+  wss_ProcessTimeoutPingRequests(self, deltaMS);
   sock_OnFrame(self->socketServer, deltaMS);
+  wss_Tf_OnFrame(self, deltaMS);
 }
 typedef enum {
   OPCODE_CONTINUATION_FRAME = 0x0,
@@ -8640,15 +8772,18 @@ void wbs_Print(char *buffer) {
   printf("Full message size is %ld\n", messageSize);
   _wbs_PrintNextBytes(buffer, messageSize);
 }
-char *wbs_ToWebSocket(WebSocketObject self) {
+static inline char *_wbs_ToWebSocket(WebSocketObject self, Opcode opcode) {
   char *response = malloc(wbs_Object_HeaderSize(&self, 0));
   wbs_ClearHeaderBytes(response);
   wbs_SetFin(response);
-  wbs_SetOpcodeTo(response, OPCODE_BINARY);
+  wbs_SetOpcodeTo(response, opcode);
   char *cpyResponse = response;
   cpyResponse = wbs_SetPayloadCode(response, &self) + 1 ;
   wbs_WritePayload(cpyResponse, &self);
   return response;
+}
+char *wbs_ToWebSocket(WebSocketObject self) {
+  return _wbs_ToWebSocket(self, OPCODE_BINARY);
 }
 void wbs_MaskSwitch(char *buffer) {
   char *maskOffset = wbs_MaskOffset(buffer);
@@ -8678,6 +8813,9 @@ char *wbs_Masked_ToWebSocket(WebSocketObject self) {
   wbs_WritePayload(cpyResponse, &self);
   wbs_Mask_Set(response);
   return response;
+}
+char *wbs_Ping(WebSocketObject self) {
+  return _wbs_ToWebSocket(self, OPCODE_PING);
 }
 static inline char *wbs_UnmaskedBuffer(char *msg) {
   return wbs_PayloadBuffer(msg);
