@@ -99,6 +99,9 @@ EventBuffer evm_New_Transform(const PEventMessage self) {
 
 EventMessage evm_Parse(EventBuffer inp, uint8_t *valid) {
   *valid = 0;
+  if(inp.size < 8) {
+    return (EventMessage) {}; 
+  }
   char *endBuffer = evm_In_EndPointer(inp.buffer);
   if(endBuffer != inp.size + inp.buffer) {
     return (EventMessage) {};
