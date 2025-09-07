@@ -2,5 +2,8 @@
   "type": "module",
   "dependencies": {
     "ws": "^8.16.0"
+  },
+  "devDependencies": {
+    "esbuild": "^0.25.9"
   }
 }
