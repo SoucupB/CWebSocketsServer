@@ -31,6 +31,7 @@ export class EventWebSocket {
 
   _setMethods_Browser() {
     let parent = this;
+    this.ws.binaryType = 'arraybuffer';
     this.ws.onopen = () => this._onOpen(parent);
     this.ws.onmessage = (event) => this._onReceive(parent, event.data);
     this.ws.onerror = (err) => this._onError(err);
