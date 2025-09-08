@@ -21,11 +21,26 @@ export class EventWebSocket {
     }
   }
 
-  _setMethods() {
+  _setMethods_Node() {
     let parent = this;
     this.ws.on('open', () => this._onOpen(parent));
     this.ws.on('message', (msg) => this._onReceive(parent, msg));
     this.ws.on('error', (err) => this._onError(err));
+  }
+
+  _setMethods_Browser() {
+    let parent = this;
+    this.socket.onopen = () => this._onOpen(parent);
+    this.socket.onmessage = (event) => this._onReceive(parent, event.data);
+    this.socket.onerror = (err) => this._onError(err);
+  }
+
+  _setMethods() {
+    if(!this._isOnBrowser()) {
+      this._setMethods_Node();
+      return ;
+    }
+    this._setMethods_Browser();
   }
 
   _onError(err) {
@@ -42,9 +57,13 @@ export class EventWebSocket {
     this.ws.send(dt);
   }
 
+  _isOnBrowser() {
+    return typeof window !== "undefined";
+  }
+
   async connect() {
     let WSImpl;
-    if (typeof window !== "undefined") {
+    if (this._isOnBrowser()) {
       WSImpl = WebSocket;
     } else {
       WSImpl = (await import('ws')).default;
