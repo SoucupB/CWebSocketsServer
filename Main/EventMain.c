@@ -57,7 +57,7 @@ int main() {
   );
   server->onReceive = onReceive;
   server->onClose = onDisconnect;
-  // wss_EnablePingPongTimeout(server, 2500);
+  evs_EnablePingPongTimeout(server, 10000);
   while(1) {
     uint64_t currentTime = tf_CurrentTimeMS();
     evs_OnFrame(server, currentTime - currentTimestamp);

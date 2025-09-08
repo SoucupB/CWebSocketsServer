@@ -23,6 +23,10 @@ static inline void evs_PushEventBuffer(PEventServer self, PEventBuffer bff, PCon
   wss_SendMessage(self->wsServer, &nextFrag);
 }
 
+void evs_EnablePingPongTimeout(PEventServer self, uint64_t timeout) {
+  wss_EnablePingPongTimeout(self->wsServer, timeout);
+}
+
 void evs_PushMessage(PEventServer self, PResponseObject msg) {
   uint32_t msgSize = evm_Out_Public_TotalSize(&msg->metaData);
   if(msgSize < MAX_BYTES_SWITCH_STACK) {
