@@ -9,5 +9,6 @@ npx esbuild JSConnector/Sources/EventWebSocket.mjs --bundle \
 
 npx esbuild JSConnector/Sources/EventWebSocket.mjs --bundle \
    --minify --outfile=JSConnector/bundle/event_web_socket.min.js \
+   --platform=browser \
    --format=iife \
-   --platform=browser
+   --global-name=JSConnector
