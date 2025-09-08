@@ -53,6 +53,7 @@ export class EventWebSocket {
       this.ws = new WSImpl(this.host);
       this._setMethods();
     } catch (err) {
+      console.log(err)
       return false
     }
     return true;
