@@ -17,6 +17,7 @@ export class EventWebSocket {
 
   _onReceive(parent, message) {
     if(parent.onReceive) {
+      console.log(new Uint8Array(message));
       parent.onReceive(eventParseMethod(new Uint8Array(message)));
     }
   }
