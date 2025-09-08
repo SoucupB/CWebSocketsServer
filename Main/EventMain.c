@@ -4,6 +4,7 @@
 #include "HttpParser.h"
 #include "EventServer.h"
 #include "TimeFragment.h"
+#include <string.h>
 
 void onConnectPlm(PConnection conn, void *buffer) {
   printf("Connected mr %d\n", conn->fd);
@@ -11,11 +12,15 @@ void onConnectPlm(PConnection conn, void *buffer) {
 
 void onReceiveMessage(PResponseObject dt, void *buffer) {
   PEventServer self = buffer;
+  Auth code;
+  char *zrCode = "32425666";
+  memcpy(code.bff, zrCode, sizeof(Auth));
   ResponseObject response = {
     .conn = dt->conn,
     .metaData = (EventMessage) {
       .headerCode = 123,
-      .isAuthed = 0,
+      .uniqueCode = code,
+      .isAuthed = 1,
       .str = (EventBuffer) {
         .buffer = "VASILE",
         .size = sizeof("VASILE") - 1

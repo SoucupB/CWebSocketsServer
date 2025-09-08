@@ -49,7 +49,7 @@ const authCodeFromObj = (obj) => {
 
 const payload = (buffer, view) => {
   let offset = 0;
-  if(!isAuthed(view)) {
+  if(isAuthed(view)) {
     offset = 8;
   }
   return buffer.subarray(8 + offset, 8 + offset + payloadSize(view));
@@ -68,7 +68,17 @@ export function eventParseMethod(buffer) {
   }
 }
 
+const isObjComplete = (obj) => {
+  return obj.size != undefined &&
+         obj.code != undefined &&
+         obj.authCode != undefined &&
+         obj.payload != undefined;
+}
+
 export function eventCreateMessage(obj) {
+  if(!isObjComplete(obj)) {
+    return null;
+  }
   let arr = new Uint8Array(bufferSize(obj));
   let view = new DataView(arr.buffer);
   let offset = 0;
@@ -82,7 +92,6 @@ export function eventCreateMessage(obj) {
     arr.set(authCode, 8);
     offset += 8;
   }
-  console.log(objToBytes(obj.payload))
   arr.set(objToBytes(obj.payload), 8 + offset);
   return arr;
 }

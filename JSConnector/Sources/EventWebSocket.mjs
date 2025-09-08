@@ -36,7 +36,11 @@ export default class EventWebSocket {
   }
 
   send(data) {
-    this.ws.send(eventCreateMessage(data));
+    const dt = eventCreateMessage(data);
+    if(!dt) {
+      return ;
+    }
+    this.ws.send(dt);
   }
 
   connect() {
