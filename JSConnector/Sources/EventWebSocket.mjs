@@ -30,9 +30,9 @@ export class EventWebSocket {
 
   _setMethods_Browser() {
     let parent = this;
-    this.socket.onopen = () => this._onOpen(parent);
-    this.socket.onmessage = (event) => this._onReceive(parent, event.data);
-    this.socket.onerror = (err) => this._onError(err);
+    this.ws.onopen = () => this._onOpen(parent);
+    this.ws.onmessage = (event) => this._onReceive(parent, event.data);
+    this.ws.onerror = (err) => this._onError(err);
   }
 
   _setMethods() {
