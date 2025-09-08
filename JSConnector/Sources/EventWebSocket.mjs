@@ -18,7 +18,7 @@ export default class EventWebSocket {
 
   _onReceive(parent, message) {
     if(parent.onReceive) {
-      parent.onReceive(new Uint8Array(message));
+      parent.onReceive(eventParseMethod(new Uint8Array(message)));
     }
   }
 
@@ -36,7 +36,7 @@ export default class EventWebSocket {
   }
 
   send(data) {
-    this.ws.send(data);
+    this.ws.send(eventCreateMessage(data));
   }
 
   connect() {

@@ -33,11 +33,18 @@ const bufferSize = (obj) => {
   return obj.size + headerSize(obj);
 }
 
+const objToBytes = (code) => {
+  if (typeof code === "string") {
+    return (new TextEncoder()).encode(code);
+  }
+  return new Uint8Array(code);
+}
+
 const authCodeFromObj = (obj) => {
   if(!obj.authCode) {
     return null;
   }
-  return new Uint8Array(obj.authCode);
+  return objToBytes(obj.authCode);
 }
 
 const payload = (buffer, view) => {
@@ -67,10 +74,15 @@ export function eventCreateMessage(obj) {
   let offset = 0;
   view.setInt32(0, obj.size, true);
   view.setInt32(4, headerFromObj(obj), true);
-  if(obj.authCode) {
-    arr.set(8, authCodeFromObj(obj));
+  let authCode = null;
+  if(obj.authCode && (authCode = authCodeFromObj(obj))) {
+    if(!authCode) {
+      return null;
+    }
+    arr.set(authCode, 8);
     offset += 8;
   }
-  arr.set(8 + offset, new Uint8Array(obj.payload));
+  console.log(objToBytes(obj.payload))
+  arr.set(objToBytes(obj.payload), 8 + offset);
   return arr;
 }

@@ -2,7 +2,7 @@
 #include "SocketServer.h"
 #include <unistd.h>
 #include "HttpParser.h"
-#include "EventMessage.h"
+#include "EventServer.h"
 #include "TimeFragment.h"
 
 void onConnectPlm(PConnection conn, void *buffer) {
@@ -10,8 +10,24 @@ void onConnectPlm(PConnection conn, void *buffer) {
 }
 
 void onReceiveMessage(PResponseObject dt, void *buffer) {
-  PWebSocketServer self = buffer;
-  printf("Some message\n");
+  PEventServer self = buffer;
+  ResponseObject response = {
+    .conn = dt->conn,
+    .metaData = (EventMessage) {
+      .headerCode = 123,
+      .isAuthed = 0,
+      .str = (EventBuffer) {
+        .buffer = "VASILE",
+        .size = sizeof("VASILE") - 1
+      }
+    }
+  };
+
+  evs_PushMessage(self, &response);
+  if(dt->metaData.isAuthed) {
+    printf("Auth code %.*s\n", 8, dt->metaData.uniqueCode.bff);
+  }
+  printf("Some message received %d %d -> %d <- `%.*s`\n", dt->metaData.headerCode, dt->metaData.isAuthed, dt->metaData.str.size, dt->metaData.str.size, dt->metaData.str.buffer);
   // PWebSocketServer self = buffer;
   // printf("Receive messages `%.*s` with conn %d\n", (int32_t)frag->size, frag->data, frag->conn.fd);
   // DataFragment nextFrag = {

@@ -2,8 +2,14 @@ import EventWebSocket from './Sources/EventWebSocket.mjs'
 
 let a = new EventWebSocket('ws://localhost:8080');
 a.onOpen = function () {
-  console.log("Connected!");
-  a.send("some special message")
+  let obj = {
+    size: "Ana are 2 mere si 2 pere!".length,
+    code: 143,
+    authCode: "02454352",
+    payload: "Ana are 2 mere si 2 pere!"
+  };
+
+  a.send(obj)
 }
 a.onReceive = function(msg) {
   console.log(msg)
