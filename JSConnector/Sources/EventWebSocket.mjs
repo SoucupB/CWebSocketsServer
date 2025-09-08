@@ -1,4 +1,3 @@
-import WebSocket from 'ws';
 import { eventParseMethod, eventCreateMessage } from './EventMessageParser.mjs';
 
 export class EventWebSocket {
@@ -43,9 +42,15 @@ export class EventWebSocket {
     this.ws.send(dt);
   }
 
-  connect() {
+  async connect() {
+    let WSImpl;
+    if (typeof window !== "undefined") {
+      WSImpl = WebSocket;
+    } else {
+      WSImpl = (await import('ws')).default;
+    }
     try {
-      this.ws = new WebSocket(this.host);
+      this.ws = new WSImpl(this.host);
       this._setMethods();
     } catch (err) {
       return false
@@ -53,3 +58,5 @@ export class EventWebSocket {
     return true;
   }
 }
+
+export default EventWebSocket;
