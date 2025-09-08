@@ -1,13 +1,13 @@
 #/bin/bash
 
 npx esbuild JSConnector/Sources/EventWebSocket.mjs --bundle \
-   --minify --outfile=JSConnector/build/bundle.node.min.js \
+   --minify --outfile=JSConnector/build/EventWebSocket.js \
    --format=esm \
    --platform=node \
    --external:ws \
    --external:events
 
 npx esbuild JSConnector/Sources/EventWebSocket.mjs --bundle \
-   --minify --outfile=JSConnector/build/bundle.browser.min.js \
-   --format=esm \
+   --minify --outfile=JSConnector/bundle/event_web_socket.min.js \
+   --format=iife \
    --platform=browser

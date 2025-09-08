@@ -1,4 +1,4 @@
-import EventWebSocket from './build/bundle.node.min.js'
+import EventWebSocket from './build/EventWebSocket.js'
 
 let a = new EventWebSocket('ws://localhost:8080');
 a.onOpen = function () {
