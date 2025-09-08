@@ -17,7 +17,6 @@ export class EventWebSocket {
 
   _onReceive(parent, message) {
     if(parent.onReceive) {
-      console.log(new Uint8Array(message));
       parent.onReceive(eventParseMethod(new Uint8Array(message)));
     }
   }
@@ -74,7 +73,6 @@ export class EventWebSocket {
       this.ws = new WSImpl(this.host);
       this._setMethods();
     } catch (err) {
-      console.log(err)
       return false
     }
     return true;
