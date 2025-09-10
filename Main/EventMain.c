@@ -13,8 +13,8 @@ void onConnectPlm(PConnection conn, void *buffer) {
 void onReceiveMessage(PResponseObject dt, void *buffer) {
   PEventServer self = buffer;
   Auth code;
-  char *zrCode = "32425666";
-  memcpy(code.bff, zrCode, sizeof(Auth));
+  char *authCode = "32425666";
+  memcpy(code.bff, authCode, sizeof(Auth));
   ResponseObject response = {
     .conn = dt->conn,
     .metaData = (EventMessage) {
@@ -22,8 +22,8 @@ void onReceiveMessage(PResponseObject dt, void *buffer) {
       .uniqueCode = code,
       .isAuthed = 1,
       .str = (EventBuffer) {
-        .buffer = "VASILE",
-        .size = sizeof("VASILE") - 1
+        .buffer = "test",
+        .size = sizeof("test") - 1
       }
     }
   };
