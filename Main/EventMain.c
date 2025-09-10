@@ -6,7 +6,7 @@
 #include "TimeFragment.h"
 #include <string.h>
 
-void onConnectPlm(PConnection conn, void *buffer) {
+void onConnectRoutine(PConnection conn, void *buffer) {
   printf("Connected mr %d\n", conn->fd);
 }
 
@@ -44,7 +44,7 @@ int main() {
   uint64_t currentTimestamp = tf_CurrentTimeMS();
   printf("Server initialized!\n");
   PSocketMethod onConnect = sock_Method_Create(
-    (void *)onConnectPlm,
+    (void *)onConnectRoutine,
     NULL
   );
   PSocketMethod onReceive = sock_Method_Create(

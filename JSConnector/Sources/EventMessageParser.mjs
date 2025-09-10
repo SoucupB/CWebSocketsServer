@@ -69,8 +69,7 @@ export function eventParseMethod(buffer) {
 }
 
 const isObjComplete = (obj) => {
-  return obj.size != undefined &&
-         obj.code != undefined &&
+  return obj.code != undefined &&
          obj.authCode != undefined &&
          obj.payload != undefined;
 }
@@ -82,6 +81,7 @@ export function eventCreateMessage(obj) {
   let arr = new Uint8Array(bufferSize(obj));
   let view = new DataView(arr.buffer);
   let offset = 0;
+  obj.size = obj.payload.length;
   view.setInt32(0, obj.size, true);
   view.setInt32(4, headerFromObj(obj), true);
   let authCode = null;

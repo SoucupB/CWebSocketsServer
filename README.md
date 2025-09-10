@@ -108,3 +108,5 @@ the flag `-lcrypto` for the openSSL library.
 gcc bin/ServerSource.c Main/main.c -o Binaries/test_executable -lcrypto
 ```
 
+# Event based server
+The source can be found under `Main/EventMain.c`
