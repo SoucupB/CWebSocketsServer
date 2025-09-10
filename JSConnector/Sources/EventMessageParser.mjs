@@ -78,10 +78,10 @@ export function eventCreateMessage(obj) {
   if(!isObjComplete(obj)) {
     return null;
   }
+  obj.size = obj.payload.length;
   let arr = new Uint8Array(bufferSize(obj));
   let view = new DataView(arr.buffer);
   let offset = 0;
-  obj.size = obj.payload.length;
   view.setInt32(0, obj.size, true);
   view.setInt32(4, headerFromObj(obj), true);
   let authCode = null;
