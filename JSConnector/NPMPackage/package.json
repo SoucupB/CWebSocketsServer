@@ -1,6 +1,6 @@
 {
   "name": "web-socket-event-package",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "A simple Node.js package using WebSockets (ws) and esbuild for connecting to event servers",
   "type": "module",
   "main": "index.js",
