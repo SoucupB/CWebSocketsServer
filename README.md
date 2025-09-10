@@ -109,4 +109,5 @@ gcc bin/ServerSource.c Main/main.c -o Binaries/test_executable -lcrypto
 ```
 
 # Event based server
-The source can be found under `Main/EventMain.c`
+The source can be found under `Main/EventMain.c` and the node js server usage is found on `JSConnector/server.js`
+In order to take this client/server to a drive, you can run `./execute.sh` and then run node `JSConnector/server.js`.
