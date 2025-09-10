@@ -3,10 +3,10 @@ import EventWebSocket from './build/EventWebSocket.js'
 let a = new EventWebSocket('ws://localhost:8080');
 a.onOpen = function () {
   let obj = {
-    size: "Ana are 2 mere si 2 pere!".length,
+    size: "This is a test message".length,
     code: 143,
     authCode: "02454352",
-    payload: "Ana are 2 mere si 2 pere!"
+    payload: "This is a test message"
   };
 
   a.send(obj)
