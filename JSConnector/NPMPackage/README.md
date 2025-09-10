@@ -26,6 +26,8 @@ npm install event-websocket
 ```
 
 Code example
+
+```js
 import EventWebSocket from 'event-websocket';
 
 const ws = new EventWebSocket('ws://localhost:8080');
@@ -44,6 +46,7 @@ ws.onReceive = (obj) => {
 };
 
 ws.connect();
+```
 
 The C server that goes along with this package is implemented and documented here.
 https://github.com/SoucupB/CWebSocketsServer/tree/main
