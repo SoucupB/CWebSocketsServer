@@ -1,5 +1,20 @@
 {
+  "name": "my-package",
+  "version": "1.0.0",
+  "description": "A simple Node.js package using WebSockets (ws) and esbuild for bundling",
   "type": "module",
+  "main": "index.js",
+  "scripts": {
+    "build": "esbuild Sources/EventWebSocket.mjs --bundle --minify --outfile=build/EventWebSocket.js --format=esm --platform=node --external:ws --external:events"
+  },
+  "keywords": [
+    "websocket",
+    "ws",
+    "esbuild",
+    "node"
+  ],
+  "author": "Your Name <youremail@example.com>",
+  "license": "MIT",
   "dependencies": {
     "ws": "^8.18.3"
   },

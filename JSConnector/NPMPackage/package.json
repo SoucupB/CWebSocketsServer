@@ -1,0 +1,21 @@
+{
+  "name": "web-socket-event-package",
+  "version": "1.0.0",
+  "description": "A simple Node.js package using WebSockets (ws) and esbuild for connecting to event servers",
+  "type": "module",
+  "main": "index.js",
+  "keywords": [
+    "websocket",
+    "ws",
+    "esbuild",
+    "node"
+  ],
+  "author": "Soucup Bogdan <soucup.bogdan@gmail.com>",
+  "license": "MIT",
+  "dependencies": {
+    "ws": "^8.18.3"
+  },
+  "devDependencies": {
+    "esbuild": "^0.25.9"
+  }
+}

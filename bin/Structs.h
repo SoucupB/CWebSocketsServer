@@ -2,6 +2,10 @@
 #include <stdint.h>
 #include <stddef.h>
 
+#define PVOID void*
+#define crm_Alloc malloc
+#define crm_Free free
+
 struct WebSocketServer_t;
 typedef struct WebSocketServer_t WebSocketServer;
 typedef WebSocketServer *PWebSocketServer;
@@ -185,10 +189,6 @@ typedef struct HttpMetaData_t {
 } HttpMetaData;
 
 typedef HttpMetaData *PHttpMetaData;
-
-#define PVOID void*
-#define crm_Alloc malloc
-#define crm_Free free
 
 typedef struct TrieNode_t *PTrieNode;
 

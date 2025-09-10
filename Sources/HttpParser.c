@@ -265,7 +265,7 @@ static inline char *http_ChompString(PHttpString buff, char *like, uint8_t repea
   if(!index) {
     return NULL;
   }
-  return buff->buffer + index; 
+  return buff->buffer + index;
 }
 
 char *http_Path_Parse(PHttpRequest parent, PHttpString buffer) {
