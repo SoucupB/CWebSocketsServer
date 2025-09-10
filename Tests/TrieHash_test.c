@@ -204,6 +204,49 @@ static void test_trie_hash_collect_string_keys(void **state) {
   trh_Delete(hash);
 }
 
+static void test_trie_hash_insert_1_mil_32_bits_values(void **state) {
+  PTrieHash hash = trh_Create();
+  size_t currentTime = tf_CurrentTimeMS();
+  for(uint32_t i = 0; i <= 1000000; i++) {
+    trh_Integer32_Insert(hash, i, 1000000 - i);
+  }
+  size_t endTime = tf_CurrentTimeMS() - currentTime;
+  printf("Time for trh inserts is %lu\n", endTime);
+  trh_Delete(hash);
+}
+
+static void test_trie_hash_get_1_mil_values(void **state) {
+  PTrieHash hash = trh_Create();
+  for(uint32_t i = 0; i <= 1000000; i++) {
+    trh_Integer32_Insert(hash, i, 1000000 - i);
+  }
+  size_t currentTime = tf_CurrentTimeMS();
+  for(uint32_t i = 0; i <= 1000000; i++) {
+    assert_int_equal(*(uint32_t *)trh_Integer32_Get(hash, i), 1000000 - i);
+  }
+  size_t endTime = tf_CurrentTimeMS() - currentTime;
+  printf("Time for trh gets is %lu\n", endTime);
+  trh_Delete(hash);
+}
+
+static void test_trie_hash_del_1_mil_values(void **state) {
+  PTrieHash hash = trh_Create();
+  for(uint32_t i = 0; i <= 1000000; i++) {
+    trh_Integer32_Insert(hash, i, 1000000 - i);
+  }
+  size_t currentTime = tf_CurrentTimeMS();
+  for(uint32_t i = 0; i <= 1000000; i++) {
+    trh_Integer32_RemoveElement(hash, i);
+  }
+  size_t endTime = tf_CurrentTimeMS() - currentTime;
+  for(uint32_t i = 0; i <= 1000000; i++) {
+    trh_Integer32_RemoveElement(hash, i);
+    assert_null(trh_Integer32_Get(hash, i));
+  }
+  printf("Time for trh deletes is %lu\n", endTime);
+  trh_Delete(hash);
+}
+
 int main() {
   const struct CMUnitTest tests[] = {
     cmocka_unit_test_prestate(test_trie_hash_insertion_v1, NULL),
@@ -216,6 +259,9 @@ int main() {
     cmocka_unit_test_prestate(test_trie_hash_collect_integer_keys, NULL),
     cmocka_unit_test_prestate(test_trie_hash_collect_multiple_integer_keys, NULL),
     cmocka_unit_test_prestate(test_trie_hash_collect_string_keys, NULL),
+    cmocka_unit_test_prestate(test_trie_hash_insert_1_mil_32_bits_values, NULL),
+    cmocka_unit_test_prestate(test_trie_hash_get_1_mil_values, NULL),
+    cmocka_unit_test_prestate(test_trie_hash_del_1_mil_values, NULL),
   };
   const uint32_t value = cmocka_run_group_tests(tests, NULL, NULL);
   return value;
