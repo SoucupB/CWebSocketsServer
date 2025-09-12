@@ -5,6 +5,8 @@
 #include <cmocka.h>
 #include <stdlib.h>
 
+PConnection sock_FindConnectionByIndex(PSocketServer self, size_t index);
+
 PSocketServer test_Util_PrepareServer(uint16_t port, void *method, void *buffer) {
   PSocketServer server = sock_Create(port);
   PSocketMethod onConnect = sock_Method_Create(

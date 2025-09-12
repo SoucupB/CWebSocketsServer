@@ -1162,10 +1162,8 @@ PSocketServer sock_Create(uint16_t port);
 void sock_Delete(PSocketServer self);
 void sock_OnFrame(PSocketServer self, uint64_t deltaMS);
 void sock_Write_Push(PSocketServer self, DataFragment *dt);
-PConnection sock_FindConnectionByIndex(PSocketServer self, size_t index);
 size_t sock_ConnectionCount(PSocketServer self);
 void sock_SetMaxConnections(PSocketServer self, int32_t maxActiveConnections);
-void sock_AddConnectionTimeout(PSocketServer self, int64_t expireAfter);
 void sock_PushCloseConnections(PSocketServer self, PConnection conn);
 void sock_CloseConnection(PSocketServer self, size_t index);
 PSocketMethod sock_Method_Create(void *method, void *mirrorBuffer);
@@ -4200,10 +4198,6 @@ static inline void sock_ExecuteOnReceiveMethod(DataFragment *dataFragment, PSock
   void (*method)(DataFragment *, void *) = routine->method;
   method(dataFragment, routine->mirrorBuffer);
 }
-void sock_AddConnectionTimeout(PSocketServer self, int64_t expireAfter) {
-  self->timeServer.timeServer = tf_Create();
-  self->timeServer.timeout = expireAfter;
-}
 static inline void sock_ReadData(PSocketServer self, Connection *conn, char *buffer, size_t count) {
   (void)!read(conn->fd, buffer, count);
   DataFragment dt = (DataFragment) {
@@ -4795,7 +4789,7 @@ void vct_Push(Vector self, void *buffer) {
   copyData(self, buffer);
 }
 void vct_RemoveElement(Vector self, size_t index) {
-  ((void) sizeof ((self->size != 0) ? 1 : 0), __extension__ ({ if (self->size != 0) ; else __assert_fail ("self->size != 0", "bin/svv.c", 1644, __extension__ __PRETTY_FUNCTION__); }));
+  ((void) sizeof ((self->size != 0) ? 1 : 0), __extension__ ({ if (self->size != 0) ; else __assert_fail ("self->size != 0", "bin/svv.c", 1639, __extension__ __PRETTY_FUNCTION__); }));
   if(index >= self->size) {
     return ;
   }

@@ -129,11 +129,6 @@ static inline void sock_ExecuteOnReceiveMethod(DataFragment *dataFragment, PSock
   method(dataFragment, routine->mirrorBuffer);
 }
 
-void sock_AddConnectionTimeout(PSocketServer self, int64_t expireAfter) {
-  self->timeServer.timeServer = tf_Create();
-  self->timeServer.timeout = expireAfter;
-}
-
 static inline void sock_ReadData(PSocketServer self, Connection *conn, char *buffer, size_t count) {
   (void)!read(conn->fd, buffer, count);
   DataFragment dt = (DataFragment) {
