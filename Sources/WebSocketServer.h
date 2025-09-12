@@ -33,5 +33,6 @@ void wss_Delete(PWebSocketServer self);
 /*
  * Pushes a message to be sent to a stack. `wss_OnFrame` will
  * send all the messages towards the connections.
+ * PDataFragment is described in `sock_Write_Push`.
  */
 void wss_SendMessage(PWebSocketServer self, PDataFragment dt);
