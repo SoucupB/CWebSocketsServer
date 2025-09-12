@@ -46,10 +46,10 @@ void sock_Write_Push(PSocketServer self, DataFragment *dt);
  * which connections are closing and which are not.
  */
 size_t sock_ConnectionCount(PSocketServer self);
-// Default is set to 16 max connections
 /*
  * Set the maximum number of a addmited connections.
  */
+// Default is set to 16 max connections
 void sock_SetMaxConnections(PSocketServer self, int32_t maxActiveConnections);
 /*
  * This method will push a connection close request.
