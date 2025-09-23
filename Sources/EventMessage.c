@@ -84,7 +84,9 @@ EventBuffer evm_Reuse_Transform(const PEventMessage self, char *buffer) {
   if(headerPointer) {
     memcpy(headerPointer, self->uniqueCode.bff, sizeof(self->uniqueCode));
   }
-  memcpy(evm_Out_PayloadPointer(self, buffer), self->str.buffer, self->str.size);
+  if(self->str.buffer) {
+    memcpy(evm_Out_PayloadPointer(self, buffer), self->str.buffer, self->str.size);
+  }
   return (EventBuffer) {
     .buffer = buffer,
     .size = totalSize

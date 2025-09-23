@@ -1109,7 +1109,9 @@ EventBuffer evm_Reuse_Transform(const PEventMessage self, char *buffer) {
   if(headerPointer) {
     memcpy(headerPointer, self->uniqueCode.bff, sizeof(self->uniqueCode));
   }
-  memcpy(evm_Out_PayloadPointer(self, buffer), self->str.buffer, self->str.size);
+  if(self->str.buffer) {
+    memcpy(evm_Out_PayloadPointer(self, buffer), self->str.buffer, self->str.size);
+  }
   return (EventBuffer) {
     .buffer = buffer,
     .size = totalSize
@@ -1776,9 +1778,9 @@ static inline PFixedMemoryPool fmp_FindPool(const PFixedMemoryPool self, const v
 }
 void fmp_Free(PFixedMemoryPool self, void *buffer) {
   PFixedMemoryPool currentPool = fmp_FindPool(self, buffer);
-  ((void) sizeof ((currentPool != ((void *)0)) ? 1 : 0), __extension__ ({ if (currentPool != ((void *)0)) ; else __assert_fail ("currentPool != NULL", "bin/svv.c", 318, __extension__ __PRETTY_FUNCTION__); }));
+  ((void) sizeof ((currentPool != ((void *)0)) ? 1 : 0), __extension__ ({ if (currentPool != ((void *)0)) ; else __assert_fail ("currentPool != NULL", "bin/svv.c", 320, __extension__ __PRETTY_FUNCTION__); }));
   PMemoryFragment currentMemoryFragment = fmp_StartingPointer(buffer);
-  ((void) sizeof ((*currentMemoryFragment->flag == 1) ? 1 : 0), __extension__ ({ if (*currentMemoryFragment->flag == 1) ; else __assert_fail ("*currentMemoryFragment->flag == 1", "bin/svv.c", 320, __extension__ __PRETTY_FUNCTION__); }));
+  ((void) sizeof ((*currentMemoryFragment->flag == 1) ? 1 : 0), __extension__ ({ if (*currentMemoryFragment->flag == 1) ; else __assert_fail ("*currentMemoryFragment->flag == 1", "bin/svv.c", 322, __extension__ __PRETTY_FUNCTION__); }));
   stack_Push(&currentPool->freeStack, currentMemoryFragment->self);
   *currentMemoryFragment->flag = 0;
   currentPool->count--;
@@ -4145,7 +4147,7 @@ void sock_PushCloseConnMethod(PSocketServer self, Connection conn, size_t index)
   tf_ExecuteAfter(self->timeServer.timeServer, timeFragment, self->timeServer.timeout);
 }
 void sock_SetMaxConnections(PSocketServer self, int32_t maxActiveConnections) {
-  ((void) sizeof ((maxActiveConnections < 1024) ? 1 : 0), __extension__ ({ if (maxActiveConnections < 1024) ; else __assert_fail ("maxActiveConnections < MAX_CONNECTIONS_PER_SERVER", "bin/svv.c", 940, __extension__ __PRETTY_FUNCTION__); }));
+  ((void) sizeof ((maxActiveConnections < 1024) ? 1 : 0), __extension__ ({ if (maxActiveConnections < 1024) ; else __assert_fail ("maxActiveConnections < MAX_CONNECTIONS_PER_SERVER", "bin/svv.c", 942, __extension__ __PRETTY_FUNCTION__); }));
   self->maxActiveConnections = maxActiveConnections;
 }
 void sock_Write_Push(PSocketServer self, DataFragment *dt) {
@@ -4789,7 +4791,7 @@ void vct_Push(Vector self, void *buffer) {
   copyData(self, buffer);
 }
 void vct_RemoveElement(Vector self, size_t index) {
-  ((void) sizeof ((self->size != 0) ? 1 : 0), __extension__ ({ if (self->size != 0) ; else __assert_fail ("self->size != 0", "bin/svv.c", 1639, __extension__ __PRETTY_FUNCTION__); }));
+  ((void) sizeof ((self->size != 0) ? 1 : 0), __extension__ ({ if (self->size != 0) ; else __assert_fail ("self->size != 0", "bin/svv.c", 1641, __extension__ __PRETTY_FUNCTION__); }));
   if(index >= self->size) {
     return ;
   }
