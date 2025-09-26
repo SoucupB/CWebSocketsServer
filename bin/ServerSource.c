@@ -4426,10 +4426,19 @@ void sock_Client_Free(PConnection conn) {
   close(conn->fd);
   free(conn);
 }
+static inline void sock_Delete_OutputCommands(PSocketServer self) {
+  DataFragment *dataFragments = self->outputCommands->buffer;
+  for(size_t i = 0, c = self->outputCommands->size; i < c; i++) {
+    if(dataFragments[i].persistent) {
+      free(dataFragments[i].data);
+    }
+  }
+  vct_Delete(self->outputCommands);
+}
 void sock_Delete(PSocketServer self) {
   vct_Delete(self->inputReads);
   sock_ClearConnections(self);
-  vct_Delete(self->outputCommands);
+  sock_Delete_OutputCommands(self);
   close(self->serverFD.fd);
   sock_Time_Delete(self);
   free(self);
@@ -4791,7 +4800,7 @@ void vct_Push(Vector self, void *buffer) {
   copyData(self, buffer);
 }
 void vct_RemoveElement(Vector self, size_t index) {
-  ((void) sizeof ((self->size != 0) ? 1 : 0), __extension__ ({ if (self->size != 0) ; else __assert_fail ("self->size != 0", "bin/svv.c", 1641, __extension__ __PRETTY_FUNCTION__); }));
+  ((void) sizeof ((self->size != 0) ? 1 : 0), __extension__ ({ if (self->size != 0) ; else __assert_fail ("self->size != 0", "bin/svv.c", 1651, __extension__ __PRETTY_FUNCTION__); }));
   if(index >= self->size) {
     return ;
   }

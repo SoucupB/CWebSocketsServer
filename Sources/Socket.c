@@ -382,10 +382,20 @@ void sock_Client_Free(PConnection conn) {
   free(conn);
 }
 
+static inline void sock_Delete_OutputCommands(PSocketServer self) {
+  DataFragment *dataFragments = self->outputCommands->buffer;
+  for(size_t i = 0, c = self->outputCommands->size; i < c; i++) {
+    if(dataFragments[i].persistent) {
+      free(dataFragments[i].data);
+    }
+  }
+  vct_Delete(self->outputCommands);
+}
+
 void sock_Delete(PSocketServer self) {
   vct_Delete(self->inputReads);
   sock_ClearConnections(self);
-  vct_Delete(self->outputCommands);
+  sock_Delete_OutputCommands(self);
   close(self->serverFD.fd);
   sock_Time_Delete(self);
   free(self);
