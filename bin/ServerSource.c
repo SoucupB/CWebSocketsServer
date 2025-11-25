@@ -276,6 +276,22 @@ typedef struct HttpResponse_t {
   uint16_t response;
 } HttpResponse;
 typedef HttpResponse *PHttpResponse;
+typedef enum {
+  JSON_NULL,
+  JSON_INTEGER,
+  JSON_NUMBER,
+  JSON_STRING,
+  JSON_JSON
+} JsonType;
+typedef struct JsonElement_t {
+  void *value;
+  JsonType type;
+} JsonElement;
+typedef JsonElement *PJsonElement;
+typedef struct JsonObject_t {
+  PTrieHash hsh;
+} JsonObject;
+typedef JsonObject *PJsonObject;
 EventBuffer evm_New_Transform(const PEventMessage self);
 EventBuffer evm_Reuse_Transform(const PEventMessage self, char *buffer);
 EventMessage evm_Parse(EventBuffer buffer, uint8_t *valid);
@@ -2359,6 +2375,21 @@ void http_Response_Delete(PHttpResponse self) {
   http_Hash_Delete(self->headers);
   free(self);
 }
+       
+PJsonObject json_Create();
+void json_Delete(PJsonObject self);
+PJsonObject json_Create() {
+  PJsonObject self = malloc(sizeof(JsonObject));
+  self->hsh = trh_Create();
+  return self;
+}
+void json_Delete(PJsonObject self) {
+  trh_Delete(self->hsh);
+  free(self);
+}
+PHttpString json_ToString(PJsonObject self) {
+  return ((void *)0);
+}
 
 struct iovec
   {
@@ -4147,7 +4178,7 @@ void sock_PushCloseConnMethod(PSocketServer self, Connection conn, size_t index)
   tf_ExecuteAfter(self->timeServer.timeServer, timeFragment, self->timeServer.timeout);
 }
 void sock_SetMaxConnections(PSocketServer self, int32_t maxActiveConnections) {
-  ((void) sizeof ((maxActiveConnections < 1024) ? 1 : 0), __extension__ ({ if (maxActiveConnections < 1024) ; else __assert_fail ("maxActiveConnections < MAX_CONNECTIONS_PER_SERVER", "bin/svv.c", 942, __extension__ __PRETTY_FUNCTION__); }));
+  ((void) sizeof ((maxActiveConnections < 1024) ? 1 : 0), __extension__ ({ if (maxActiveConnections < 1024) ; else __assert_fail ("maxActiveConnections < MAX_CONNECTIONS_PER_SERVER", "bin/svv.c", 959, __extension__ __PRETTY_FUNCTION__); }));
   self->maxActiveConnections = maxActiveConnections;
 }
 void sock_Write_Push(PSocketServer self, DataFragment *dt) {
@@ -4800,7 +4831,7 @@ void vct_Push(Vector self, void *buffer) {
   copyData(self, buffer);
 }
 void vct_RemoveElement(Vector self, size_t index) {
-  ((void) sizeof ((self->size != 0) ? 1 : 0), __extension__ ({ if (self->size != 0) ; else __assert_fail ("self->size != 0", "bin/svv.c", 1651, __extension__ __PRETTY_FUNCTION__); }));
+  ((void) sizeof ((self->size != 0) ? 1 : 0), __extension__ ({ if (self->size != 0) ; else __assert_fail ("self->size != 0", "bin/svv.c", 1668, __extension__ __PRETTY_FUNCTION__); }));
   if(index >= self->size) {
     return ;
   }
