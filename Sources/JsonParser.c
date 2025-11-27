@@ -78,7 +78,7 @@ void json_PushLeafValue(Vector str, JsonElement element) {
   }
 }
 
-void json_PushLeafElement(Vector str, PHttpString key, JsonElement element) {
+void json_PushLeafElement(Vector str, PHttpString key, JsonElement element, int8_t lastElement) {
   vct_Push(str, &(char){'"'});
   char *bff = key->buffer;
   for(size_t i = 0, c = key->sz; i < c; i++) {
@@ -87,7 +87,9 @@ void json_PushLeafElement(Vector str, PHttpString key, JsonElement element) {
   vct_Push(str, &(char){'"'});
   vct_Push(str, &(char){':'});
   json_PushLeafValue(str, element);
-  vct_Push(str, &(char){','});
+  if(!lastElement) {
+    vct_Push(str, &(char){','});
+  }
 }
 
 void json_ToString_t(PJsonObject self, Vector str) {
@@ -100,8 +102,10 @@ void json_ToString_t(PJsonObject self, Vector str) {
       .sz = keysBuffer->keySize
     };
     JsonElement *currentElement = trh_GetBuffer(self->hsh, currentKey.buffer, currentKey.sz);
-    json_PushLeafElement(str, &currentKey, *currentElement);
+    json_PushLeafElement(str, &currentKey, *currentElement, i == keys->size - 1);
   }
+  vct_Push(str, &(char){'}'});
+  vct_Delete(keys);
 }
 
 HttpString json_ToString(PJsonObject self) {
