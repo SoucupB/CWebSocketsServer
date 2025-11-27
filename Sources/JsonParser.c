@@ -98,8 +98,8 @@ void json_ToString_t(PJsonObject self, Vector str) {
   Key *keysBuffer = keys->buffer;
   for(size_t i = 0, c = keys->size; i < c; i++) {
     HttpString currentKey = {
-      .buffer = keysBuffer->key,
-      .sz = keysBuffer->keySize
+      .buffer = keysBuffer[i].key,
+      .sz = keysBuffer[i].keySize
     };
     JsonElement *currentElement = trh_GetBuffer(self->hsh, currentKey.buffer, currentKey.sz);
     json_PushLeafElement(str, &currentKey, *currentElement, i == keys->size - 1);

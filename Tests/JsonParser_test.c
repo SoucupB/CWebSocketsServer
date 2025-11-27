@@ -33,6 +33,8 @@ static void test_string_parse_simple_multiple_elements(void **state) {
   json_Add(jsonObj, &key1, json_Helper_Integer(32425LL));
   json_Add(jsonObj, &key2, json_Helper_Integer(4434325252611LL));
   HttpString toS = json_ToString(jsonObj);
+
+  printf("ZZZZ %.*s\n", toS.sz, toS.buffer);
   // assert_memory_equal(toS.buffer, "{\"some_key\":32425}", sizeof("{\"some_key\":32425}") - 1);
   json_Delete(jsonObj);
   free(toS.buffer);
