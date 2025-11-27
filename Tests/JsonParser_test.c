@@ -22,7 +22,6 @@ static void test_string_parse_simple_elements(void **state) {
   json_Add(jsonObj, &key, elem);
   HttpString toS = json_ToString(jsonObj);
   assert_memory_equal(toS.buffer, "{\"some_key\":32425}", sizeof("{\"some_key\":32425}") - 1);
-  // printf("%d %.*s\n", toS.sz, toS.sz, toS.buffer);
   json_Delete(jsonObj);
   free(toS.buffer);
 }

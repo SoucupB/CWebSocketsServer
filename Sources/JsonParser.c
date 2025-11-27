@@ -103,6 +103,7 @@ void json_ToString_t(PJsonObject self, Vector str) {
     };
     JsonElement *currentElement = trh_GetBuffer(self->hsh, currentKey.buffer, currentKey.sz);
     json_PushLeafElement(str, &currentKey, *currentElement, i == keys->size - 1);
+    free(currentKey.buffer);
   }
   vct_Push(str, &(char){'}'});
   vct_Delete(keys);
