@@ -86,16 +86,31 @@ void json_PushLeafElement(Vector str, PHttpString key, JsonElement element) {
   }
   vct_Push(str, &(char){'"'});
   vct_Push(str, &(char){':'});
+  json_PushLeafValue(str, element);
+  vct_Push(str, &(char){','});
 }
 
-PHttpString json_ToString_t(PJsonObject self, Vector str) {
+void json_ToString_t(PJsonObject self, Vector str) {
   vct_Push(str, &(char){'{'});
   Vector keys = trh_GetKeys(self->hsh);
+  Key *keysBuffer = keys->buffer;
   for(size_t i = 0, c = keys->size; i < c; i++) {
-
+    HttpString currentKey = {
+      .buffer = keysBuffer->key,
+      .sz = keysBuffer->keySize
+    };
+    JsonElement *currentElement = trh_GetBuffer(self->hsh, currentKey.buffer, currentKey.sz);
+    json_PushLeafElement(str, &currentKey, *currentElement);
   }
 }
 
-PHttpString json_ToString(PJsonObject self) {
-  return NULL;
+HttpString json_ToString(PJsonObject self) {
+  Vector rsp = vct_Init(sizeof(char));
+  json_ToString_t(self, rsp);
+  HttpString response = {
+    .buffer = rsp->buffer,
+    .sz = rsp->size
+  };
+  vct_DeleteWOBuffer(rsp);
+  return response;
 }
