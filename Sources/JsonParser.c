@@ -237,14 +237,31 @@ TokenParser json_Parser_Token(TokenParser tck, char *token, size_t tokenSize) {
   };
 }
 
+uint8_t json_Parser_IsCharValid(char val) {
+  return val != '"'; 
+}
+
 TokenParser json_Parser_String(TokenParser tck) {
   json_Parser_RemoveEmptySpace(&tck);
-  TokenParser cpyTck = tck;
   tck = json_Parser_Token(tck, "\"", sizeof("\"") - 1);
   if(json_Parser_IsInvalid(tck)) {
     return tck;
   }
-  
+  while(tck.startingBuffer < tck.endingBuffer) {
+    TokenParser specialCharOffset = json_Parser_Token(tck, "\\\"", sizeof("\\\"") - 1);
+    if(!json_Parser_IsInvalid(specialCharOffset)) {
+      tck.startingBuffer = specialCharOffset.startingBuffer;
+      continue;
+    }
+    if(!json_Parser_IsCharValid(*tck.startingBuffer)) {
+      break;
+    }
+    tck.startingBuffer++;
+  }
+  if(tck.startingBuffer >= tck.endingBuffer || *tck.startingBuffer != '"') {
+    return json_Parse_Invalid();
+  }
+  return tck;
 }
 
 JsonElement json_Parse(PHttpString buffer, char *nextBuffer) {
