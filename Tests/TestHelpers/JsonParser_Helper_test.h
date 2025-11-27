@@ -12,3 +12,5 @@ JsonElement json_Helper_Number(float element);
 JsonElement json_Helper_String(char *nmb);
 JsonElement json_Helper_Json(PJsonObject obj);
 PJsonObject json_Helper_Create();
+JsonElement json_Helper_Array();
+void json_Helper_Array_Push(JsonElement elemArr, JsonElement elem);

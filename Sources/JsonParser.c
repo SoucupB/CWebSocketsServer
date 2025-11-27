@@ -7,6 +7,8 @@
 #include <stdio.h>
 
 void json_ToString_t(PJsonObject self, Vector str);
+void json_DeleteArray(JsonElement element);
+void json_PushLeafValue(Vector str, JsonElement element);
 
 PJsonObject json_Create() {
   PJsonObject self = malloc(sizeof(JsonObject));
@@ -53,6 +55,19 @@ static inline void json_Element_PushString(Vector str, PHttpString value) {
   vct_Push(str, &(char){'"'});
 }
 
+void json_PushLeafArray(Vector str, JsonElement element) {
+  vct_Push(str, &(char){'['});
+  Vector currentVector = element.value;
+  JsonElement *arrList = currentVector->buffer;
+  for(size_t i = 0, c = currentVector->size; i < c; i++) {
+    json_PushLeafValue(str, arrList[i]);
+    if(i != c - 1) {
+      vct_Push(str, &(char){','});
+    }
+  }
+  vct_Push(str, &(char){']'});
+}
+
 void json_PushLeafValue(Vector str, JsonElement element) {
   switch (element.type)
   {
@@ -79,7 +94,10 @@ void json_PushLeafValue(Vector str, JsonElement element) {
       json_Element_PushString(str, element.value);
       break;
     }
-    
+    case JSON_ARRAY: {
+      json_PushLeafArray(str, element);
+      break;
+    }
     default:
       break;
   }
@@ -127,6 +145,44 @@ HttpString json_ToString(PJsonObject self) {
   return response;
 }
 
+void json_DeleteElement(JsonElement element) {
+  switch (element.type)
+  {
+    case JSON_INTEGER: {
+      free(element.value); 
+      break;
+    }
+    case JSON_NUMBER: {
+      free(element.value); 
+      break;
+    }
+    case JSON_STRING: {
+      free(((PHttpString)element.value)->buffer);
+      free(element.value);
+      break;
+    }
+    case JSON_JSON: {
+      json_Delete(element.value);
+      break;
+    }
+    case JSON_ARRAY: {
+      json_DeleteArray(element);
+      break;
+    }
+    default:
+      break;
+  }
+}
+
+void json_DeleteArray(JsonElement element) {
+  Vector listArr = element.value;
+  JsonElement *arr = listArr->buffer;
+  for(size_t i = 0, c = listArr->size; i < c; i++) {
+    json_DeleteElement(arr[i]);
+  }
+  vct_Delete(listArr);
+}
+
 void json_RemoveSelfContainedData(PJsonObject self) {
   if(!self || !self->selfContained) {
     return ;
@@ -134,28 +190,7 @@ void json_RemoveSelfContainedData(PJsonObject self) {
   Vector values = trh_GetValues(self->hsh, sizeof(JsonElement));
   JsonElement *elements = values->buffer;
   for(size_t i = 0, c = values->size; i < c; i++) {
-    switch (elements[i].type)
-    {
-      case JSON_INTEGER: {
-        free(elements[i].value); 
-        break;
-      }
-      case JSON_NUMBER: {
-        free(elements[i].value); 
-        break;
-      }
-      case JSON_STRING: {
-        free(((PHttpString)elements[i].value)->buffer);
-        free(elements[i].value);
-        break;
-      }
-      case JSON_JSON: {
-        json_Delete(elements[i].value);
-        break;
-      }
-      default:
-        break;
-    }
+    json_DeleteElement(elements[i]);
   }
   vct_Delete(values);
 }

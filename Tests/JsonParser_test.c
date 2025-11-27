@@ -57,11 +57,56 @@ _key_1\":332},\"some_key_3\":324.500000}") - 1);
   free(toS.buffer);
 }
 
+static void test_string_parse_list_array(void **state) {
+  PJsonObject jsonObj = json_Helper_Create();
+  HttpString key1 = json_Helper_Add("some_key_1");
+  JsonElement objArr = json_Helper_Array();
+  json_Add(jsonObj, &key1, objArr);
+  json_Helper_Array_Push(objArr, json_Helper_Integer(332LL));
+  json_Helper_Array_Push(objArr, json_Helper_Integer(11LL));
+  json_Helper_Array_Push(objArr, json_Helper_Number(25.5f));
+  json_Helper_Array_Push(objArr, json_Helper_String("some_value_data"));
+  json_Helper_Array_Push(objArr, json_Helper_Json(json_Helper_Create()));
+
+  HttpString toS = json_ToString(jsonObj);
+  assert_memory_equal(toS.buffer, "{\"some_key_1\":[332,11,25.\
+500000,\"some_value_data\",{}]}", sizeof("{\"some_key_1\":[332,11,25.\
+500000,\"some_value_data\",{}]}") - 1);
+  json_Delete(jsonObj);
+  free(toS.buffer);
+}
+
+static void test_string_parse_list_array_of_json_objects(void **state) {
+  PJsonObject jsonObj = json_Helper_Create();
+  HttpString key1 = json_Helper_Add("some_key_1");
+  JsonElement objArr = json_Helper_Array();
+  json_Add(jsonObj, &key1, objArr);
+  json_Helper_Array_Push(objArr, json_Helper_Integer(332LL));
+  json_Helper_Array_Push(objArr, json_Helper_Integer(11LL));
+  json_Helper_Array_Push(objArr, json_Helper_Number(25.5f));
+  json_Helper_Array_Push(objArr, json_Helper_String("some_value_data"));
+  PJsonObject jsonObj2 = json_Helper_Create();
+  json_Helper_Array_Push(objArr, json_Helper_Json(jsonObj2));
+  HttpString key2 = json_Helper_Add("some_key_2");
+  HttpString key3 = json_Helper_Add("some_key_3");
+  json_Add(jsonObj2, &key2, json_Helper_Integer(32425LL));
+  json_Add(jsonObj2, &key3, json_Helper_Integer(123LL));
+
+  HttpString toS = json_ToString(jsonObj);
+  assert_memory_equal(toS.buffer, "{\"some_key_1\":[332,11,25.500000,\"some_value_\
+data\",{\"some_key_2\":32425,\"some_key_3\":123}]}", sizeof("{\"some_key_1\":[332,11,25.500000,\"some_value_\
+data\",{\"some_key_2\":32425,\"some_key_3\":123}]}") - 1);
+  json_Delete(jsonObj);
+  free(toS.buffer);
+}
+
 int main() {
   const struct CMUnitTest tests[] = {
     cmocka_unit_test_prestate(test_string_parse_simple_element, NULL),
     cmocka_unit_test_prestate(test_string_parse_simple_multiple_elements, NULL),
     cmocka_unit_test_prestate(test_string_parse_recursive, NULL),
+    cmocka_unit_test_prestate(test_string_parse_list_array, NULL),
+    cmocka_unit_test_prestate(test_string_parse_list_array_of_json_objects, NULL),
   };
   const uint32_t value = cmocka_run_group_tests(tests, NULL, NULL);
   return value;

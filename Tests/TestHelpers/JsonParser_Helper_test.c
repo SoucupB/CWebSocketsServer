@@ -1,6 +1,7 @@
 #include "JsonParser_Helper_test.h"
 #include "JsonParser.h"
 #include <stdlib.h>
+#include "Vector.h"
 
 HttpString json_Helper_Add(char *buffer) {
   HttpString response = {
@@ -39,6 +40,17 @@ JsonElement json_Helper_Json(PJsonObject obj) {
     .value = obj,
     .type = JSON_JSON
   };
+}
+
+JsonElement json_Helper_Array() {
+  return (JsonElement){
+    .value = vct_Init(sizeof(JsonElement)),
+    .type = JSON_ARRAY
+  };
+}
+
+void json_Helper_Array_Push(JsonElement elemArr, JsonElement elem) {
+  vct_Push(elemArr.value, &elem);
 }
 
 JsonElement json_Helper_String(char *nmb) {
