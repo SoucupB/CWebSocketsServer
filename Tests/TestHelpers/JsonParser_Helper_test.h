@@ -8,3 +8,5 @@
 
 HttpString json_Helper_Add(char *buffer);
 JsonElement json_Helper_Integer(int64_t element);
+JsonElement json_Helper_Number(float element);
+JsonElement json_Helper_String(char *nmb);

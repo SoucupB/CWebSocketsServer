@@ -30,12 +30,16 @@ static void test_string_parse_simple_multiple_elements(void **state) {
   PJsonObject jsonObj = json_Create();
   HttpString key1 = json_Helper_Add("some_key_1");
   HttpString key2 = json_Helper_Add("some_key_2");
+  HttpString key3 = json_Helper_Add("some_key_3");
+  HttpString key4 = json_Helper_Add("some_key_4");
   json_Add(jsonObj, &key1, json_Helper_Integer(32425LL));
   json_Add(jsonObj, &key2, json_Helper_Integer(4434325252611LL));
+  json_Add(jsonObj, &key3, json_Helper_Number(25.5f));
+  json_Add(jsonObj, &key4, json_Helper_String("some_value_data"));
   HttpString toS = json_ToString(jsonObj);
-
-  printf("ZZZZ %.*s\n", toS.sz, toS.buffer);
-  // assert_memory_equal(toS.buffer, "{\"some_key\":32425}", sizeof("{\"some_key\":32425}") - 1);
+  assert_memory_equal(toS.buffer, "{\"some_key_1\":32425,\"some_key_2\":4434325252611,\"so\
+me_key_3\":25.500000,\"some_key_4\":\"some_value_data\"}", sizeof("{\"some_key_1\":32425,\"some_key_2\":4434325252611,\"so\
+me_key_3\":25.500000,\"some_key_4\":\"some_value_data\"}") - 1);
   json_Delete(jsonObj);
   free(toS.buffer);
 }

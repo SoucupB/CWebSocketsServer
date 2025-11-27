@@ -17,3 +17,25 @@ JsonElement json_Helper_Integer(int64_t element) {
     .type = JSON_INTEGER
   };
 }
+
+JsonElement json_Helper_Number(float element) {
+  float *bff = malloc(sizeof(float));
+  memcpy(bff, &element, sizeof(float));
+  return (JsonElement){
+    .value = bff,
+    .type = JSON_NUMBER
+  };
+}
+
+JsonElement json_Helper_String(char *nmb) {
+  const size_t sz = strlen(nmb);
+  char *buffer = malloc(sz * sizeof(char));
+  memcpy(buffer, nmb, sz * sizeof(char));
+  PHttpString crt = malloc(sizeof(HttpString));
+  crt->buffer = buffer;
+  crt->sz = sz;
+  return (JsonElement){
+    .value = crt,
+    .type = JSON_STRING
+  };
+}
