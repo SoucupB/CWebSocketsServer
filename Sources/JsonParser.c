@@ -194,3 +194,9 @@ void json_RemoveSelfContainedData(PJsonObject self) {
   }
   vct_Delete(values);
 }
+
+JsonElement json_Parse(PHttpString buffer, char *nextBuffer) {
+  return (JsonElement) {
+    .type = JSON_INVALID
+  };
+}

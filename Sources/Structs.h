@@ -235,6 +235,7 @@ typedef struct HttpResponse_t {
 typedef HttpResponse *PHttpResponse;
 
 typedef enum {
+  JSON_INVALID,
   JSON_NULL,
   JSON_INTEGER,
   JSON_NUMBER,
