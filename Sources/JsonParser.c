@@ -10,6 +10,13 @@ void json_ToString_t(PJsonObject self, Vector str);
 void json_DeleteArray(JsonElement element);
 void json_PushLeafValue(Vector str, JsonElement element);
 
+typedef struct TokenParser_t {
+  char *startingBuffer;
+  char *endingBuffer;
+} TokenParser;
+
+typedef TokenParser *PTokenParser;
+
 PJsonObject json_Create() {
   PJsonObject self = malloc(sizeof(JsonObject));
   self->hsh = trh_Create();
@@ -32,6 +39,21 @@ static inline void json_PushString(Vector str, char *strC, size_t sz) {
   for(size_t i = 0; i < sz; i++) {
     vct_Push(str, &strC[i]);
   }
+}
+
+static inline size_t json_Parser_CurrentSize(PTokenParser tck) {
+  return (size_t)(tck->endingBuffer - tck->startingBuffer);
+}
+
+static inline uint8_t json_Parser_IsInvalid(TokenParser tck) {
+  return !tck.endingBuffer || !tck.startingBuffer;
+}
+
+static inline TokenParser json_Parse_Invalid() {
+  return (TokenParser) {
+    .startingBuffer = NULL,
+    .endingBuffer = NULL
+  };
 }
 
 static inline void json_Element_PushInteger(Vector str, int64_t number) {
@@ -193,6 +215,36 @@ void json_RemoveSelfContainedData(PJsonObject self) {
     json_DeleteElement(elements[i]);
   }
   vct_Delete(values);
+}
+
+void json_Parser_RemoveEmptySpace(PTokenParser tck) {
+  size_t sz = json_Parser_CurrentSize(tck);
+  size_t startingIndex = 0;
+  while(startingIndex < sz && tck->startingBuffer[startingIndex] == ' ') {
+    startingIndex++;
+  }
+  tck->startingBuffer += startingIndex;
+}
+
+TokenParser json_Parser_Token(TokenParser tck, char *token, size_t tokenSize) {
+  size_t sz = json_Parser_CurrentSize(&tck);
+  if(sz < tokenSize || memcmp(tck.startingBuffer, token, (sz < tokenSize ? sz : tokenSize) * sizeof(char))) {
+    return json_Parse_Invalid();
+  }
+  return (TokenParser) {
+    .startingBuffer = tck.startingBuffer + tokenSize,
+    .endingBuffer = tck.endingBuffer
+  };
+}
+
+TokenParser json_Parser_String(TokenParser tck) {
+  json_Parser_RemoveEmptySpace(&tck);
+  TokenParser cpyTck = tck;
+  tck = json_Parser_Token(tck, "\"", sizeof("\"") - 1);
+  if(json_Parser_IsInvalid(tck)) {
+    return tck;
+  }
+  
 }
 
 JsonElement json_Parse(PHttpString buffer, char *nextBuffer) {
