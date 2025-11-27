@@ -1,15 +1,99 @@
 #include "JsonParser.h"
 #include "TrieHash.h"
+#include <stdlib.h>
+#include <assert.h>
+#include "Vector.h"
+#include <string.h>
+#include <stdio.h>
 
 PJsonObject json_Create() {
   PJsonObject self = malloc(sizeof(JsonObject));
   self->hsh = trh_Create();
+  self->selfContained = 0;
   return self;
+}
+
+void json_Add(PJsonObject self, PHttpString key, JsonElement element) {
+  assert(self->hsh);
+  trh_Add(self->hsh, key->buffer, key->sz, &element, sizeof(JsonElement));
 }
 
 void json_Delete(PJsonObject self) {
   trh_Delete(self->hsh);
   free(self);
+}
+
+static inline void json_PushString(Vector str, char *strC, size_t sz) {
+  for(size_t i = 0; i < sz; i++) {
+    vct_Push(str, &strC[i]);
+  }
+}
+
+static inline void json_Element_PushInteger(Vector str, int64_t number) {
+  char arr[21] = {0};
+  snprintf(arr, sizeof(arr) - 1, "%ld", number);
+  json_PushString(str, arr, strlen(arr));
+}
+
+static inline void json_Element_PushFloat(Vector str, float number) {
+  char arr[21] = {0};
+  snprintf(arr, sizeof(arr) - 1, "%f", number);
+  json_PushString(str, arr, strlen(arr));
+}
+
+static inline void json_Element_PushString(Vector str, PHttpString value) {
+  vct_Push(str, &(char){'"'});
+  char *bff = value->buffer;
+  for(size_t i = 0, c = value->sz; i < c; i++) {
+    vct_Push(str, &bff[i]);
+  }
+  vct_Push(str, &(char){'"'});
+}
+
+void json_PushLeafValue(Vector str, JsonElement element) {
+  switch (element.type)
+  {
+    case JSON_NULL: {
+      json_PushString(str, "null", sizeof("null") - 1);
+      break;
+    }
+    case JSON_INTEGER: {
+      assert(element.value);
+      json_Element_PushInteger(str, *(int64_t *)element.value);
+      break;
+    }
+    case JSON_NUMBER: {
+      assert(element.value);
+      json_Element_PushFloat(str, *(float *)element.value);
+      break;
+    }
+    case JSON_STRING: {
+      assert(element.value);
+      json_Element_PushString(str, element.value);
+      break;
+    }
+    
+    default:
+      break;
+  }
+}
+
+void json_PushLeafElement(Vector str, PHttpString key, JsonElement element) {
+  vct_Push(str, &(char){'"'});
+  char *bff = key->buffer;
+  for(size_t i = 0, c = key->sz; i < c; i++) {
+    vct_Push(str, &bff[i]);
+  }
+  vct_Push(str, &(char){'"'});
+  vct_Push(str, &(char){':'});
+}
+
+PHttpString json_ToString_t(PJsonObject self, Vector str) {
+  vct_Push(str, &(char){'{'});
+  Vector keys = trh_GetKeys(self->hsh);
+  for(size_t i = 0, c = keys->size; i < c; i++) {
+
+  }
 }
 
 PHttpString json_ToString(PJsonObject self) {

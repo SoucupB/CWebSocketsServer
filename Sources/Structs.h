@@ -239,7 +239,8 @@ typedef enum {
   JSON_INTEGER,
   JSON_NUMBER,
   JSON_STRING,
-  JSON_JSON
+  JSON_JSON,
+  JSON_ARRAY
 } JsonType;
 
 typedef struct JsonElement_t {
@@ -251,6 +252,7 @@ typedef JsonElement *PJsonElement;
 
 typedef struct JsonObject_t {
   PTrieHash hsh;
+  uint8_t selfContained;
 } JsonObject;
 
 typedef JsonObject *PJsonObject;
