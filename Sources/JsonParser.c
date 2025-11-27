@@ -6,6 +6,8 @@
 #include <string.h>
 #include <stdio.h>
 
+void json_ToString_t(PJsonObject self, Vector str);
+
 PJsonObject json_Create() {
   PJsonObject self = malloc(sizeof(JsonObject));
   self->hsh = trh_Create();
@@ -56,6 +58,10 @@ void json_PushLeafValue(Vector str, JsonElement element) {
   {
     case JSON_NULL: {
       json_PushString(str, "null", sizeof("null") - 1);
+      break;
+    }
+    case JSON_JSON: {
+      json_ToString_t(element.value, str);
       break;
     }
     case JSON_INTEGER: {

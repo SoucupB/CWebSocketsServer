@@ -39,10 +39,29 @@ me_key_3\":25.500000,\"some_key_4\":\"some_value_data\"}") - 1);
   free(toS.buffer);
 }
 
+static void test_string_parse_recursive(void **state) {
+  PJsonObject jsonObj = json_Create();
+  HttpString key1 = json_Helper_Add("some_key_1");
+  HttpString key2 = json_Helper_Add("some_key_2");
+  HttpString key3 = json_Helper_Add("some_key_3");
+  json_Add(jsonObj, &key1, json_Helper_Integer(32425LL));
+  json_Add(jsonObj, &key3, json_Helper_Number(324.5f));
+  PJsonObject jsonObj2 = json_Create();
+  json_Add(jsonObj2, &key1, json_Helper_Integer(332LL));
+  json_Add(jsonObj, &key2, json_Helper_Json(jsonObj2));
+  HttpString toS = json_ToString(jsonObj);
+  assert_memory_equal(toS.buffer, "{\"some_key_1\":32425,\"some_key_2\":{\"some\
+_key_1\":332},\"some_key_3\":324.500000}", sizeof("{\"some_key_1\":32425,\"some_key_2\":{\"some\
+_key_1\":332},\"some_key_3\":324.500000}") - 1);
+  json_Delete(jsonObj);
+  free(toS.buffer);
+}
+
 int main() {
   const struct CMUnitTest tests[] = {
     cmocka_unit_test_prestate(test_string_parse_simple_element, NULL),
     cmocka_unit_test_prestate(test_string_parse_simple_multiple_elements, NULL),
+    cmocka_unit_test_prestate(test_string_parse_recursive, NULL),
   };
   const uint32_t value = cmocka_run_group_tests(tests, NULL, NULL);
   return value;

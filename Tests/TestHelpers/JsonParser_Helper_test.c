@@ -27,6 +27,13 @@ JsonElement json_Helper_Number(float element) {
   };
 }
 
+JsonElement json_Helper_Json(PJsonObject obj) {
+  return (JsonElement){
+    .value = obj,
+    .type = JSON_JSON
+  };
+}
+
 JsonElement json_Helper_String(char *nmb) {
   const size_t sz = strlen(nmb);
   char *buffer = malloc(sz * sizeof(char));
