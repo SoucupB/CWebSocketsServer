@@ -14,12 +14,7 @@
 static void test_string_parse_simple_element(void **state) {
   PJsonObject jsonObj = json_Create();
   HttpString key = json_Helper_Add("some_key");
-  int64_t integerElement = 32425;
-  JsonElement elem = {
-    .value = &integerElement,
-    .type = JSON_INTEGER
-  };
-  json_Add(jsonObj, &key, elem);
+  json_Add(jsonObj, &key, json_Helper_Integer(32425LL));
   HttpString toS = json_ToString(jsonObj);
   assert_memory_equal(toS.buffer, "{\"some_key\":32425}", sizeof("{\"some_key\":32425}") - 1);
   json_Delete(jsonObj);

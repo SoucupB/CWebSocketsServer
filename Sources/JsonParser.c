@@ -19,6 +19,7 @@ void json_Add(PJsonObject self, PHttpString key, JsonElement element) {
 }
 
 void json_Delete(PJsonObject self) {
+  json_RemoveSelfContainedData(self);
   trh_Delete(self->hsh);
   free(self);
 }
@@ -138,7 +139,8 @@ void json_RemoveSelfContainedData(PJsonObject self) {
         break;
       }
       case JSON_STRING: {
-        free(((PHttpString)elements[i].value)->buffer); 
+        free(((PHttpString)elements[i].value)->buffer);
+        free(elements[i].value);
         break;
       }
       case JSON_JSON: {
