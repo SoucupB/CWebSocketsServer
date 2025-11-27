@@ -1,4 +1,5 @@
 #include "JsonParser_Helper_test.h"
+#include "JsonParser.h"
 #include <stdlib.h>
 
 HttpString json_Helper_Add(char *buffer) {
@@ -25,6 +26,12 @@ JsonElement json_Helper_Number(float element) {
     .value = bff,
     .type = JSON_NUMBER
   };
+}
+
+PJsonObject json_Helper_Create() {
+  PJsonObject js = json_Create();
+  js->selfContained = 1;
+  return js;
 }
 
 JsonElement json_Helper_Json(PJsonObject obj) {

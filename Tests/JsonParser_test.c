@@ -12,7 +12,7 @@
 #include "JsonParser_Helper_test.h"
 
 static void test_string_parse_simple_element(void **state) {
-  PJsonObject jsonObj = json_Create();
+  PJsonObject jsonObj = json_Helper_Create();
   HttpString key = json_Helper_Add("some_key");
   json_Add(jsonObj, &key, json_Helper_Integer(32425LL));
   HttpString toS = json_ToString(jsonObj);
@@ -22,7 +22,7 @@ static void test_string_parse_simple_element(void **state) {
 }
 
 static void test_string_parse_simple_multiple_elements(void **state) {
-  PJsonObject jsonObj = json_Create();
+  PJsonObject jsonObj = json_Helper_Create();
   HttpString key1 = json_Helper_Add("some_key_1");
   HttpString key2 = json_Helper_Add("some_key_2");
   HttpString key3 = json_Helper_Add("some_key_3");
@@ -40,13 +40,13 @@ me_key_3\":25.500000,\"some_key_4\":\"some_value_data\"}") - 1);
 }
 
 static void test_string_parse_recursive(void **state) {
-  PJsonObject jsonObj = json_Create();
+  PJsonObject jsonObj = json_Helper_Create();
   HttpString key1 = json_Helper_Add("some_key_1");
   HttpString key2 = json_Helper_Add("some_key_2");
   HttpString key3 = json_Helper_Add("some_key_3");
   json_Add(jsonObj, &key1, json_Helper_Integer(32425LL));
   json_Add(jsonObj, &key3, json_Helper_Number(324.5f));
-  PJsonObject jsonObj2 = json_Create();
+  PJsonObject jsonObj2 = json_Helper_Create();
   json_Add(jsonObj2, &key1, json_Helper_Integer(332LL));
   json_Add(jsonObj, &key2, json_Helper_Json(jsonObj2));
   HttpString toS = json_ToString(jsonObj);

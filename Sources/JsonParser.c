@@ -128,7 +128,7 @@ HttpString json_ToString(PJsonObject self) {
 }
 
 void json_RemoveSelfContainedData(PJsonObject self) {
-  if(!self) {
+  if(!self || !self->selfContained) {
     return ;
   }
   Vector values = trh_GetValues(self->hsh, sizeof(JsonElement));
