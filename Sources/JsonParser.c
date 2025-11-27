@@ -5,6 +5,7 @@
 #include "Vector.h"
 #include <string.h>
 #include <stdio.h>
+#include <ctype.h>
 
 void json_ToString_t(PJsonObject self, Vector str);
 void json_DeleteArray(JsonElement element);
@@ -259,6 +260,19 @@ TokenParser json_Parser_String(TokenParser tck) {
     tck.startingBuffer++;
   }
   if(tck.startingBuffer >= tck.endingBuffer || *tck.startingBuffer != '"') {
+    return json_Parse_Invalid();
+  }
+  return tck;
+}
+
+TokenParser json_Parser_Integer(TokenParser tck) {
+  json_Parser_RemoveEmptySpace(&tck);
+  uint8_t checker = 0;
+  while(tck.startingBuffer < tck.endingBuffer && isdigit(*tck.startingBuffer)) {
+    checker = 0;
+    tck.startingBuffer++;
+  }
+  if(!checker) {
     return json_Parse_Invalid();
   }
   return tck;
