@@ -119,3 +119,35 @@ HttpString json_ToString(PJsonObject self) {
   vct_DeleteWOBuffer(rsp);
   return response;
 }
+
+void json_RemoveSelfContainedData(PJsonObject self) {
+  if(!self) {
+    return ;
+  }
+  Vector values = trh_GetValues(self->hsh, sizeof(JsonElement));
+  JsonElement *elements = values->buffer;
+  for(size_t i = 0, c = values->size; i < c; i++) {
+    switch (elements[i].type)
+    {
+      case JSON_INTEGER: {
+        free(elements[i].value); 
+        break;
+      }
+      case JSON_NUMBER: {
+        free(elements[i].value); 
+        break;
+      }
+      case JSON_STRING: {
+        free(((PHttpString)elements[i].value)->buffer); 
+        break;
+      }
+      case JSON_JSON: {
+        json_Delete(elements[i].value);
+        break;
+      }
+      default:
+        break;
+    }
+  }
+  vct_Delete(values);
+}

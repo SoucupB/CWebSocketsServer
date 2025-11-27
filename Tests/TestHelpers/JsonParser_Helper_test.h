@@ -7,3 +7,4 @@
 #include <stdio.h>
 
 HttpString json_Helper_Add(char *buffer);
+JsonElement json_Helper_Integer(int64_t element);
