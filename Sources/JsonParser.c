@@ -276,7 +276,7 @@ TokenParser json_Parser_Integer(TokenParser tck) {
   json_Parser_RemoveEmptySpace(&tck);
   uint8_t checker = 0;
   while(tck.startingBuffer < tck.endingBuffer && isdigit(*tck.startingBuffer)) {
-    checker = 0;
+    checker = 1;
     tck.startingBuffer++;
   }
   if(!checker) {
@@ -289,7 +289,7 @@ TokenParser json_Parser_Number(TokenParser tck) {
   json_Parser_RemoveEmptySpace(&tck);
   uint8_t checker = 0;
   while(tck.startingBuffer < tck.endingBuffer && isdigit(*tck.startingBuffer)) {
-    checker = 0;
+    checker = 1;
     tck.startingBuffer++;
   }
   if(!checker) {
@@ -301,7 +301,7 @@ TokenParser json_Parser_Number(TokenParser tck) {
   }
   checker = 0;
   while(tck.startingBuffer < tck.endingBuffer && isdigit(*tck.startingBuffer)) {
-    checker = 0;
+    checker = 1;
     tck.startingBuffer++;
   }
   if(!checker) {
