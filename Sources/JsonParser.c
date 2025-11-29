@@ -69,6 +69,12 @@ static inline void json_Element_PushFloat(Vector str, float number) {
   json_PushString(str, arr, strlen(arr));
 }
 
+static inline JsonElement json_Element_Invalid() {
+  return (JsonElement) {
+    .type = JSON_INVALID
+  };
+}
+
 static inline void json_Element_PushString(Vector str, PHttpString value) {
   vct_Push(str, &(char){'"'});
   char *bff = value->buffer;
@@ -259,9 +265,10 @@ TokenParser json_Parser_String(TokenParser tck) {
     }
     tck.startingBuffer++;
   }
-  if(tck.startingBuffer >= tck.endingBuffer || *tck.startingBuffer != '"') {
+  if(tck.startingBuffer >= tck.endingBuffer) {
     return json_Parse_Invalid();
   }
+  tck = json_Parser_Token(tck, "\"", sizeof("\"") - 1);
   return tck;
 }
 
@@ -301,6 +308,14 @@ TokenParser json_Parser_Number(TokenParser tck) {
     return json_Parse_Invalid();
   }
   return tck;
+}
+
+JsonElement json_Parser_StringGet(TokenParser tck) {
+  TokenParser str = json_Parser_String(tck);
+  if(json_Parser_IsInvalid(str)) {
+    return json_Element_Invalid();
+  }
+  return json_Element_Invalid();
 }
 
 JsonElement json_Parse(PHttpString buffer, char *nextBuffer) {

@@ -11,6 +11,13 @@
 #include "JsonParser.h"
 #include "JsonParser_Helper_test.h"
 
+typedef struct TokenParser_t {
+  char *startingBuffer;
+  char *endingBuffer;
+} TokenParser;
+
+typedef TokenParser *PTokenParser;
+
 static void test_string_parse_simple_element(void **state) {
   PJsonObject jsonObj = json_Helper_Create();
   HttpString key = json_Helper_Add("some_key");
@@ -100,6 +107,38 @@ data\",{\"some_key_2\":32425,\"some_key_3\":123}]}") - 1);
   free(toS.buffer);
 }
 
+TokenParser json_Parser_String(TokenParser tck);
+
+static void test_string_parse_str_string(void **state) {
+  char *arr = "\"Some str value\"";
+  TokenParser parseData = json_Parser_String((TokenParser) {
+    .startingBuffer = arr,
+    .endingBuffer = arr + strlen(arr)
+  });
+  assert_ptr_not_equal(parseData.startingBuffer, NULL);
+  assert_ptr_equal(parseData.startingBuffer, parseData.endingBuffer);
+}
+
+static void test_string_parse_str_string_with_special_chars(void **state) {
+  char *arr = "\"Some str \\\"value\"";
+  TokenParser parseData = json_Parser_String((TokenParser) {
+    .startingBuffer = arr,
+    .endingBuffer = arr + strlen(arr)
+  });
+  assert_ptr_not_equal(parseData.startingBuffer, NULL);
+  assert_ptr_equal(parseData.startingBuffer, parseData.endingBuffer);
+}
+
+static void test_string_parse_str_without_ending_char(void **state) {
+  char *arr = "\"Some str \"value\"";
+  TokenParser parseData = json_Parser_String((TokenParser) {
+    .startingBuffer = arr,
+    .endingBuffer = arr + strlen(arr)
+  });
+  assert_ptr_not_equal(parseData.startingBuffer, NULL);
+  assert_ptr_not_equal(parseData.startingBuffer, parseData.endingBuffer);
+}
+
 int main() {
   const struct CMUnitTest tests[] = {
     cmocka_unit_test_prestate(test_string_parse_simple_element, NULL),
@@ -107,6 +146,9 @@ int main() {
     cmocka_unit_test_prestate(test_string_parse_recursive, NULL),
     cmocka_unit_test_prestate(test_string_parse_list_array, NULL),
     cmocka_unit_test_prestate(test_string_parse_list_array_of_json_objects, NULL),
+    cmocka_unit_test_prestate(test_string_parse_str_string, NULL),
+    cmocka_unit_test_prestate(test_string_parse_str_string_with_special_chars, NULL),
+    cmocka_unit_test_prestate(test_string_parse_str_without_ending_char, NULL),
   };
   const uint32_t value = cmocka_run_group_tests(tests, NULL, NULL);
   return value;
