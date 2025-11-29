@@ -317,7 +317,7 @@ TokenParser json_Parser_Number(TokenParser tck) {
   if(!checker) {
     return json_Parse_Invalid();
   }
-  tck= json_Parser_Token(tck, ".", sizeof(".") - 1);
+  tck = json_Parser_Token(tck, ".", sizeof(".") - 1);
   if(json_Parser_IsInvalid(tck)) {
     return tck;
   }
@@ -368,6 +368,28 @@ JsonElement json_Parser_Get_Integer(TokenParser tck, PTokenParser next) {
   }
   response.value = malloc(sizeof(int64_t));
   memcpy(response.value, &nrm, sizeof(int64_t));
+  if(next) {
+    *next = tck;
+  }
+  return response;
+}
+
+JsonElement json_Parser_Get_Number(TokenParser tck, PTokenParser next) {
+  TokenParser nextTck = json_Parser_Number(tck);
+  if(json_Parser_IsInvalid(nextTck)) {
+    return json_Element_Invalid();
+  }
+  JsonElement response = {
+    .type = JSON_NUMBER
+  };
+  char *endingPointer;
+  errno = 0;
+  float nrm = strtof(nextTck.startToken, &endingPointer);
+  if(errno == ERANGE || endingPointer == nextTck.startToken) {
+    return json_Element_Invalid();
+  }
+  response.value = malloc(sizeof(float));
+  memcpy(response.value, &nrm, sizeof(float));
   if(next) {
     *next = tck;
   }

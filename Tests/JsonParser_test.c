@@ -11,6 +11,8 @@
 #include "JsonParser.h"
 #include "JsonParser_Helper_test.h"
 
+#define EPSILON 1e-5f
+
 typedef struct TokenParser_t {
   char *startToken;
   char *endToken;
@@ -113,6 +115,7 @@ TokenParser json_Parser_Integer(TokenParser tck);
 TokenParser json_Parser_Number(TokenParser tck);
 JsonElement json_Parser_Get_String(TokenParser tck, PTokenParser next);
 JsonElement json_Parser_Get_Integer(TokenParser tck, PTokenParser next);
+JsonElement json_Parser_Get_Number(TokenParser tck, PTokenParser next);
 
 void json_DeleteElement(JsonElement element);
 
@@ -328,6 +331,42 @@ static void test_string_parse_numbers_invalid_with_multiple_negative_signs(void 
   assert_int_equal(parseData.type, JSON_INVALID);
 }
 
+static void test_string_parse_float_negative(void **state) {
+  char *arr = " -9932.532";
+  JsonElement parseData = json_Parser_Get_Number((TokenParser) {
+    .endToken = arr,
+    .endingBuffer = arr + strlen(arr)
+  }, NULL);
+  assert_int_not_equal(parseData.type, JSON_INVALID);
+  assert_ptr_not_equal(parseData.value, NULL);
+  assert_float_equal(*(float *)parseData.value, -9932.532f, EPSILON);
+  json_DeleteElement(parseData);
+}
+
+static void test_string_parse_float_positive(void **state) {
+  char *arr = "9932.532";
+  JsonElement parseData = json_Parser_Get_Number((TokenParser) {
+    .endToken = arr,
+    .endingBuffer = arr + strlen(arr)
+  }, NULL);
+  assert_int_not_equal(parseData.type, JSON_INVALID);
+  assert_ptr_not_equal(parseData.value, NULL);
+  assert_float_equal(*(float *)parseData.value, 9932.532f, EPSILON);
+  json_DeleteElement(parseData);
+}
+
+static void test_string_parse_float_combination(void **state) {
+  char *arr = "993.2ada32.532";
+  JsonElement parseData = json_Parser_Get_Number((TokenParser) {
+    .endToken = arr,
+    .endingBuffer = arr + strlen(arr)
+  }, NULL);
+  assert_int_not_equal(parseData.type, JSON_INVALID);
+  assert_ptr_not_equal(parseData.value, NULL);
+  assert_float_equal(*(float *)parseData.value, 993.2f, EPSILON);
+  json_DeleteElement(parseData);
+}
+
 int main() {
   const struct CMUnitTest tests[] = {
     cmocka_unit_test_prestate(test_string_parse_simple_element, NULL),
@@ -356,6 +395,9 @@ int main() {
     cmocka_unit_test_prestate(test_string_parse_numbers_invalid, NULL),
     cmocka_unit_test_prestate(test_string_parse_numbers_invalid_with_multiple_negative_signs, NULL),
     cmocka_unit_test_prestate(test_string_parse_numbers_invalid_overflow, NULL),
+    cmocka_unit_test_prestate(test_string_parse_float_negative, NULL),
+    cmocka_unit_test_prestate(test_string_parse_float_positive, NULL),
+    cmocka_unit_test_prestate(test_string_parse_float_combination, NULL),
   };
   const uint32_t value = cmocka_run_group_tests(tests, NULL, NULL);
   return value;
