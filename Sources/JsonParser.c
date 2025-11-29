@@ -311,11 +311,19 @@ TokenParser json_Parser_Number(TokenParser tck) {
 }
 
 JsonElement json_Parser_StringGet(TokenParser tck) {
-  TokenParser str = json_Parser_String(tck);
-  if(json_Parser_IsInvalid(str)) {
+  TokenParser nextTck = json_Parser_String(tck);
+  if(json_Parser_IsInvalid(nextTck)) {
     return json_Element_Invalid();
   }
-  return json_Element_Invalid();
+  const size_t stringSize = nextTck.startingBuffer - tck.startingBuffer - 2;
+  PHttpString responseString = malloc(sizeof(HttpString));
+  responseString->sz = stringSize;
+  responseString->buffer = malloc(stringSize);
+  memcpy(responseString->buffer, tck.startingBuffer + 1, stringSize);
+  return (JsonElement) {
+    .type = JSON_STRING,
+    .value = responseString
+  };
 }
 
 JsonElement json_Parse(PHttpString buffer, char *nextBuffer) {
