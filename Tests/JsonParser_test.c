@@ -12,7 +12,8 @@
 #include "JsonParser_Helper_test.h"
 
 typedef struct TokenParser_t {
-  char *startingBuffer;
+  char *startToken;
+  char *endToken;
   char *endingBuffer;
 } TokenParser;
 
@@ -116,138 +117,138 @@ void json_DeleteElement(JsonElement element);
 static void test_string_parse_str_string(void **state) {
   char *arr = "\"Some str value\"";
   TokenParser parseData = json_Parser_String((TokenParser) {
-    .startingBuffer = arr,
+    .endToken = arr,
     .endingBuffer = arr + strlen(arr)
   });
-  assert_ptr_not_equal(parseData.startingBuffer, NULL);
-  assert_ptr_equal(parseData.startingBuffer, parseData.endingBuffer);
+  assert_ptr_not_equal(parseData.endToken, NULL);
+  assert_ptr_equal(parseData.endToken, parseData.endingBuffer);
 }
 
 static void test_string_parse_str_string_with_special_chars(void **state) {
   char *arr = "\"Some str \\\"value\"";
   TokenParser parseData = json_Parser_String((TokenParser) {
-    .startingBuffer = arr,
+    .endToken = arr,
     .endingBuffer = arr + strlen(arr)
   });
-  assert_ptr_not_equal(parseData.startingBuffer, NULL);
-  assert_ptr_equal(parseData.startingBuffer, parseData.endingBuffer);
+  assert_ptr_not_equal(parseData.endToken, NULL);
+  assert_ptr_equal(parseData.endToken, parseData.endingBuffer);
 }
 
 static void test_string_parse_str_without_ending_char(void **state) {
   char *arr = "\"Some str \"value\"";
   TokenParser parseData = json_Parser_String((TokenParser) {
-    .startingBuffer = arr,
+    .endToken = arr,
     .endingBuffer = arr + strlen(arr)
   });
-  assert_ptr_not_equal(parseData.startingBuffer, NULL);
-  assert_ptr_not_equal(parseData.startingBuffer, parseData.endingBuffer);
+  assert_ptr_not_equal(parseData.endToken, NULL);
+  assert_ptr_not_equal(parseData.endToken, parseData.endingBuffer);
 }
 
 static void test_string_parse_str_with_spaces(void **state) {
   char *arr = "    \"Some str value\"";
   TokenParser parseData = json_Parser_String((TokenParser) {
-    .startingBuffer = arr,
+    .endToken = arr,
     .endingBuffer = arr + strlen(arr)
   });
-  assert_ptr_not_equal(parseData.startingBuffer, NULL);
-  assert_ptr_equal(parseData.startingBuffer, parseData.endingBuffer);
+  assert_ptr_not_equal(parseData.endToken, NULL);
+  assert_ptr_equal(parseData.endToken, parseData.endingBuffer);
 }
 
 static void test_string_parse_str_invalid(void **state) {
   char *arr = "    Some str value\"";
   TokenParser parseData = json_Parser_String((TokenParser) {
-    .startingBuffer = arr,
+    .endToken = arr,
     .endingBuffer = arr + strlen(arr)
   });
-  assert_ptr_equal(parseData.startingBuffer, NULL);
+  assert_ptr_equal(parseData.endToken, NULL);
 }
 
 static void test_string_parse_integer(void **state) {
   char *arr = "  99314";
   TokenParser parseData = json_Parser_Integer((TokenParser) {
-    .startingBuffer = arr,
+    .endToken = arr,
     .endingBuffer = arr + strlen(arr)
   });
-  assert_ptr_not_equal(parseData.startingBuffer, NULL);
-  assert_ptr_equal(parseData.startingBuffer, parseData.endingBuffer);
+  assert_ptr_not_equal(parseData.endToken, NULL);
+  assert_ptr_equal(parseData.endToken, parseData.endingBuffer);
 }
 
 static void test_string_parse_integer_with_non_digits(void **state) {
   char *arr = "  99314a";
   TokenParser parseData = json_Parser_Integer((TokenParser) {
-    .startingBuffer = arr,
+    .endToken = arr,
     .endingBuffer = arr + strlen(arr)
   });
-  assert_ptr_not_equal(parseData.startingBuffer, NULL);
-  assert_ptr_not_equal(parseData.startingBuffer, parseData.endingBuffer);
+  assert_ptr_not_equal(parseData.endToken, NULL);
+  assert_ptr_not_equal(parseData.endToken, parseData.endingBuffer);
 }
 
 static void test_string_parse_non_integer(void **state) {
   char *arr = "  a99314";
   TokenParser parseData = json_Parser_Integer((TokenParser) {
-    .startingBuffer = arr,
+    .endToken = arr,
     .endingBuffer = arr + strlen(arr)
   });
-  assert_ptr_equal(parseData.startingBuffer, NULL);
+  assert_ptr_equal(parseData.endToken, NULL);
 }
 
 static void test_string_parse_number(void **state) {
   char *arr = "32.344";
   TokenParser parseData = json_Parser_Number((TokenParser) {
-    .startingBuffer = arr,
+    .endToken = arr,
     .endingBuffer = arr + strlen(arr)
   });
-  assert_ptr_not_equal(parseData.startingBuffer, NULL);
-  assert_ptr_equal(parseData.startingBuffer, parseData.endingBuffer);
+  assert_ptr_not_equal(parseData.endToken, NULL);
+  assert_ptr_equal(parseData.endToken, parseData.endingBuffer);
 }
 
 static void test_string_parse_number_invalid(void **state) {
   char *arr = "32";
   TokenParser parseData = json_Parser_Number((TokenParser) {
-    .startingBuffer = arr,
+    .endToken = arr,
     .endingBuffer = arr + strlen(arr)
   });
-  assert_ptr_equal(parseData.startingBuffer, NULL);
+  assert_ptr_equal(parseData.endToken, NULL);
 }
 
 static void test_string_parse_number_invalid_with_chars(void **state) {
   char *arr = "a32.34";
   TokenParser parseData = json_Parser_Number((TokenParser) {
-    .startingBuffer = arr,
+    .endToken = arr,
     .endingBuffer = arr + strlen(arr)
   });
-  assert_ptr_equal(parseData.startingBuffer, NULL);
+  assert_ptr_equal(parseData.endToken, NULL);
 }
 
 static void test_string_parse_number_invalid_missing_exponent(void **state) {
   char *arr = "32.";
   TokenParser parseData = json_Parser_Number((TokenParser) {
-    .startingBuffer = arr,
+    .endToken = arr,
     .endingBuffer = arr + strlen(arr)
   });
-  assert_ptr_equal(parseData.startingBuffer, NULL);
+  assert_ptr_equal(parseData.endToken, NULL);
 }
 
 static void test_string_parse_number_multiple_pnts(void **state) {
   char *arr = "32.12.42";
   TokenParser parseData = json_Parser_Number((TokenParser) {
-    .startingBuffer = arr,
+    .endToken = arr,
     .endingBuffer = arr + strlen(arr)
   });
-  assert_ptr_not_equal(parseData.startingBuffer, NULL);
-  assert_ptr_not_equal(parseData.startingBuffer, parseData.endingBuffer);
+  assert_ptr_not_equal(parseData.endToken, NULL);
+  assert_ptr_not_equal(parseData.endToken, parseData.endingBuffer);
 }
 
 static void test_string_parse_get(void **state) {
   char *arr = "    \"Some str value\"";
   JsonElement parseData = json_Parser_Get_String((TokenParser) {
-    .startingBuffer = arr,
+    .endToken = arr,
     .endingBuffer = arr + strlen(arr)
   }, NULL);
+  assert_int_not_equal(parseData.type, JSON_INVALID);
   assert_ptr_not_equal(parseData.value, NULL);
   assert_memory_equal(((PHttpString)parseData.value)->buffer, "Some str value", sizeof("Some str value") - 1);
   json_DeleteElement(parseData);
-  // assert_ptr_equal(parseData.startingBuffer, parseData.endingBuffer);
 }
 
 int main() {

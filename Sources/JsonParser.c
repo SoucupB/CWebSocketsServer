@@ -12,7 +12,8 @@ void json_DeleteArray(JsonElement element);
 void json_PushLeafValue(Vector str, JsonElement element);
 
 typedef struct TokenParser_t {
-  char *startingBuffer;
+  char *startToken;
+  char *endToken;
   char *endingBuffer;
 } TokenParser;
 
@@ -43,16 +44,17 @@ static inline void json_PushString(Vector str, char *strC, size_t sz) {
 }
 
 static inline size_t json_Parser_CurrentSize(PTokenParser tck) {
-  return (size_t)(tck->endingBuffer - tck->startingBuffer);
+  return (size_t)(tck->endingBuffer - tck->endToken);
 }
 
 static inline uint8_t json_Parser_IsInvalid(TokenParser tck) {
-  return !tck.endingBuffer || !tck.startingBuffer;
+  return !tck.endingBuffer || !tck.endToken || !tck.startToken;
 }
 
 static inline TokenParser json_Parse_Invalid() {
   return (TokenParser) {
-    .startingBuffer = NULL,
+    .startToken = NULL,
+    .endToken = NULL,
     .endingBuffer = NULL
   };
 }
@@ -227,19 +229,20 @@ void json_RemoveSelfContainedData(PJsonObject self) {
 void json_Parser_RemoveEmptySpace(PTokenParser tck) {
   size_t sz = json_Parser_CurrentSize(tck);
   size_t startingIndex = 0;
-  while(startingIndex < sz && tck->startingBuffer[startingIndex] == ' ') {
+  while(startingIndex < sz && tck->endToken[startingIndex] == ' ') {
     startingIndex++;
   }
-  tck->startingBuffer += startingIndex;
+  tck->endToken += startingIndex;
 }
 
 TokenParser json_Parser_Token(TokenParser tck, char *token, size_t tokenSize) {
   size_t sz = json_Parser_CurrentSize(&tck);
-  if(sz < tokenSize || memcmp(tck.startingBuffer, token, (sz < tokenSize ? sz : tokenSize) * sizeof(char))) {
+  if(sz < tokenSize || memcmp(tck.endToken, token, (sz < tokenSize ? sz : tokenSize) * sizeof(char))) {
     return json_Parse_Invalid();
   }
   return (TokenParser) {
-    .startingBuffer = tck.startingBuffer + tokenSize,
+    .startToken = tck.endToken,
+    .endToken = tck.endToken + tokenSize,
     .endingBuffer = tck.endingBuffer
   };
 }
@@ -250,47 +253,55 @@ uint8_t json_Parser_IsCharValid(char val) {
 
 TokenParser json_Parser_String(TokenParser tck) {
   json_Parser_RemoveEmptySpace(&tck);
+  TokenParser cpyTck = tck;
+  cpyTck.startToken = tck.endToken;
   tck = json_Parser_Token(tck, "\"", sizeof("\"") - 1);
   if(json_Parser_IsInvalid(tck)) {
     return tck;
   }
-  while(tck.startingBuffer < tck.endingBuffer) {
+  while(tck.endToken < tck.endingBuffer) {
     TokenParser specialCharOffset = json_Parser_Token(tck, "\\\"", sizeof("\\\"") - 1);
     if(!json_Parser_IsInvalid(specialCharOffset)) {
-      tck.startingBuffer = specialCharOffset.startingBuffer;
+      tck.endToken = specialCharOffset.endToken;
       continue;
     }
-    if(!json_Parser_IsCharValid(*tck.startingBuffer)) {
+    if(!json_Parser_IsCharValid(*tck.endToken)) {
       break;
     }
-    tck.startingBuffer++;
+    tck.endToken++;
   }
-  if(tck.startingBuffer >= tck.endingBuffer) {
+  if(tck.endToken >= tck.endingBuffer) {
     return json_Parse_Invalid();
   }
   tck = json_Parser_Token(tck, "\"", sizeof("\"") - 1);
+  tck.startToken = cpyTck.startToken;
   return tck;
 }
 
 TokenParser json_Parser_Integer(TokenParser tck) {
   json_Parser_RemoveEmptySpace(&tck);
+  TokenParser cpyTck = tck;
+  cpyTck.startToken = tck.endToken;
   uint8_t checker = 0;
-  while(tck.startingBuffer < tck.endingBuffer && isdigit(*tck.startingBuffer)) {
+  while(tck.endToken < tck.endingBuffer && isdigit(*tck.endToken)) {
     checker = 1;
-    tck.startingBuffer++;
+    tck.endToken++;
   }
   if(!checker) {
     return json_Parse_Invalid();
   }
+  tck.startToken = cpyTck.startToken;
   return tck;
 }
 
 TokenParser json_Parser_Number(TokenParser tck) {
   json_Parser_RemoveEmptySpace(&tck);
+  TokenParser cpyTck = tck;
+  cpyTck.startToken = tck.endToken;
   uint8_t checker = 0;
-  while(tck.startingBuffer < tck.endingBuffer && isdigit(*tck.startingBuffer)) {
+  while(tck.endToken < tck.endingBuffer && isdigit(*tck.endToken)) {
     checker = 1;
-    tck.startingBuffer++;
+    tck.endToken++;
   }
   if(!checker) {
     return json_Parse_Invalid();
@@ -300,13 +311,14 @@ TokenParser json_Parser_Number(TokenParser tck) {
     return tck;
   }
   checker = 0;
-  while(tck.startingBuffer < tck.endingBuffer && isdigit(*tck.startingBuffer)) {
+  while(tck.endToken < tck.endingBuffer && isdigit(*tck.endToken)) {
     checker = 1;
-    tck.startingBuffer++;
+    tck.endToken++;
   }
   if(!checker) {
     return json_Parse_Invalid();
   }
+  tck.startToken = cpyTck.startToken;
   return tck;
 }
 
@@ -315,11 +327,11 @@ JsonElement json_Parser_Get_String(TokenParser tck, PTokenParser next) {
   if(json_Parser_IsInvalid(nextTck)) {
     return json_Element_Invalid();
   }
-  const size_t stringSize = nextTck.startingBuffer - tck.startingBuffer - 2;
+  const size_t stringSize = (size_t)(nextTck.endToken - nextTck.startToken) - 2;
   PHttpString responseString = malloc(sizeof(HttpString));
   responseString->sz = stringSize;
-  responseString->buffer = malloc(stringSize);
-  memcpy(responseString->buffer, tck.startingBuffer + 1, stringSize);
+  responseString->buffer = malloc(stringSize + 1);
+  memcpy(responseString->buffer, nextTck.startToken + 1, stringSize);
   if(next) {
     *next = tck;
   }
