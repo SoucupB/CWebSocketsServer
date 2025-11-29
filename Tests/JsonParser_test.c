@@ -109,6 +109,7 @@ data\",{\"some_key_2\":32425,\"some_key_3\":123}]}") - 1);
 
 TokenParser json_Parser_String(TokenParser tck);
 TokenParser json_Parser_Integer(TokenParser tck);
+TokenParser json_Parser_Number(TokenParser tck);
 
 static void test_string_parse_str_string(void **state) {
   char *arr = "\"Some str value\"";
@@ -188,6 +189,53 @@ static void test_string_parse_non_integer(void **state) {
   assert_ptr_equal(parseData.startingBuffer, NULL);
 }
 
+static void test_string_parse_number(void **state) {
+  char *arr = "32.344";
+  TokenParser parseData = json_Parser_Number((TokenParser) {
+    .startingBuffer = arr,
+    .endingBuffer = arr + strlen(arr)
+  });
+  assert_ptr_not_equal(parseData.startingBuffer, NULL);
+  assert_ptr_equal(parseData.startingBuffer, parseData.endingBuffer);
+}
+
+static void test_string_parse_number_invalid(void **state) {
+  char *arr = "32";
+  TokenParser parseData = json_Parser_Number((TokenParser) {
+    .startingBuffer = arr,
+    .endingBuffer = arr + strlen(arr)
+  });
+  assert_ptr_equal(parseData.startingBuffer, NULL);
+}
+
+static void test_string_parse_number_invalid_with_chars(void **state) {
+  char *arr = "a32.34";
+  TokenParser parseData = json_Parser_Number((TokenParser) {
+    .startingBuffer = arr,
+    .endingBuffer = arr + strlen(arr)
+  });
+  assert_ptr_equal(parseData.startingBuffer, NULL);
+}
+
+static void test_string_parse_number_invalid_missing_exponent(void **state) {
+  char *arr = "32.";
+  TokenParser parseData = json_Parser_Number((TokenParser) {
+    .startingBuffer = arr,
+    .endingBuffer = arr + strlen(arr)
+  });
+  assert_ptr_equal(parseData.startingBuffer, NULL);
+}
+
+static void test_string_parse_number_multiple_pnts(void **state) {
+  char *arr = "32.12.42";
+  TokenParser parseData = json_Parser_Number((TokenParser) {
+    .startingBuffer = arr,
+    .endingBuffer = arr + strlen(arr)
+  });
+  assert_ptr_not_equal(parseData.startingBuffer, NULL);
+  assert_ptr_not_equal(parseData.startingBuffer, parseData.endingBuffer);
+}
+
 int main() {
   const struct CMUnitTest tests[] = {
     cmocka_unit_test_prestate(test_string_parse_simple_element, NULL),
@@ -203,6 +251,11 @@ int main() {
     cmocka_unit_test_prestate(test_string_parse_integer, NULL),
     cmocka_unit_test_prestate(test_string_parse_integer_with_non_digits, NULL),
     cmocka_unit_test_prestate(test_string_parse_non_integer, NULL),
+    cmocka_unit_test_prestate(test_string_parse_number, NULL),
+    cmocka_unit_test_prestate(test_string_parse_number_invalid, NULL),
+    cmocka_unit_test_prestate(test_string_parse_number_invalid_with_chars, NULL),
+    cmocka_unit_test_prestate(test_string_parse_number_invalid_missing_exponent, NULL),
+    cmocka_unit_test_prestate(test_string_parse_number_multiple_pnts, NULL),
   };
   const uint32_t value = cmocka_run_group_tests(tests, NULL, NULL);
   return value;

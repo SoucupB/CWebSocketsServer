@@ -295,9 +295,9 @@ TokenParser json_Parser_Number(TokenParser tck) {
   if(!checker) {
     return json_Parse_Invalid();
   }
-  TokenParser pnt = json_Parser_Token(tck, ".", sizeof(".") - 1);
-  if(json_Parser_IsInvalid(pnt)) {
-    return pnt;
+  tck= json_Parser_Token(tck, ".", sizeof(".") - 1);
+  if(json_Parser_IsInvalid(tck)) {
+    return tck;
   }
   checker = 0;
   while(tck.startingBuffer < tck.endingBuffer && isdigit(*tck.startingBuffer)) {
