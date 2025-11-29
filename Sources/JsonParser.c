@@ -6,6 +6,7 @@
 #include <string.h>
 #include <stdio.h>
 #include <ctype.h>
+#include <errno.h>
 
 void json_ToString_t(PJsonObject self, Vector str);
 void json_DeleteArray(JsonElement element);
@@ -247,6 +248,14 @@ TokenParser json_Parser_Token(TokenParser tck, char *token, size_t tokenSize) {
   };
 }
 
+static inline TokenParser json_Parser_Token_IgnoreErrors(TokenParser tck, char *token, size_t tokenSize) {
+  TokenParser resp = json_Parser_Token(tck, token, tokenSize);
+  if(json_Parser_IsInvalid(resp)) {
+    return tck;
+  }
+  return resp;
+}
+
 uint8_t json_Parser_IsCharValid(char val) {
   return val != '"'; 
 }
@@ -282,6 +291,7 @@ TokenParser json_Parser_Integer(TokenParser tck) {
   json_Parser_RemoveEmptySpace(&tck);
   TokenParser cpyTck = tck;
   cpyTck.startToken = tck.endToken;
+  tck = json_Parser_Token_IgnoreErrors(tck, "-", sizeof("-") - 1);
   uint8_t checker = 0;
   while(tck.endToken < tck.endingBuffer && isdigit(*tck.endToken)) {
     checker = 1;
@@ -298,6 +308,7 @@ TokenParser json_Parser_Number(TokenParser tck) {
   json_Parser_RemoveEmptySpace(&tck);
   TokenParser cpyTck = tck;
   cpyTck.startToken = tck.endToken;
+  tck = json_Parser_Token_IgnoreErrors(tck, "-", sizeof("-") - 1);
   uint8_t checker = 0;
   while(tck.endToken < tck.endingBuffer && isdigit(*tck.endToken)) {
     checker = 1;
@@ -339,6 +350,28 @@ JsonElement json_Parser_Get_String(TokenParser tck, PTokenParser next) {
     .type = JSON_STRING,
     .value = responseString
   };
+}
+
+JsonElement json_Parser_Get_Integer(TokenParser tck, PTokenParser next) {
+  TokenParser nextTck = json_Parser_Integer(tck);
+  if(json_Parser_IsInvalid(nextTck)) {
+    return json_Element_Invalid();
+  }
+  JsonElement response = {
+    .type = JSON_INTEGER
+  };
+  char *endingPointer;
+  errno = 0;
+  int64_t nrm = strtoll(nextTck.startToken, &endingPointer, 10);
+  if(errno == ERANGE || endingPointer == nextTck.startToken) {
+    return json_Element_Invalid();
+  }
+  response.value = malloc(sizeof(int64_t));
+  memcpy(response.value, &nrm, sizeof(int64_t));
+  if(next) {
+    *next = tck;
+  }
+  return response;
 }
 
 JsonElement json_Parse(PHttpString buffer, char *nextBuffer) {

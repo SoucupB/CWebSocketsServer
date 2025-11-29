@@ -112,6 +112,8 @@ TokenParser json_Parser_String(TokenParser tck);
 TokenParser json_Parser_Integer(TokenParser tck);
 TokenParser json_Parser_Number(TokenParser tck);
 JsonElement json_Parser_Get_String(TokenParser tck, PTokenParser next);
+JsonElement json_Parser_Get_Integer(TokenParser tck, PTokenParser next);
+
 void json_DeleteElement(JsonElement element);
 
 static void test_string_parse_str_string(void **state) {
@@ -263,6 +265,69 @@ static void test_string_parse_get_with_special(void **state) {
   json_DeleteElement(parseData);
 }
 
+static void test_string_parse_numbers(void **state) {
+  char *arr = " 9932";
+  JsonElement parseData = json_Parser_Get_Integer((TokenParser) {
+    .endToken = arr,
+    .endingBuffer = arr + strlen(arr)
+  }, NULL);
+  assert_int_not_equal(parseData.type, JSON_INVALID);
+  assert_ptr_not_equal(parseData.value, NULL);
+  assert_int_equal(*(int64_t *)parseData.value, 9932);
+  json_DeleteElement(parseData);
+}
+
+static void test_string_parse_numbers_negative(void **state) {
+  char *arr = " -9932";
+  JsonElement parseData = json_Parser_Get_Integer((TokenParser) {
+    .endToken = arr,
+    .endingBuffer = arr + strlen(arr)
+  }, NULL);
+  assert_int_not_equal(parseData.type, JSON_INVALID);
+  assert_ptr_not_equal(parseData.value, NULL);
+  assert_int_equal(*(int64_t *)parseData.value, -9932);
+  json_DeleteElement(parseData);
+}
+
+static void test_string_parse_numbers_with_alpha_values(void **state) {
+  char *arr = " -99da32";
+  JsonElement parseData = json_Parser_Get_Integer((TokenParser) {
+    .endToken = arr,
+    .endingBuffer = arr + strlen(arr)
+  }, NULL);
+  assert_int_not_equal(parseData.type, JSON_INVALID);
+  assert_ptr_not_equal(parseData.value, NULL);
+  assert_int_equal(*(int64_t *)parseData.value, -99);
+  json_DeleteElement(parseData);
+}
+
+static void test_string_parse_numbers_invalid(void **state) {
+  char *arr = " -";
+  JsonElement parseData = json_Parser_Get_Integer((TokenParser) {
+    .endToken = arr,
+    .endingBuffer = arr + strlen(arr)
+  }, NULL);
+  assert_int_equal(parseData.type, JSON_INVALID);
+}
+
+static void test_string_parse_numbers_invalid_overflow(void **state) {
+  char *arr = " 99999999999999999999";
+  JsonElement parseData = json_Parser_Get_Integer((TokenParser) {
+    .endToken = arr,
+    .endingBuffer = arr + strlen(arr)
+  }, NULL);
+  assert_int_equal(parseData.type, JSON_INVALID);
+}
+
+static void test_string_parse_numbers_invalid_with_multiple_negative_signs(void **state) {
+  char *arr = " --3242";
+  JsonElement parseData = json_Parser_Get_Integer((TokenParser) {
+    .endToken = arr,
+    .endingBuffer = arr + strlen(arr)
+  }, NULL);
+  assert_int_equal(parseData.type, JSON_INVALID);
+}
+
 int main() {
   const struct CMUnitTest tests[] = {
     cmocka_unit_test_prestate(test_string_parse_simple_element, NULL),
@@ -285,6 +350,12 @@ int main() {
     cmocka_unit_test_prestate(test_string_parse_number_multiple_pnts, NULL),
     cmocka_unit_test_prestate(test_string_parse_get, NULL),
     cmocka_unit_test_prestate(test_string_parse_get_with_special, NULL),
+    cmocka_unit_test_prestate(test_string_parse_numbers, NULL),
+    cmocka_unit_test_prestate(test_string_parse_numbers_negative, NULL),
+    cmocka_unit_test_prestate(test_string_parse_numbers_with_alpha_values, NULL),
+    cmocka_unit_test_prestate(test_string_parse_numbers_invalid, NULL),
+    cmocka_unit_test_prestate(test_string_parse_numbers_invalid_with_multiple_negative_signs, NULL),
+    cmocka_unit_test_prestate(test_string_parse_numbers_invalid_overflow, NULL),
   };
   const uint32_t value = cmocka_run_group_tests(tests, NULL, NULL);
   return value;
