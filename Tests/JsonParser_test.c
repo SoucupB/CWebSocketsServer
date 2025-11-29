@@ -110,6 +110,8 @@ data\",{\"some_key_2\":32425,\"some_key_3\":123}]}") - 1);
 TokenParser json_Parser_String(TokenParser tck);
 TokenParser json_Parser_Integer(TokenParser tck);
 TokenParser json_Parser_Number(TokenParser tck);
+JsonElement json_Parser_Get_String(TokenParser tck, PTokenParser next);
+void json_DeleteElement(JsonElement element);
 
 static void test_string_parse_str_string(void **state) {
   char *arr = "\"Some str value\"";
@@ -236,6 +238,18 @@ static void test_string_parse_number_multiple_pnts(void **state) {
   assert_ptr_not_equal(parseData.startingBuffer, parseData.endingBuffer);
 }
 
+static void test_string_parse_get(void **state) {
+  char *arr = "    \"Some str value\"";
+  JsonElement parseData = json_Parser_Get_String((TokenParser) {
+    .startingBuffer = arr,
+    .endingBuffer = arr + strlen(arr)
+  }, NULL);
+  assert_ptr_not_equal(parseData.value, NULL);
+  assert_memory_equal(((PHttpString)parseData.value)->buffer, "Some str value", sizeof("Some str value") - 1);
+  json_DeleteElement(parseData);
+  // assert_ptr_equal(parseData.startingBuffer, parseData.endingBuffer);
+}
+
 int main() {
   const struct CMUnitTest tests[] = {
     cmocka_unit_test_prestate(test_string_parse_simple_element, NULL),
@@ -256,6 +270,7 @@ int main() {
     cmocka_unit_test_prestate(test_string_parse_number_invalid_with_chars, NULL),
     cmocka_unit_test_prestate(test_string_parse_number_invalid_missing_exponent, NULL),
     cmocka_unit_test_prestate(test_string_parse_number_multiple_pnts, NULL),
+    cmocka_unit_test_prestate(test_string_parse_get, NULL),
   };
   const uint32_t value = cmocka_run_group_tests(tests, NULL, NULL);
   return value;

@@ -310,7 +310,7 @@ TokenParser json_Parser_Number(TokenParser tck) {
   return tck;
 }
 
-JsonElement json_Parser_StringGet(TokenParser tck) {
+JsonElement json_Parser_Get_String(TokenParser tck, PTokenParser next) {
   TokenParser nextTck = json_Parser_String(tck);
   if(json_Parser_IsInvalid(nextTck)) {
     return json_Element_Invalid();
@@ -320,6 +320,9 @@ JsonElement json_Parser_StringGet(TokenParser tck) {
   responseString->sz = stringSize;
   responseString->buffer = malloc(stringSize);
   memcpy(responseString->buffer, tck.startingBuffer + 1, stringSize);
+  if(next) {
+    *next = tck;
+  }
   return (JsonElement) {
     .type = JSON_STRING,
     .value = responseString
