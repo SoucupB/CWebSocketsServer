@@ -399,16 +399,46 @@ static void test_string_parse_complex_map(void **state) {
   assert_int_equal(parseData.endToken - parseData.startToken, 17);
 }
 
-static void test_string_parse_embeded_map(void **state) {
-  char *arr = "  {\"tenis\": \"hika\", \"ddddd\": {\"a\": 12, \"b\": 123.4}}";
+static void test_string_parse_all_data_map(void **state) {
+  char *arr = "  {\"tenis\": \"hika\", \"ddddd\": 12.3142, \"aaa\": 44}";
   TokenParser parseData = json_Parser_Map((TokenParser) {
     .endToken = arr,
     .endingBuffer = arr + strlen(arr)
   });
-  printf("AA %p\n", parseData.endToken);
-  // assert_ptr_not_equal(parseData.endToken, NULL);
-  // assert_ptr_equal(parseData.endToken, parseData.endingBuffer);
-  // assert_int_equal(parseData.endToken - parseData.startToken, 17);
+  assert_ptr_not_equal(parseData.endToken, NULL);
+  assert_ptr_equal(parseData.endToken, parseData.endingBuffer);
+  assert_memory_equal("{\"tenis\": \"hika\", \"ddddd\": 12.3142, \"aaa\": 44}", parseData.startToken, 
+               sizeof("{\"tenis\": \"hika\", \"ddddd\": 12.3142, \"aaa\": 44}") - 1);
+}
+
+static void test_string_parse_embeded_data(void **state) {
+  char *arr = "  {\"tenis\": \"hika\", \"ddddd\": 12.3142, \"aaa\": 44, \"aba\": {  \"ggg\": 32, \"tr\": \"daggg\"}}";
+  TokenParser parseData = json_Parser_Map((TokenParser) {
+    .endToken = arr,
+    .endingBuffer = arr + strlen(arr)
+  });
+  assert_ptr_not_equal(parseData.endToken, NULL);
+  assert_ptr_equal(parseData.endToken, parseData.endingBuffer);
+  char *toTest = "{\"tenis\": \"hika\", \"ddddd\": 12.3142, \"aaa\": 44, \"aba\": {  \"ggg\": 32, \"tr\": \"daggg\"}}";
+  assert_memory_equal(toTest, parseData.startToken, strlen(toTest));
+}
+
+static void test_string_parse_embeded_invalid(void **state) {
+  char *arr = "  {\"tenis\": \"hika\", \"ddddd\": 12.3142, \"aaa\": 44, \"aba\": {   \"ggg\":    32, \"tr\": \"daggg\"}";
+  TokenParser parseData = json_Parser_Map((TokenParser) {
+    .endToken = arr,
+    .endingBuffer = arr + strlen(arr)
+  });
+  assert_ptr_equal(parseData.endToken, NULL);
+}
+
+static void test_string_parse_invalid_comma_json(void **state) {
+  char *arr = "  {\"tenis\": \"hika\",}";
+  TokenParser parseData = json_Parser_Map((TokenParser) {
+    .endToken = arr,
+    .endingBuffer = arr + strlen(arr)
+  });
+  assert_ptr_equal(parseData.endToken, NULL);
 }
 
 int main() {
@@ -442,10 +472,14 @@ int main() {
     // cmocka_unit_test_prestate(test_string_parse_float_negative, NULL),
     // cmocka_unit_test_prestate(test_string_parse_float_positive, NULL),
     // cmocka_unit_test_prestate(test_string_parse_float_combination, NULL),
-    cmocka_unit_test_prestate(test_string_parse_simple_map, NULL),
-    cmocka_unit_test_prestate(test_string_parse_invalid_map, NULL),
-    cmocka_unit_test_prestate(test_string_parse_complex_map, NULL),
-    cmocka_unit_test_prestate(test_string_parse_embeded_map, NULL),
+
+    // cmocka_unit_test_prestate(test_string_parse_simple_map, NULL),
+    // cmocka_unit_test_prestate(test_string_parse_invalid_map, NULL),
+    // cmocka_unit_test_prestate(test_string_parse_complex_map, NULL),
+    cmocka_unit_test_prestate(test_string_parse_all_data_map, NULL),
+    cmocka_unit_test_prestate(test_string_parse_embeded_data, NULL),
+    cmocka_unit_test_prestate(test_string_parse_embeded_invalid, NULL),
+    cmocka_unit_test_prestate(test_string_parse_invalid_comma_json, NULL),
   };
   const uint32_t value = cmocka_run_group_tests(tests, NULL, NULL);
   return value;

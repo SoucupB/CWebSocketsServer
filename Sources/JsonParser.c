@@ -367,8 +367,8 @@ TokenParser json_Parser_Map(TokenParser tck) {
   }
   void *methods[] = {
     (void *)json_Parser_String,
-    (void *)json_Parser_Integer,
     (void *)json_Parser_Number,
+    (void *)json_Parser_Integer,
     (void *)json_Parser_Map
   };
   TokenParser ncpy = tck;
@@ -404,6 +404,9 @@ TokenParser json_Parser_Map(TokenParser tck) {
   tck.endToken = ncpy.endToken;
   json_Parser_RemoveEmptySpace(&tck);
   tck = json_Parser_Token(tck, "}", sizeof("}") - 1);
+  if(json_Parser_IsInvalid(tck)) {
+    return tck;
+  }
   tck.startToken = cpyTck.startToken;
   return tck;
 }
