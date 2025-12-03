@@ -338,6 +338,9 @@ TokenParser json_Parser_Comma(TokenParser tck) {
   TokenParser cpyTck = tck;
   cpyTck.startToken = tck.endToken;
   tck = json_Parser_Token(tck, ",", sizeof(",") - 1);
+  if(json_Parser_IsInvalid(tck)) {
+    return tck;
+  }
   tck.startToken = cpyTck.startToken;
   return tck;
 }
@@ -347,6 +350,9 @@ TokenParser json_Parser_Splitter(TokenParser tck) {
   TokenParser cpyTck = tck;
   cpyTck.startToken = tck.endToken;
   tck = json_Parser_Token(tck, ":", sizeof(":") - 1);
+  if(json_Parser_IsInvalid(tck)) {
+    return tck;
+  }
   tck.startToken = cpyTck.startToken;
   return tck;
 }
@@ -362,7 +368,8 @@ TokenParser json_Parser_Map(TokenParser tck) {
   void *methods[] = {
     (void *)json_Parser_String,
     (void *)json_Parser_Integer,
-    (void *)json_Parser_Number
+    (void *)json_Parser_Number,
+    (void *)json_Parser_Map
   };
   TokenParser ncpy = tck;
   while(ncpy.endToken < ncpy.endingBuffer) {
@@ -388,10 +395,11 @@ TokenParser json_Parser_Map(TokenParser tck) {
     if(!validToken) {
       return json_Parse_Invalid();
     }
-    ncpy = json_Parser_Comma(ncpy);
-    if(json_Parser_IsInvalid(ncpy)) {
-      return ncpy;
+    TokenParser comma = json_Parser_Comma(ncpy);
+    if(json_Parser_IsInvalid(comma)) {
+      break;
     }
+    ncpy = comma;
   }
   tck.endToken = ncpy.endToken;
   json_Parser_RemoveEmptySpace(&tck);
