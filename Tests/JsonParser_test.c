@@ -441,6 +441,15 @@ static void test_string_parse_invalid_comma_json(void **state) {
   assert_ptr_equal(parseData.endToken, NULL);
 }
 
+static void test_string_parse_invalid_string(void **state) {
+  char *arr = "  {\"tenis: \"hika\"}";
+  TokenParser parseData = json_Parser_Map((TokenParser) {
+    .endToken = arr,
+    .endingBuffer = arr + strlen(arr)
+  });
+  assert_ptr_equal(parseData.endToken, NULL);
+}
+
 int main() {
   const struct CMUnitTest tests[] = {
     cmocka_unit_test_prestate(test_string_parse_simple_element, NULL),
@@ -479,6 +488,7 @@ int main() {
     cmocka_unit_test_prestate(test_string_parse_embeded_data, NULL),
     cmocka_unit_test_prestate(test_string_parse_embeded_invalid, NULL),
     cmocka_unit_test_prestate(test_string_parse_invalid_comma_json, NULL),
+    cmocka_unit_test_prestate(test_string_parse_invalid_string, NULL),
   };
   const uint32_t value = cmocka_run_group_tests(tests, NULL, NULL);
   return value;
