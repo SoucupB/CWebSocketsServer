@@ -118,6 +118,7 @@ TokenParser json_Parser_Array(TokenParser tck);
 JsonElement json_Parser_Get_String(TokenParser tck, PTokenParser next);
 JsonElement json_Parser_Get_Integer(TokenParser tck, PTokenParser next);
 JsonElement json_Parser_Get_Number(TokenParser tck, PTokenParser next);
+JsonElement json_Parser_Get_Map(TokenParser tck, PTokenParser next);
 
 void json_DeleteElement(JsonElement element);
 
@@ -499,6 +500,21 @@ static void test_string_parse_array_with_map(void **state) {
   assert_int_equal(parseData.endToken - parseData.startToken, strlen(toTest));
 }
 
+static void test_string_parse_map_data(void **state) {
+  // char *arr = "{\"aada\": 3, \"daff\": \"113\"}";
+  char *arr = "{\"aada\": 3}";
+  JsonElement parseData = json_Parser_Get_Map((TokenParser) {
+    .endToken = arr,
+    .endingBuffer = arr + strlen(arr)
+  }, NULL);
+  // HttpString crst = json_ToString((PJsonObject)parseData.value);
+  // printf("BA %.*s\n", crst.sz, crst.buffer);
+  assert_int_not_equal(parseData.type, JSON_INVALID);
+  // assert_ptr_not_equal(parseData.value, NULL);
+  // assert_float_equal(*(float *)parseData.value, -9932.532f, EPSILON);
+  json_DeleteElement(parseData);
+}
+
 int main() {
   const struct CMUnitTest tests[] = {
     cmocka_unit_test_prestate(test_string_parse_simple_element, NULL),
@@ -542,6 +558,7 @@ int main() {
     cmocka_unit_test_prestate(test_string_parse_array_embeded, NULL),
     cmocka_unit_test_prestate(test_string_parse_array_invalid, NULL),
     cmocka_unit_test_prestate(test_string_parse_array_with_map, NULL),
+    cmocka_unit_test_prestate(test_string_parse_map_data, NULL),
   };
   const uint32_t value = cmocka_run_group_tests(tests, NULL, NULL);
   return value;

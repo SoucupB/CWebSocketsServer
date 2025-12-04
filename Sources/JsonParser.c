@@ -533,9 +533,11 @@ JsonElement json_Parser_Get_Map(TokenParser tck, PTokenParser next) {
   if(json_Parser_IsInvalid(nextTck)) {
     return json_Element_Invalid();
   }
+  PJsonObject jsn = json_Create();
+  jsn->selfContained = 1;
   JsonElement response = {
     .type = JSON_JSON,
-    .value = json_Create()
+    .value = jsn
   };
   void *methods[] = {
     json_Parser_Get_String,
@@ -557,12 +559,14 @@ JsonElement json_Parser_Get_Map(TokenParser tck, PTokenParser next) {
       json_Add((PJsonObject)response.value, key.value, currentElement);
       break;
     }
+    json_DeleteElement(key);
     TokenParser comma = json_Parser_Comma(cpyTck);
     if(json_Parser_IsInvalid(comma)) {
       break;
     }
     cpyTck = comma;
   }
+  cpyTck = json_Parser_Token_IgnoreErrors(cpyTck, "}", sizeof("}") - 1);
   if(next) {
     next->startToken = nextTck.startToken;
     next->endToken = cpyTck.endToken;
