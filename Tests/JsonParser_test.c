@@ -452,7 +452,7 @@ static void test_string_parse_invalid_string(void **state) {
 }
 
 static void test_string_parse_array(void **state) {
-  char *arr = "[1, 2, 3, 3.4, \"aaadb\"]";
+  char *arr = " [1, 2, 3, 3.4, \"aaadb\"]";
   TokenParser parseData = json_Parser_Array((TokenParser) {
     .endToken = arr,
     .endingBuffer = arr + strlen(arr)
@@ -465,7 +465,7 @@ static void test_string_parse_array(void **state) {
 }
 
 static void test_string_parse_array_embeded(void **state) {
-  char *arr = "[1, 2, [1, \"azzz\"], 3, 3.4, \"aaadb\"]";
+  char *arr = "   [1, 2, [1, \"azzz\"], 3, 3.4, \"aaadb\"]";
   TokenParser parseData = json_Parser_Array((TokenParser) {
     .endToken = arr,
     .endingBuffer = arr + strlen(arr)
@@ -478,7 +478,7 @@ static void test_string_parse_array_embeded(void **state) {
 }
 
 static void test_string_parse_array_invalid(void **state) {
-  char *arr = "[1, 2, [1, \"azzz\", 3, 3.4, \"aaadb\"]";
+  char *arr = "  [1, 2, [1, \"azzz\", 3, 3.4, \"aaadb\"]";
   TokenParser parseData = json_Parser_Array((TokenParser) {
     .endToken = arr,
     .endingBuffer = arr + strlen(arr)
@@ -487,7 +487,7 @@ static void test_string_parse_array_invalid(void **state) {
 }
 
 static void test_string_parse_array_with_map(void **state) {
-  char *arr = "[1, 2, [1, \"azzz\", 3, 3.4], {\"aad\": 32, \"ssd\": [1, 2]}, \"aaadb\"]";
+  char *arr = "   [1, 2, [1, \"azzz\", 3, 3.4], {\"aad\": 32, \"ssd\": [1, 2]}, \"aaadb\"]";
   TokenParser parseData = json_Parser_Array((TokenParser) {
     .endToken = arr,
     .endingBuffer = arr + strlen(arr)

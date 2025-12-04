@@ -54,6 +54,10 @@ static inline uint8_t json_Parser_IsInvalid(TokenParser tck) {
   return !tck.endingBuffer || !tck.endToken || !tck.startToken;
 }
 
+static inline uint8_t json_Parser_Get_IsInvalid(JsonElement tck) {
+  return tck.type == JSON_INVALID;
+}
+
 static inline TokenParser json_Parse_Invalid() {
   return (TokenParser) {
     .startToken = NULL,
@@ -472,7 +476,7 @@ JsonElement json_Parser_Get_String(TokenParser tck, PTokenParser next) {
   responseString->buffer = malloc(stringSize + 1);
   memcpy(responseString->buffer, nextTck.startToken + 1, stringSize);
   if(next) {
-    *next = tck;
+    *next = nextTck;
   }
   return (JsonElement) {
     .type = JSON_STRING,
@@ -497,7 +501,7 @@ JsonElement json_Parser_Get_Integer(TokenParser tck, PTokenParser next) {
   response.value = malloc(sizeof(int64_t));
   memcpy(response.value, &nrm, sizeof(int64_t));
   if(next) {
-    *next = tck;
+    *next = nextTck;
   }
   return response;
 }
@@ -519,13 +523,51 @@ JsonElement json_Parser_Get_Number(TokenParser tck, PTokenParser next) {
   response.value = malloc(sizeof(float));
   memcpy(response.value, &nrm, sizeof(float));
   if(next) {
-    *next = tck;
+    *next = nextTck;
   }
   return response;
 }
 
 JsonElement json_Parser_Get_Map(TokenParser tck, PTokenParser next) {
-  return (JsonElement) {};
+  TokenParser nextTck = json_Parser_Map(tck);
+  if(json_Parser_IsInvalid(nextTck)) {
+    return json_Element_Invalid();
+  }
+  JsonElement response = {
+    .type = JSON_JSON,
+    .value = json_Create()
+  };
+  void *methods[] = {
+    json_Parser_Get_String,
+    json_Parser_Get_Number,
+    json_Parser_Get_Integer
+  };
+  tck = json_Parser_Token_IgnoreErrors(tck, "{", sizeof("{") - 1);
+  TokenParser cpyTck = tck;
+  while(1) {
+    JsonElement key = json_Parser_Get_String(cpyTck, &cpyTck);
+    cpyTck = json_Parser_Token_IgnoreErrors(cpyTck, ":", sizeof(":") - 1);
+    for(size_t i = 0; i < sizeof(methods) / sizeof(void *); i++) {
+      JsonElement (*tokenMethod)(TokenParser, PTokenParser) = (JsonElement (*)(TokenParser, PTokenParser)) (((size_t *)methods)[i]);
+      JsonElement currentElement = tokenMethod(cpyTck, &cpyTck);
+      if(json_Parser_Get_IsInvalid(currentElement)) {
+        continue;
+      }
+      json_Add((PJsonObject)response.value, key.value, currentElement);
+      break;
+    }
+    TokenParser comma = json_Parser_Comma(cpyTck);
+    if(json_Parser_IsInvalid(comma)) {
+      break;
+    }
+    cpyTck = comma;
+  }
+  if(next) {
+    next->startToken = nextTck.startToken;
+    next->endToken = cpyTck.endToken;
+    next->endingBuffer = tck.endingBuffer;
+  }
+  return response;
 }
 
 JsonElement json_Parse(PHttpString buffer, char *nextBuffer) {
