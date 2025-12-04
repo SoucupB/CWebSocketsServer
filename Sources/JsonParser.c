@@ -20,6 +20,8 @@ typedef struct TokenParser_t {
 
 typedef TokenParser *PTokenParser;
 
+TokenParser json_Parser_Map(TokenParser tck);
+
 PJsonObject json_Create() {
   PJsonObject self = malloc(sizeof(JsonObject));
   self->hsh = trh_Create();
@@ -358,7 +360,50 @@ TokenParser json_Parser_Splitter(TokenParser tck) {
 }
 
 TokenParser json_Parser_Array(TokenParser tck) {
-  return json_Parse_Invalid();
+  json_Parser_RemoveEmptySpace(&tck);
+  TokenParser cpyTck = tck;
+  cpyTck.startToken = tck.endToken;
+  tck = json_Parser_Token(tck, "[", sizeof("[") - 1);
+  if(json_Parser_IsInvalid(tck)) {
+    return tck;
+  }
+  void *methods[] = {
+    (void *)json_Parser_String,
+    (void *)json_Parser_Number,
+    (void *)json_Parser_Integer,
+    (void *)json_Parser_Map,
+    (void *)json_Parser_Array
+  };
+  TokenParser ncpy = tck;
+  while(ncpy.endToken < ncpy.endingBuffer) {
+    uint8_t validToken = 0;
+    for(size_t i = 0; i < sizeof(methods) / sizeof(void *); i++) {
+      TokenParser (*tokenMethod)(TokenParser) = (TokenParser (*)(TokenParser)) (((size_t *)methods)[i]);
+      TokenParser next = tokenMethod(ncpy);
+      if(json_Parser_IsInvalid(next)) {
+        continue;
+      }
+      ncpy = next;
+      validToken = 1;
+      break;
+    }
+    if(!validToken) {
+      return json_Parse_Invalid();
+    }
+    TokenParser comma = json_Parser_Comma(ncpy);
+    if(json_Parser_IsInvalid(comma)) {
+      break;
+    }
+    ncpy = comma;
+  }
+  tck.endToken = ncpy.endToken;
+  json_Parser_RemoveEmptySpace(&tck);
+  tck = json_Parser_Token(tck, "]", sizeof("]") - 1);
+  if(json_Parser_IsInvalid(tck)) {
+    return tck;
+  }
+  tck.startToken = cpyTck.startToken;
+  return tck;
 }
 
 TokenParser json_Parser_Map(TokenParser tck) {

@@ -114,6 +114,7 @@ TokenParser json_Parser_String(TokenParser tck);
 TokenParser json_Parser_Integer(TokenParser tck);
 TokenParser json_Parser_Number(TokenParser tck);
 TokenParser json_Parser_Map(TokenParser tck);
+TokenParser json_Parser_Array(TokenParser tck);
 JsonElement json_Parser_Get_String(TokenParser tck, PTokenParser next);
 JsonElement json_Parser_Get_Integer(TokenParser tck, PTokenParser next);
 JsonElement json_Parser_Get_Number(TokenParser tck, PTokenParser next);
@@ -450,6 +451,54 @@ static void test_string_parse_invalid_string(void **state) {
   assert_ptr_equal(parseData.endToken, NULL);
 }
 
+static void test_string_parse_array(void **state) {
+  char *arr = "[1, 2, 3, 3.4, \"aaadb\"]";
+  TokenParser parseData = json_Parser_Array((TokenParser) {
+    .endToken = arr,
+    .endingBuffer = arr + strlen(arr)
+  });
+  assert_ptr_not_equal(parseData.endToken, NULL);
+  assert_ptr_equal(parseData.endToken, parseData.endingBuffer);
+  char *toTest = "[1, 2, 3, 3.4, \"aaadb\"]";
+  assert_int_equal(parseData.endToken - parseData.startToken, strlen(toTest));
+  assert_memory_equal(toTest, parseData.startToken, strlen(toTest));
+}
+
+static void test_string_parse_array_embeded(void **state) {
+  char *arr = "[1, 2, [1, \"azzz\"], 3, 3.4, \"aaadb\"]";
+  TokenParser parseData = json_Parser_Array((TokenParser) {
+    .endToken = arr,
+    .endingBuffer = arr + strlen(arr)
+  });
+  assert_ptr_not_equal(parseData.endToken, NULL);
+  assert_ptr_equal(parseData.endToken, parseData.endingBuffer);
+  char *toTest = "[1, 2, [1, \"azzz\"], 3, 3.4, \"aaadb\"]";
+  assert_int_equal(parseData.endToken - parseData.startToken, strlen(toTest));
+  assert_memory_equal(toTest, parseData.startToken, strlen(toTest));
+}
+
+static void test_string_parse_array_invalid(void **state) {
+  char *arr = "[1, 2, [1, \"azzz\", 3, 3.4, \"aaadb\"]";
+  TokenParser parseData = json_Parser_Array((TokenParser) {
+    .endToken = arr,
+    .endingBuffer = arr + strlen(arr)
+  });
+  assert_ptr_equal(parseData.endToken, NULL);
+}
+
+static void test_string_parse_array_with_map(void **state) {
+  char *arr = "[1, 2, [1, \"azzz\", 3, 3.4], {\"aad\": 32, \"ssd\": [1, 2]}, \"aaadb\"]";
+  TokenParser parseData = json_Parser_Array((TokenParser) {
+    .endToken = arr,
+    .endingBuffer = arr + strlen(arr)
+  });
+  assert_ptr_not_equal(parseData.endToken, NULL);
+  assert_ptr_equal(parseData.endToken, parseData.endingBuffer);
+  char *toTest = "[1, 2, [1, \"azzz\", 3, 3.4], {\"aad\": 32, \"ssd\": [1, 2]}, \"aaadb\"]";
+  assert_memory_equal(toTest, parseData.startToken, strlen(toTest));
+  assert_int_equal(parseData.endToken - parseData.startToken, strlen(toTest));
+}
+
 int main() {
   const struct CMUnitTest tests[] = {
     cmocka_unit_test_prestate(test_string_parse_simple_element, NULL),
@@ -489,6 +538,10 @@ int main() {
     cmocka_unit_test_prestate(test_string_parse_embeded_invalid, NULL),
     cmocka_unit_test_prestate(test_string_parse_invalid_comma_json, NULL),
     cmocka_unit_test_prestate(test_string_parse_invalid_string, NULL),
+    cmocka_unit_test_prestate(test_string_parse_array, NULL),
+    cmocka_unit_test_prestate(test_string_parse_array_embeded, NULL),
+    cmocka_unit_test_prestate(test_string_parse_array_invalid, NULL),
+    cmocka_unit_test_prestate(test_string_parse_array_with_map, NULL),
   };
   const uint32_t value = cmocka_run_group_tests(tests, NULL, NULL);
   return value;
