@@ -540,7 +540,8 @@ JsonElement json_Parser_Get_Map(TokenParser tck, PTokenParser next) {
   void *methods[] = {
     json_Parser_Get_String,
     json_Parser_Get_Number,
-    json_Parser_Get_Integer
+    json_Parser_Get_Integer,
+    json_Parser_Get_Map
   };
   tck = json_Parser_Token_IgnoreErrors(tck, "{", sizeof("{") - 1);
   TokenParser cpyTck = tck;
