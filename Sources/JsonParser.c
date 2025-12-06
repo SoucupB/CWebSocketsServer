@@ -604,9 +604,7 @@ JsonElement json_Parser_Get_Array(TokenParser tck, PTokenParser next) {
   }
   cpyTck = json_Parser_Close_SquareBracket(cpyTck);
   if(next) {
-    next->startToken = nextTck.startToken;
-    next->endToken = cpyTck.endToken;
-    next->endingBuffer = tck.endingBuffer;
+    *next = cpyTck;
   }
   return response;
 }
@@ -651,9 +649,7 @@ JsonElement json_Parser_Get_Map(TokenParser tck, PTokenParser next) {
   }
   cpyTck = json_Parser_Close_CurlyBracket(cpyTck);
   if(next) {
-    next->startToken = nextTck.startToken;
-    next->endToken = cpyTck.endToken;
-    next->endingBuffer = tck.endingBuffer;
+    *next = cpyTck;
   }
   return response;
 }
