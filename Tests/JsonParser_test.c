@@ -675,7 +675,7 @@ static void test_string_parse_boolean_invalid(void **state) {
 }
 
 static void test_string_parse_array_get_index(void **state) {
-  char *arr = "[1, \t255333, \n\n4, 324.335, \"dadf\",  32, [1, 4, {\"azada\":  33, \"zzz\": [11, 3344, 2] } ], null, null, false, true]";
+  char *arr = "[1, \t255333, \n\n4  , 324.335, \"dadf\",  32, [1, 4, {\"azada\"  :  33, \"zzz\"\n\n: [11, 3344, 2] } ], null, null, false, true]";
   JsonElement parseData = json_Parse((HttpString) {
     .buffer = arr,
     .sz = strlen(arr)
@@ -693,6 +693,24 @@ static void test_string_parse_array_get_index(void **state) {
   assert_true(json_Array_At(parseData, 9).type == JSON_BOOLEAN);
   assert_true(json_Array_At(parseData, 10).type == JSON_BOOLEAN);
   json_DeleteElement(parseData);
+}
+
+static void test_string_parse_complex_composite_array_data_invalid_boolean(void **state) {
+  char *arr = "[1, 2, 4, \"dadf\",  32, [1, 4, {\"azada\":  33, \"zzz\": [11, 3344, 2] } ], fase  ]";
+  JsonElement parseData = json_Parser_Get_Array((TokenParser) {
+    .endToken = arr,
+    .endingBuffer = arr + strlen(arr)
+  }, NULL);
+  assert_int_equal(parseData.type, JSON_INVALID);
+}
+
+static void test_string_parse_complex_composite_array_data_invalid_null(void **state) {
+  char *arr = "[1, 2, 4, \"dadf\",  32, [1, 4, {\"azada\":  33, \"zzz\": [11, 3344, 2] } ], nul  ]";
+  JsonElement parseData = json_Parser_Get_Array((TokenParser) {
+    .endToken = arr,
+    .endingBuffer = arr + strlen(arr)
+  }, NULL);
+  assert_int_equal(parseData.type, JSON_INVALID);
 }
 
 int main() {
@@ -754,6 +772,8 @@ int main() {
     cmocka_unit_test_prestate(test_string_parse_boolean_false, NULL),
     cmocka_unit_test_prestate(test_string_parse_boolean_invalid, NULL),
     cmocka_unit_test_prestate(test_string_parse_array_get_index, NULL),
+    cmocka_unit_test_prestate(test_string_parse_complex_composite_array_data_invalid_boolean, NULL),
+    cmocka_unit_test_prestate(test_string_parse_complex_composite_array_data_invalid_null, NULL),
   };
   const uint32_t value = cmocka_run_group_tests(tests, NULL, NULL);
   return value;
