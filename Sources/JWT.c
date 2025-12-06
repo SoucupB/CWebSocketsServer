@@ -70,7 +70,6 @@ HttpString jwt_Encode_t(JsonElement payload, HttpString secret, uint64_t iam, ui
     .sz = cB64Sz
   });
   jwt_AddSignature(response, secret);
-  jwt_PrintHMAC(response->buffer, response->size);
   char *bff = response->buffer;
   size_t sz = response->size;
   vct_DeleteWOBuffer(response);
@@ -138,6 +137,29 @@ static inline void jwt_ToBase64UrlEncoded(HttpString str, uint8_t *response, siz
   while(*finalSize > 0 && response[(*finalSize) - 1] == '=') {
     (*finalSize)--;
   }
+}
+
+uint8_t jwt_IsSigned(HttpString str, HttpString secret) {
+  char *buffer = str.buffer;
+  size_t sz = 0;
+  int8_t pnt = 0;
+  while(sz < str.sz && pnt < 2) {
+    if(buffer[sz] == '.') {
+      pnt++;
+    }
+    sz++;
+  }
+  const size_t csz = jwt_Base64_Size(32);
+  uint8_t hmacResult[csz + 2];
+  size_t newB64Size;
+  jwt_HMAC((HttpString) {
+    .buffer = buffer,
+    .sz = sz - 1
+  }, secret, hmacResult, &newB64Size);
+  if(newB64Size != (str.sz - sz)) {
+    return 0;
+  }
+  return !memcmp(buffer + sz, hmacResult, newB64Size);
 }
 
 static inline char *jwt_CreateHeader() {

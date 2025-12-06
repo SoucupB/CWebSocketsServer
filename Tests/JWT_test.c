@@ -48,10 +48,46 @@ static void test_jwt_create_field(void **state) {
   free(crm.buffer);
 }
 
+static void test_jwt_signed_correctly(void **state) {
+  JsonElement mapToSend = json_Map_Create();
+  json_Map_Add(mapToSend, "some_field", json_Integer_Create(31314));
+
+  HttpString secret = {
+    .buffer = "some_key_data",
+    .sz = sizeof("some_key_data") - 1
+  };
+  uint64_t cTime = 32324255525LL;
+  HttpString crm = jwt_Encode_t(mapToSend, secret, cTime, cTime);
+  assert_true(jwt_IsSigned(crm, secret));
+  json_DeleteElement(mapToSend);
+  free(crm.buffer);
+}
+
+static void test_jwt_invalid_signed(void **state) {
+  JsonElement mapToSend = json_Map_Create();
+  json_Map_Add(mapToSend, "some_field", json_Integer_Create(31314));
+
+  HttpString secret = {
+    .buffer = "some_key_data",
+    .sz = sizeof("some_key_data") - 1
+  };
+  HttpString invalidSecret = {
+    .buffer = "some_key_data_1",
+    .sz = sizeof("some_key_data_1") - 1
+  };
+  uint64_t cTime = 32324255525LL;
+  HttpString crm = jwt_Encode_t(mapToSend, invalidSecret, cTime, cTime);
+  assert_false(jwt_IsSigned(crm, secret));
+  json_DeleteElement(mapToSend);
+  free(crm.buffer);
+}
+
 int main() {
   const struct CMUnitTest tests[] = {
     cmocka_unit_test_prestate(test_jwt_hmac_create, NULL),
     cmocka_unit_test_prestate(test_jwt_create_field, NULL),
+    cmocka_unit_test_prestate(test_jwt_signed_correctly, NULL),
+    cmocka_unit_test_prestate(test_jwt_invalid_signed, NULL),
   };
   const uint32_t value = cmocka_run_group_tests(tests, NULL, NULL);
   return value;
