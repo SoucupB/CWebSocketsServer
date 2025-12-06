@@ -1855,7 +1855,7 @@ void http_Response_SetBody(PHttpResponse self, PHttpString buffer);
 void http_Response_Delete(PHttpResponse self);
 HttpString http_Response_ToString(PHttpResponse self);
 PHttpResponse http_Response_Empty();
-void http_Response_Set(PHttpResponse self, char *key, size_t keySize, char *value, size_t valueSize) ;
+void http_Response_Set(PHttpResponse self, char *key, size_t keySize, char *value, size_t valueSize);
 
 enum
 {
@@ -2381,6 +2381,7 @@ void http_Response_Delete(PHttpResponse self) {
 }
        
 PJsonObject json_Create();
+JsonElement json_Map_Create();
 void json_Delete(PJsonObject self);
 void json_Add(PJsonObject self, PHttpString key, JsonElement element);
 HttpString json_ToString(PJsonObject self);
@@ -2388,12 +2389,17 @@ void json_RemoveSelfContainedData(PJsonObject self);
 JsonElement json_Parse(HttpString buffer, char **nextBuffer);
 HttpString json_Element_ToString(JsonElement self);
 void json_Parser_Print(JsonElement self);
+void json_DeleteElement(JsonElement element);
 JsonElement json_Map_Get(JsonElement jsonMap, HttpString str);
 JsonElement json_Array_At(JsonElement arr, size_t index);
 size_t json_Array_Size(JsonElement arr);
 int64_t json_Integer_Get(JsonElement arr);
 float json_Number_Get(JsonElement arr);
 JsonElement json_Map_GetString(JsonElement jsonMap, const char *key);
+void json_Map_Add(JsonElement map, char *key, JsonElement element);
+JsonElement json_Integer_Create(int64_t val);
+JsonElement json_Number_Create(float val);
+JsonElement json_String_Create(char *string);
        
 Vector vct_Init(size_t size);
 Vector vct_InitWithCapacity(size_t size, size_t count);
@@ -2713,6 +2719,47 @@ TokenParser json_Parser_Null(TokenParser tck) {
   }
   tck.startToken = cpyTck.startToken;
   return tck;
+}
+void json_Map_Add(JsonElement map, char *key, JsonElement element) {
+  ((void) sizeof ((map.type == JSON_JSON) ? 1 : 0), __extension__ ({ if (map.type == JSON_JSON) ; else __assert_fail ("map.type == JSON_JSON", "bin/svv.c", 1216, __extension__ __PRETTY_FUNCTION__); }));
+  HttpString str = {
+    .buffer = key,
+    .sz = strlen(key)
+  };
+  json_Add(map.value, &str, element);
+}
+JsonElement json_Integer_Create(int64_t val) {
+  JsonElement element = {
+    .type = JSON_INTEGER,
+    .value = malloc(sizeof(int64_t))
+  };
+  *(int64_t *)element.value = val;
+  return element;
+}
+JsonElement json_Map_Create() {
+  PJsonObject json = json_Create();
+  json->selfContained = 1;
+  return (JsonElement) {
+    .type = JSON_JSON,
+    .value = json
+  };
+}
+JsonElement json_String_Create(char *string) {
+  PHttpString str = malloc(sizeof(HttpString));
+  str->buffer = string;
+  str->sz = strlen(string);
+  return (JsonElement) {
+    .type = JSON_STRING,
+    .value = str
+  };
+}
+JsonElement json_Number_Create(float val) {
+  JsonElement element = {
+    .type = JSON_NUMBER,
+    .value = malloc(sizeof(float))
+  };
+  *(float *)element.value = val;
+  return element;
 }
 TokenParser json_Parser_Boolean(TokenParser tck) {
   json_Parser_RemoveFillers(&tck);
@@ -3135,2510 +3182,23 @@ JsonElement json_Array_At(JsonElement arr, size_t index) {
   return ((JsonElement *)vct->buffer)[index];
 }
 size_t json_Array_Size(JsonElement arr) {
-  ((void) sizeof ((arr.type == JSON_ARRAY) ? 1 : 0), __extension__ ({ if (arr.type == JSON_ARRAY) ; else __assert_fail ("arr.type == JSON_ARRAY", "bin/svv.c", 1662, __extension__ __PRETTY_FUNCTION__); }));
+  ((void) sizeof ((arr.type == JSON_ARRAY) ? 1 : 0), __extension__ ({ if (arr.type == JSON_ARRAY) ; else __assert_fail ("arr.type == JSON_ARRAY", "bin/svv.c", 1709, __extension__ __PRETTY_FUNCTION__); }));
   return ((Vector)arr.value)->size;
 }
 int64_t json_Integer_Get(JsonElement arr) {
-  ((void) sizeof ((arr.type == JSON_INTEGER) ? 1 : 0), __extension__ ({ if (arr.type == JSON_INTEGER) ; else __assert_fail ("arr.type == JSON_INTEGER", "bin/svv.c", 1667, __extension__ __PRETTY_FUNCTION__); }));
+  ((void) sizeof ((arr.type == JSON_INTEGER) ? 1 : 0), __extension__ ({ if (arr.type == JSON_INTEGER) ; else __assert_fail ("arr.type == JSON_INTEGER", "bin/svv.c", 1714, __extension__ __PRETTY_FUNCTION__); }));
   return *((int64_t *)arr.value);
 }
 float json_Number_Get(JsonElement arr) {
-  ((void) sizeof ((arr.type == JSON_NUMBER) ? 1 : 0), __extension__ ({ if (arr.type == JSON_NUMBER) ; else __assert_fail ("arr.type == JSON_NUMBER", "bin/svv.c", 1672, __extension__ __PRETTY_FUNCTION__); }));
+  ((void) sizeof ((arr.type == JSON_NUMBER) ? 1 : 0), __extension__ ({ if (arr.type == JSON_NUMBER) ; else __assert_fail ("arr.type == JSON_NUMBER", "bin/svv.c", 1719, __extension__ __PRETTY_FUNCTION__); }));
   return *((float *)arr.value);
 }
-
-struct iovec
-  {
-    void *iov_base;
-    size_t iov_len;
-  };
-typedef __socklen_t socklen_t;
-enum __socket_type
-{
-  SOCK_STREAM = 1,
-  SOCK_DGRAM = 2,
-  SOCK_RAW = 3,
-  SOCK_RDM = 4,
-  SOCK_SEQPACKET = 5,
-  SOCK_DCCP = 6,
-  SOCK_PACKET = 10,
-  SOCK_CLOEXEC = 02000000,
-  SOCK_NONBLOCK = 00004000
-};
-typedef unsigned short int sa_family_t;
-struct sockaddr
-  {
-    sa_family_t sa_family;
-    char sa_data[14];
-  };
-struct sockaddr_storage
-  {
-    sa_family_t ss_family;
-    char __ss_padding[(128 - (sizeof (unsigned short int)) - sizeof (unsigned long int))];
-    unsigned long int __ss_align;
-  };
-enum
-  {
-    MSG_OOB = 0x01,
-    MSG_PEEK = 0x02,
-    MSG_DONTROUTE = 0x04,
-    MSG_CTRUNC = 0x08,
-    MSG_PROXY = 0x10,
-    MSG_TRUNC = 0x20,
-    MSG_DONTWAIT = 0x40,
-    MSG_EOR = 0x80,
-    MSG_WAITALL = 0x100,
-    MSG_FIN = 0x200,
-    MSG_SYN = 0x400,
-    MSG_CONFIRM = 0x800,
-    MSG_RST = 0x1000,
-    MSG_ERRQUEUE = 0x2000,
-    MSG_NOSIGNAL = 0x4000,
-    MSG_MORE = 0x8000,
-    MSG_WAITFORONE = 0x10000,
-    MSG_BATCH = 0x40000,
-    MSG_ZEROCOPY = 0x4000000,
-    MSG_FASTOPEN = 0x20000000,
-    MSG_CMSG_CLOEXEC = 0x40000000
-  };
-struct msghdr
-  {
-    void *msg_name;
-    socklen_t msg_namelen;
-    struct iovec *msg_iov;
-    size_t msg_iovlen;
-    void *msg_control;
-    size_t msg_controllen;
-    int msg_flags;
-  };
-struct cmsghdr
-  {
-    size_t cmsg_len;
-    int cmsg_level;
-    int cmsg_type;
-    __extension__ unsigned char __cmsg_data [];
-  };
-extern struct cmsghdr *__cmsg_nxthdr (struct msghdr *__mhdr,
-          struct cmsghdr *__cmsg) __attribute__ ((__nothrow__ , __leaf__));
-extern __inline __attribute__ ((__gnu_inline__)) struct cmsghdr *
-__attribute__ ((__nothrow__ , __leaf__)) __cmsg_nxthdr (struct msghdr *__mhdr, struct cmsghdr *__cmsg)
-{
-  if ((size_t) __cmsg->cmsg_len < sizeof (struct cmsghdr))
-    return (struct cmsghdr *) 0;
-  __cmsg = (struct cmsghdr *) ((unsigned char *) __cmsg
-          + (((__cmsg->cmsg_len) + sizeof (size_t) - 1) & (size_t) ~(sizeof (size_t) - 1)));
-  if ((unsigned char *) (__cmsg + 1) > ((unsigned char *) __mhdr->msg_control
-     + __mhdr->msg_controllen)
-      || ((unsigned char *) __cmsg + (((__cmsg->cmsg_len) + sizeof (size_t) - 1) & (size_t) ~(sizeof (size_t) - 1))
-   > ((unsigned char *) __mhdr->msg_control + __mhdr->msg_controllen)))
-    return (struct cmsghdr *) 0;
-  return __cmsg;
-}
-enum
-  {
-    SCM_RIGHTS = 0x01
-  };
-typedef struct {
- unsigned long fds_bits[1024 / (8 * sizeof(long))];
-} __kernel_fd_set;
-typedef void (*__kernel_sighandler_t)(int);
-typedef int __kernel_key_t;
-typedef int __kernel_mqd_t;
-typedef unsigned short __kernel_old_uid_t;
-typedef unsigned short __kernel_old_gid_t;
-typedef unsigned long __kernel_old_dev_t;
-typedef long __kernel_long_t;
-typedef unsigned long __kernel_ulong_t;
-typedef __kernel_ulong_t __kernel_ino_t;
-typedef unsigned int __kernel_mode_t;
-typedef int __kernel_pid_t;
-typedef int __kernel_ipc_pid_t;
-typedef unsigned int __kernel_uid_t;
-typedef unsigned int __kernel_gid_t;
-typedef __kernel_long_t __kernel_suseconds_t;
-typedef int __kernel_daddr_t;
-typedef unsigned int __kernel_uid32_t;
-typedef unsigned int __kernel_gid32_t;
-typedef __kernel_ulong_t __kernel_size_t;
-typedef __kernel_long_t __kernel_ssize_t;
-typedef __kernel_long_t __kernel_ptrdiff_t;
-typedef struct {
- int val[2];
-} __kernel_fsid_t;
-typedef __kernel_long_t __kernel_off_t;
-typedef long long __kernel_loff_t;
-typedef __kernel_long_t __kernel_old_time_t;
-typedef __kernel_long_t __kernel_time_t;
-typedef long long __kernel_time64_t;
-typedef __kernel_long_t __kernel_clock_t;
-typedef int __kernel_timer_t;
-typedef int __kernel_clockid_t;
-typedef char * __kernel_caddr_t;
-typedef unsigned short __kernel_uid16_t;
-typedef unsigned short __kernel_gid16_t;
-struct linger
-  {
-    int l_onoff;
-    int l_linger;
-  };
-struct osockaddr
-{
-  unsigned short int sa_family;
-  unsigned char sa_data[14];
-};
-enum
-{
-  SHUT_RD = 0,
-  SHUT_WR,
-  SHUT_RDWR
-};
-extern int socket (int __domain, int __type, int __protocol) __attribute__ ((__nothrow__ , __leaf__));
-extern int socketpair (int __domain, int __type, int __protocol,
-         int __fds[2]) __attribute__ ((__nothrow__ , __leaf__));
-extern int bind (int __fd, const struct sockaddr * __addr, socklen_t __len)
-     __attribute__ ((__nothrow__ , __leaf__));
-extern int getsockname (int __fd, struct sockaddr *__restrict __addr,
-   socklen_t *__restrict __len) __attribute__ ((__nothrow__ , __leaf__));
-extern int connect (int __fd, const struct sockaddr * __addr, socklen_t __len);
-extern int getpeername (int __fd, struct sockaddr *__restrict __addr,
-   socklen_t *__restrict __len) __attribute__ ((__nothrow__ , __leaf__));
-extern ssize_t send (int __fd, const void *__buf, size_t __n, int __flags);
-extern ssize_t recv (int __fd, void *__buf, size_t __n, int __flags);
-extern ssize_t sendto (int __fd, const void *__buf, size_t __n,
-         int __flags, const struct sockaddr * __addr,
-         socklen_t __addr_len);
-extern ssize_t recvfrom (int __fd, void *__restrict __buf, size_t __n,
-    int __flags, struct sockaddr *__restrict __addr,
-    socklen_t *__restrict __addr_len);
-extern ssize_t sendmsg (int __fd, const struct msghdr *__message,
-   int __flags);
-extern ssize_t recvmsg (int __fd, struct msghdr *__message, int __flags);
-extern int getsockopt (int __fd, int __level, int __optname,
-         void *__restrict __optval,
-         socklen_t *__restrict __optlen) __attribute__ ((__nothrow__ , __leaf__));
-extern int setsockopt (int __fd, int __level, int __optname,
-         const void *__optval, socklen_t __optlen) __attribute__ ((__nothrow__ , __leaf__));
-extern int listen (int __fd, int __n) __attribute__ ((__nothrow__ , __leaf__));
-extern int accept (int __fd, struct sockaddr *__restrict __addr,
-     socklen_t *__restrict __addr_len);
-extern int shutdown (int __fd, int __how) __attribute__ ((__nothrow__ , __leaf__));
-extern int sockatmark (int __fd) __attribute__ ((__nothrow__ , __leaf__));
-extern int isfdtype (int __fd, int __fdtype) __attribute__ ((__nothrow__ , __leaf__));
-extern ssize_t __recv_chk (int __fd, void *__buf, size_t __n, size_t __buflen,
-      int __flags);
-extern ssize_t __recv_alias (int __fd, void *__buf, size_t __n, int __flags) __asm__ ("" "recv");
-extern ssize_t __recv_chk_warn (int __fd, void *__buf, size_t __n, size_t __buflen, int __flags) __asm__ ("" "__recv_chk")
-     __attribute__((__warning__ ("recv called with bigger length than size of destination " "buffer")));
-extern __inline __attribute__ ((__always_inline__)) __attribute__ ((__gnu_inline__)) __attribute__ ((__artificial__)) ssize_t
-recv (int __fd, void *__buf, size_t __n, int __flags)
-{
-  size_t sz = __builtin_object_size (__buf, 0);
-  if ((((__typeof (__n)) 0 < (__typeof (__n)) -1 || (__builtin_constant_p (__n) && (__n) > 0)) && __builtin_constant_p ((((long unsigned int) (__n)) <= (sz) / (sizeof (char)))) && (((long unsigned int) (__n)) <= (sz) / (sizeof (char)))))
-    return __recv_alias (__fd, __buf, __n, __flags);
-  if ((((__typeof (__n)) 0 < (__typeof (__n)) -1 || (__builtin_constant_p (__n) && (__n) > 0)) && __builtin_constant_p ((((long unsigned int) (__n)) <= (sz) / (sizeof (char)))) && !(((long unsigned int) (__n)) <= (sz) / (sizeof (char)))))
-    return __recv_chk_warn (__fd, __buf, __n, sz, __flags);
-  return __recv_chk (__fd, __buf, __n, sz, __flags);
-}
-extern ssize_t __recvfrom_chk (int __fd, void *__restrict __buf, size_t __n,
-          size_t __buflen, int __flags,
-          struct sockaddr *__restrict __addr,
-          socklen_t *__restrict __addr_len);
-extern ssize_t __recvfrom_alias (int __fd, void *__restrict __buf, size_t __n, int __flags, struct sockaddr *__restrict __addr, socklen_t *__restrict __addr_len) __asm__ ("" "recvfrom");
-extern ssize_t __recvfrom_chk_warn (int __fd, void *__restrict __buf, size_t __n, size_t __buflen, int __flags, struct sockaddr *__restrict __addr, socklen_t *__restrict __addr_len) __asm__ ("" "__recvfrom_chk")
-     __attribute__((__warning__ ("recvfrom called with bigger length than size of " "destination buffer")));
-extern __inline __attribute__ ((__always_inline__)) __attribute__ ((__gnu_inline__)) __attribute__ ((__artificial__)) ssize_t
-recvfrom (int __fd, void *__restrict __buf, size_t __n, int __flags,
-   struct sockaddr *__restrict __addr, socklen_t *__restrict __addr_len)
-{
-  size_t sz = __builtin_object_size (__buf, 0);
-  if ((((__typeof (__n)) 0 < (__typeof (__n)) -1 || (__builtin_constant_p (__n) && (__n) > 0)) && __builtin_constant_p ((((long unsigned int) (__n)) <= (sz) / (sizeof (char)))) && (((long unsigned int) (__n)) <= (sz) / (sizeof (char)))))
-    return __recvfrom_alias (__fd, __buf, __n, __flags, __addr, __addr_len);
-  if ((((__typeof (__n)) 0 < (__typeof (__n)) -1 || (__builtin_constant_p (__n) && (__n) > 0)) && __builtin_constant_p ((((long unsigned int) (__n)) <= (sz) / (sizeof (char)))) && !(((long unsigned int) (__n)) <= (sz) / (sizeof (char)))))
-    return __recvfrom_chk_warn (__fd, __buf, __n, sz, __flags, __addr,
-    __addr_len);
-  return __recvfrom_chk (__fd, __buf, __n, sz, __flags, __addr, __addr_len);
-}
-
-
-typedef uint32_t in_addr_t;
-struct in_addr
-  {
-    in_addr_t s_addr;
-  };
-struct ip_opts
-  {
-    struct in_addr ip_dst;
-    char ip_opts[40];
-  };
-struct ip_mreqn
-  {
-    struct in_addr imr_multiaddr;
-    struct in_addr imr_address;
-    int imr_ifindex;
-  };
-struct in_pktinfo
-  {
-    int ipi_ifindex;
-    struct in_addr ipi_spec_dst;
-    struct in_addr ipi_addr;
-  };
-enum
-  {
-    IPPROTO_IP = 0,
-    IPPROTO_ICMP = 1,
-    IPPROTO_IGMP = 2,
-    IPPROTO_IPIP = 4,
-    IPPROTO_TCP = 6,
-    IPPROTO_EGP = 8,
-    IPPROTO_PUP = 12,
-    IPPROTO_UDP = 17,
-    IPPROTO_IDP = 22,
-    IPPROTO_TP = 29,
-    IPPROTO_DCCP = 33,
-    IPPROTO_IPV6 = 41,
-    IPPROTO_RSVP = 46,
-    IPPROTO_GRE = 47,
-    IPPROTO_ESP = 50,
-    IPPROTO_AH = 51,
-    IPPROTO_MTP = 92,
-    IPPROTO_BEETPH = 94,
-    IPPROTO_ENCAP = 98,
-    IPPROTO_PIM = 103,
-    IPPROTO_COMP = 108,
-    IPPROTO_SCTP = 132,
-    IPPROTO_UDPLITE = 136,
-    IPPROTO_MPLS = 137,
-    IPPROTO_ETHERNET = 143,
-    IPPROTO_RAW = 255,
-    IPPROTO_MPTCP = 262,
-    IPPROTO_MAX
-  };
-enum
-  {
-    IPPROTO_HOPOPTS = 0,
-    IPPROTO_ROUTING = 43,
-    IPPROTO_FRAGMENT = 44,
-    IPPROTO_ICMPV6 = 58,
-    IPPROTO_NONE = 59,
-    IPPROTO_DSTOPTS = 60,
-    IPPROTO_MH = 135
-  };
-typedef uint16_t in_port_t;
-enum
-  {
-    IPPORT_ECHO = 7,
-    IPPORT_DISCARD = 9,
-    IPPORT_SYSTAT = 11,
-    IPPORT_DAYTIME = 13,
-    IPPORT_NETSTAT = 15,
-    IPPORT_FTP = 21,
-    IPPORT_TELNET = 23,
-    IPPORT_SMTP = 25,
-    IPPORT_TIMESERVER = 37,
-    IPPORT_NAMESERVER = 42,
-    IPPORT_WHOIS = 43,
-    IPPORT_MTP = 57,
-    IPPORT_TFTP = 69,
-    IPPORT_RJE = 77,
-    IPPORT_FINGER = 79,
-    IPPORT_TTYLINK = 87,
-    IPPORT_SUPDUP = 95,
-    IPPORT_EXECSERVER = 512,
-    IPPORT_LOGINSERVER = 513,
-    IPPORT_CMDSERVER = 514,
-    IPPORT_EFSSERVER = 520,
-    IPPORT_BIFFUDP = 512,
-    IPPORT_WHOSERVER = 513,
-    IPPORT_ROUTESERVER = 520,
-    IPPORT_RESERVED = 1024,
-    IPPORT_USERRESERVED = 5000
-  };
-struct in6_addr
-  {
-    union
-      {
- uint8_t __u6_addr8[16];
- uint16_t __u6_addr16[8];
- uint32_t __u6_addr32[4];
-      } __in6_u;
-  };
-extern const struct in6_addr in6addr_any;
-extern const struct in6_addr in6addr_loopback;
-struct sockaddr_in
-  {
-    sa_family_t sin_family;
-    in_port_t sin_port;
-    struct in_addr sin_addr;
-    unsigned char sin_zero[sizeof (struct sockaddr)
-      - (sizeof (unsigned short int))
-      - sizeof (in_port_t)
-      - sizeof (struct in_addr)];
-  };
-struct sockaddr_in6
-  {
-    sa_family_t sin6_family;
-    in_port_t sin6_port;
-    uint32_t sin6_flowinfo;
-    struct in6_addr sin6_addr;
-    uint32_t sin6_scope_id;
-  };
-struct ip_mreq
-  {
-    struct in_addr imr_multiaddr;
-    struct in_addr imr_interface;
-  };
-struct ip_mreq_source
-  {
-    struct in_addr imr_multiaddr;
-    struct in_addr imr_interface;
-    struct in_addr imr_sourceaddr;
-  };
-struct ipv6_mreq
-  {
-    struct in6_addr ipv6mr_multiaddr;
-    unsigned int ipv6mr_interface;
-  };
-struct group_req
-  {
-    uint32_t gr_interface;
-    struct sockaddr_storage gr_group;
-  };
-struct group_source_req
-  {
-    uint32_t gsr_interface;
-    struct sockaddr_storage gsr_group;
-    struct sockaddr_storage gsr_source;
-  };
-struct ip_msfilter
-  {
-    struct in_addr imsf_multiaddr;
-    struct in_addr imsf_interface;
-    uint32_t imsf_fmode;
-    uint32_t imsf_numsrc;
-    struct in_addr imsf_slist[1];
-  };
-struct group_filter
-  {
-    uint32_t gf_interface;
-    struct sockaddr_storage gf_group;
-    uint32_t gf_fmode;
-    uint32_t gf_numsrc;
-    struct sockaddr_storage gf_slist[1];
-};
-extern uint32_t ntohl (uint32_t __netlong) __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__const__));
-extern uint16_t ntohs (uint16_t __netshort)
-     __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__const__));
-extern uint32_t htonl (uint32_t __hostlong)
-     __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__const__));
-extern uint16_t htons (uint16_t __hostshort)
-     __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__const__));
-extern int bindresvport (int __sockfd, struct sockaddr_in *__sock_in) __attribute__ ((__nothrow__ , __leaf__));
-extern int bindresvport6 (int __sockfd, struct sockaddr_in6 *__sock_in)
-     __attribute__ ((__nothrow__ , __leaf__));
-
-
-extern in_addr_t inet_addr (const char *__cp) __attribute__ ((__nothrow__ , __leaf__));
-extern in_addr_t inet_lnaof (struct in_addr __in) __attribute__ ((__nothrow__ , __leaf__));
-extern struct in_addr inet_makeaddr (in_addr_t __net, in_addr_t __host)
-     __attribute__ ((__nothrow__ , __leaf__));
-extern in_addr_t inet_netof (struct in_addr __in) __attribute__ ((__nothrow__ , __leaf__));
-extern in_addr_t inet_network (const char *__cp) __attribute__ ((__nothrow__ , __leaf__));
-extern char *inet_ntoa (struct in_addr __in) __attribute__ ((__nothrow__ , __leaf__));
-extern int inet_pton (int __af, const char *__restrict __cp,
-        void *__restrict __buf) __attribute__ ((__nothrow__ , __leaf__));
-extern const char *inet_ntop (int __af, const void *__restrict __cp,
-         char *__restrict __buf, socklen_t __len)
-     __attribute__ ((__nothrow__ , __leaf__));
-extern int inet_aton (const char *__cp, struct in_addr *__inp) __attribute__ ((__nothrow__ , __leaf__));
-extern char *inet_neta (in_addr_t __net, char *__buf, size_t __len) __attribute__ ((__nothrow__ , __leaf__))
-  __attribute__ ((__deprecated__ ("Use inet_ntop instead")));
-extern char *inet_net_ntop (int __af, const void *__cp, int __bits,
-       char *__buf, size_t __len) __attribute__ ((__nothrow__ , __leaf__));
-extern int inet_net_pton (int __af, const char *__cp,
-     void *__buf, size_t __len) __attribute__ ((__nothrow__ , __leaf__));
-extern unsigned int inet_nsap_addr (const char *__cp,
-        unsigned char *__buf, int __len) __attribute__ ((__nothrow__ , __leaf__));
-extern char *inet_nsap_ntoa (int __len, const unsigned char *__cp,
-        char *__buf) __attribute__ ((__nothrow__ , __leaf__));
-
-
-typedef __useconds_t useconds_t;
-extern int access (const char *__name, int __type) __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__nonnull__ (1)));
-extern int faccessat (int __fd, const char *__file, int __type, int __flag)
-     __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__nonnull__ (2))) __attribute__ ((__warn_unused_result__));
-extern __off_t lseek (int __fd, __off_t __offset, int __whence) __attribute__ ((__nothrow__ , __leaf__));
-extern int close (int __fd);
-extern void closefrom (int __lowfd) __attribute__ ((__nothrow__ , __leaf__));
-extern ssize_t read (int __fd, void *__buf, size_t __nbytes) __attribute__ ((__warn_unused_result__))
-    __attribute__ ((__access__ (__write_only__, 2, 3)));
-extern ssize_t write (int __fd, const void *__buf, size_t __n) __attribute__ ((__warn_unused_result__))
-    __attribute__ ((__access__ (__read_only__, 2, 3)));
-extern ssize_t pread (int __fd, void *__buf, size_t __nbytes,
-        __off_t __offset) __attribute__ ((__warn_unused_result__))
-    __attribute__ ((__access__ (__write_only__, 2, 3)));
-extern ssize_t pwrite (int __fd, const void *__buf, size_t __n,
-         __off_t __offset) __attribute__ ((__warn_unused_result__))
-    __attribute__ ((__access__ (__read_only__, 2, 3)));
-extern int pipe (int __pipedes[2]) __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__warn_unused_result__));
-extern unsigned int alarm (unsigned int __seconds) __attribute__ ((__nothrow__ , __leaf__));
-extern unsigned int sleep (unsigned int __seconds);
-extern __useconds_t ualarm (__useconds_t __value, __useconds_t __interval)
-     __attribute__ ((__nothrow__ , __leaf__));
-extern int usleep (__useconds_t __useconds);
-extern int pause (void);
-extern int chown (const char *__file, __uid_t __owner, __gid_t __group)
-     __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__nonnull__ (1))) __attribute__ ((__warn_unused_result__));
-extern int fchown (int __fd, __uid_t __owner, __gid_t __group) __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__warn_unused_result__));
-extern int lchown (const char *__file, __uid_t __owner, __gid_t __group)
-     __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__nonnull__ (1))) __attribute__ ((__warn_unused_result__));
-extern int fchownat (int __fd, const char *__file, __uid_t __owner,
-       __gid_t __group, int __flag)
-     __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__nonnull__ (2))) __attribute__ ((__warn_unused_result__));
-extern int chdir (const char *__path) __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__nonnull__ (1))) __attribute__ ((__warn_unused_result__));
-extern int fchdir (int __fd) __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__warn_unused_result__));
-extern char *getcwd (char *__buf, size_t __size) __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__warn_unused_result__));
-extern char *getwd (char *__buf)
-     __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__nonnull__ (1))) __attribute__ ((__deprecated__)) __attribute__ ((__warn_unused_result__))
-    __attribute__ ((__access__ (__write_only__, 1)));
-extern int dup (int __fd) __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__warn_unused_result__));
-extern int dup2 (int __fd, int __fd2) __attribute__ ((__nothrow__ , __leaf__));
-extern char **__environ;
-extern int execve (const char *__path, char *const __argv[],
-     char *const __envp[]) __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__nonnull__ (1, 2)));
-extern int fexecve (int __fd, char *const __argv[], char *const __envp[])
-     __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__nonnull__ (2)));
-extern int execv (const char *__path, char *const __argv[])
-     __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__nonnull__ (1, 2)));
-extern int execle (const char *__path, const char *__arg, ...)
-     __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__nonnull__ (1, 2)));
-extern int execl (const char *__path, const char *__arg, ...)
-     __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__nonnull__ (1, 2)));
-extern int execvp (const char *__file, char *const __argv[])
-     __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__nonnull__ (1, 2)));
-extern int execlp (const char *__file, const char *__arg, ...)
-     __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__nonnull__ (1, 2)));
-extern int nice (int __inc) __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__warn_unused_result__));
-extern void _exit (int __status) __attribute__ ((__noreturn__));
-enum
-  {
-    _PC_LINK_MAX,
-    _PC_MAX_CANON,
-    _PC_MAX_INPUT,
-    _PC_NAME_MAX,
-    _PC_PATH_MAX,
-    _PC_PIPE_BUF,
-    _PC_CHOWN_RESTRICTED,
-    _PC_NO_TRUNC,
-    _PC_VDISABLE,
-    _PC_SYNC_IO,
-    _PC_ASYNC_IO,
-    _PC_PRIO_IO,
-    _PC_SOCK_MAXBUF,
-    _PC_FILESIZEBITS,
-    _PC_REC_INCR_XFER_SIZE,
-    _PC_REC_MAX_XFER_SIZE,
-    _PC_REC_MIN_XFER_SIZE,
-    _PC_REC_XFER_ALIGN,
-    _PC_ALLOC_SIZE_MIN,
-    _PC_SYMLINK_MAX,
-    _PC_2_SYMLINKS
-  };
-enum
-  {
-    _SC_ARG_MAX,
-    _SC_CHILD_MAX,
-    _SC_CLK_TCK,
-    _SC_NGROUPS_MAX,
-    _SC_OPEN_MAX,
-    _SC_STREAM_MAX,
-    _SC_TZNAME_MAX,
-    _SC_JOB_CONTROL,
-    _SC_SAVED_IDS,
-    _SC_REALTIME_SIGNALS,
-    _SC_PRIORITY_SCHEDULING,
-    _SC_TIMERS,
-    _SC_ASYNCHRONOUS_IO,
-    _SC_PRIORITIZED_IO,
-    _SC_SYNCHRONIZED_IO,
-    _SC_FSYNC,
-    _SC_MAPPED_FILES,
-    _SC_MEMLOCK,
-    _SC_MEMLOCK_RANGE,
-    _SC_MEMORY_PROTECTION,
-    _SC_MESSAGE_PASSING,
-    _SC_SEMAPHORES,
-    _SC_SHARED_MEMORY_OBJECTS,
-    _SC_AIO_LISTIO_MAX,
-    _SC_AIO_MAX,
-    _SC_AIO_PRIO_DELTA_MAX,
-    _SC_DELAYTIMER_MAX,
-    _SC_MQ_OPEN_MAX,
-    _SC_MQ_PRIO_MAX,
-    _SC_VERSION,
-    _SC_PAGESIZE,
-    _SC_RTSIG_MAX,
-    _SC_SEM_NSEMS_MAX,
-    _SC_SEM_VALUE_MAX,
-    _SC_SIGQUEUE_MAX,
-    _SC_TIMER_MAX,
-    _SC_BC_BASE_MAX,
-    _SC_BC_DIM_MAX,
-    _SC_BC_SCALE_MAX,
-    _SC_BC_STRING_MAX,
-    _SC_COLL_WEIGHTS_MAX,
-    _SC_EQUIV_CLASS_MAX,
-    _SC_EXPR_NEST_MAX,
-    _SC_LINE_MAX,
-    _SC_RE_DUP_MAX,
-    _SC_CHARCLASS_NAME_MAX,
-    _SC_2_VERSION,
-    _SC_2_C_BIND,
-    _SC_2_C_DEV,
-    _SC_2_FORT_DEV,
-    _SC_2_FORT_RUN,
-    _SC_2_SW_DEV,
-    _SC_2_LOCALEDEF,
-    _SC_PII,
-    _SC_PII_XTI,
-    _SC_PII_SOCKET,
-    _SC_PII_INTERNET,
-    _SC_PII_OSI,
-    _SC_POLL,
-    _SC_SELECT,
-    _SC_UIO_MAXIOV,
-    _SC_IOV_MAX = _SC_UIO_MAXIOV,
-    _SC_PII_INTERNET_STREAM,
-    _SC_PII_INTERNET_DGRAM,
-    _SC_PII_OSI_COTS,
-    _SC_PII_OSI_CLTS,
-    _SC_PII_OSI_M,
-    _SC_T_IOV_MAX,
-    _SC_THREADS,
-    _SC_THREAD_SAFE_FUNCTIONS,
-    _SC_GETGR_R_SIZE_MAX,
-    _SC_GETPW_R_SIZE_MAX,
-    _SC_LOGIN_NAME_MAX,
-    _SC_TTY_NAME_MAX,
-    _SC_THREAD_DESTRUCTOR_ITERATIONS,
-    _SC_THREAD_KEYS_MAX,
-    _SC_THREAD_STACK_MIN,
-    _SC_THREAD_THREADS_MAX,
-    _SC_THREAD_ATTR_STACKADDR,
-    _SC_THREAD_ATTR_STACKSIZE,
-    _SC_THREAD_PRIORITY_SCHEDULING,
-    _SC_THREAD_PRIO_INHERIT,
-    _SC_THREAD_PRIO_PROTECT,
-    _SC_THREAD_PROCESS_SHARED,
-    _SC_NPROCESSORS_CONF,
-    _SC_NPROCESSORS_ONLN,
-    _SC_PHYS_PAGES,
-    _SC_AVPHYS_PAGES,
-    _SC_ATEXIT_MAX,
-    _SC_PASS_MAX,
-    _SC_XOPEN_VERSION,
-    _SC_XOPEN_XCU_VERSION,
-    _SC_XOPEN_UNIX,
-    _SC_XOPEN_CRYPT,
-    _SC_XOPEN_ENH_I18N,
-    _SC_XOPEN_SHM,
-    _SC_2_CHAR_TERM,
-    _SC_2_C_VERSION,
-    _SC_2_UPE,
-    _SC_XOPEN_XPG2,
-    _SC_XOPEN_XPG3,
-    _SC_XOPEN_XPG4,
-    _SC_CHAR_BIT,
-    _SC_CHAR_MAX,
-    _SC_CHAR_MIN,
-    _SC_INT_MAX,
-    _SC_INT_MIN,
-    _SC_LONG_BIT,
-    _SC_WORD_BIT,
-    _SC_MB_LEN_MAX,
-    _SC_NZERO,
-    _SC_SSIZE_MAX,
-    _SC_SCHAR_MAX,
-    _SC_SCHAR_MIN,
-    _SC_SHRT_MAX,
-    _SC_SHRT_MIN,
-    _SC_UCHAR_MAX,
-    _SC_UINT_MAX,
-    _SC_ULONG_MAX,
-    _SC_USHRT_MAX,
-    _SC_NL_ARGMAX,
-    _SC_NL_LANGMAX,
-    _SC_NL_MSGMAX,
-    _SC_NL_NMAX,
-    _SC_NL_SETMAX,
-    _SC_NL_TEXTMAX,
-    _SC_XBS5_ILP32_OFF32,
-    _SC_XBS5_ILP32_OFFBIG,
-    _SC_XBS5_LP64_OFF64,
-    _SC_XBS5_LPBIG_OFFBIG,
-    _SC_XOPEN_LEGACY,
-    _SC_XOPEN_REALTIME,
-    _SC_XOPEN_REALTIME_THREADS,
-    _SC_ADVISORY_INFO,
-    _SC_BARRIERS,
-    _SC_BASE,
-    _SC_C_LANG_SUPPORT,
-    _SC_C_LANG_SUPPORT_R,
-    _SC_CLOCK_SELECTION,
-    _SC_CPUTIME,
-    _SC_THREAD_CPUTIME,
-    _SC_DEVICE_IO,
-    _SC_DEVICE_SPECIFIC,
-    _SC_DEVICE_SPECIFIC_R,
-    _SC_FD_MGMT,
-    _SC_FIFO,
-    _SC_PIPE,
-    _SC_FILE_ATTRIBUTES,
-    _SC_FILE_LOCKING,
-    _SC_FILE_SYSTEM,
-    _SC_MONOTONIC_CLOCK,
-    _SC_MULTI_PROCESS,
-    _SC_SINGLE_PROCESS,
-    _SC_NETWORKING,
-    _SC_READER_WRITER_LOCKS,
-    _SC_SPIN_LOCKS,
-    _SC_REGEXP,
-    _SC_REGEX_VERSION,
-    _SC_SHELL,
-    _SC_SIGNALS,
-    _SC_SPAWN,
-    _SC_SPORADIC_SERVER,
-    _SC_THREAD_SPORADIC_SERVER,
-    _SC_SYSTEM_DATABASE,
-    _SC_SYSTEM_DATABASE_R,
-    _SC_TIMEOUTS,
-    _SC_TYPED_MEMORY_OBJECTS,
-    _SC_USER_GROUPS,
-    _SC_USER_GROUPS_R,
-    _SC_2_PBS,
-    _SC_2_PBS_ACCOUNTING,
-    _SC_2_PBS_LOCATE,
-    _SC_2_PBS_MESSAGE,
-    _SC_2_PBS_TRACK,
-    _SC_SYMLOOP_MAX,
-    _SC_STREAMS,
-    _SC_2_PBS_CHECKPOINT,
-    _SC_V6_ILP32_OFF32,
-    _SC_V6_ILP32_OFFBIG,
-    _SC_V6_LP64_OFF64,
-    _SC_V6_LPBIG_OFFBIG,
-    _SC_HOST_NAME_MAX,
-    _SC_TRACE,
-    _SC_TRACE_EVENT_FILTER,
-    _SC_TRACE_INHERIT,
-    _SC_TRACE_LOG,
-    _SC_LEVEL1_ICACHE_SIZE,
-    _SC_LEVEL1_ICACHE_ASSOC,
-    _SC_LEVEL1_ICACHE_LINESIZE,
-    _SC_LEVEL1_DCACHE_SIZE,
-    _SC_LEVEL1_DCACHE_ASSOC,
-    _SC_LEVEL1_DCACHE_LINESIZE,
-    _SC_LEVEL2_CACHE_SIZE,
-    _SC_LEVEL2_CACHE_ASSOC,
-    _SC_LEVEL2_CACHE_LINESIZE,
-    _SC_LEVEL3_CACHE_SIZE,
-    _SC_LEVEL3_CACHE_ASSOC,
-    _SC_LEVEL3_CACHE_LINESIZE,
-    _SC_LEVEL4_CACHE_SIZE,
-    _SC_LEVEL4_CACHE_ASSOC,
-    _SC_LEVEL4_CACHE_LINESIZE,
-    _SC_IPV6 = _SC_LEVEL1_ICACHE_SIZE + 50,
-    _SC_RAW_SOCKETS,
-    _SC_V7_ILP32_OFF32,
-    _SC_V7_ILP32_OFFBIG,
-    _SC_V7_LP64_OFF64,
-    _SC_V7_LPBIG_OFFBIG,
-    _SC_SS_REPL_MAX,
-    _SC_TRACE_EVENT_NAME_MAX,
-    _SC_TRACE_NAME_MAX,
-    _SC_TRACE_SYS_MAX,
-    _SC_TRACE_USER_EVENT_MAX,
-    _SC_XOPEN_STREAMS,
-    _SC_THREAD_ROBUST_PRIO_INHERIT,
-    _SC_THREAD_ROBUST_PRIO_PROTECT,
-    _SC_MINSIGSTKSZ,
-    _SC_SIGSTKSZ
-  };
-enum
-  {
-    _CS_PATH,
-    _CS_V6_WIDTH_RESTRICTED_ENVS,
-    _CS_GNU_LIBC_VERSION,
-    _CS_GNU_LIBPTHREAD_VERSION,
-    _CS_V5_WIDTH_RESTRICTED_ENVS,
-    _CS_V7_WIDTH_RESTRICTED_ENVS,
-    _CS_LFS_CFLAGS = 1000,
-    _CS_LFS_LDFLAGS,
-    _CS_LFS_LIBS,
-    _CS_LFS_LINTFLAGS,
-    _CS_LFS64_CFLAGS,
-    _CS_LFS64_LDFLAGS,
-    _CS_LFS64_LIBS,
-    _CS_LFS64_LINTFLAGS,
-    _CS_XBS5_ILP32_OFF32_CFLAGS = 1100,
-    _CS_XBS5_ILP32_OFF32_LDFLAGS,
-    _CS_XBS5_ILP32_OFF32_LIBS,
-    _CS_XBS5_ILP32_OFF32_LINTFLAGS,
-    _CS_XBS5_ILP32_OFFBIG_CFLAGS,
-    _CS_XBS5_ILP32_OFFBIG_LDFLAGS,
-    _CS_XBS5_ILP32_OFFBIG_LIBS,
-    _CS_XBS5_ILP32_OFFBIG_LINTFLAGS,
-    _CS_XBS5_LP64_OFF64_CFLAGS,
-    _CS_XBS5_LP64_OFF64_LDFLAGS,
-    _CS_XBS5_LP64_OFF64_LIBS,
-    _CS_XBS5_LP64_OFF64_LINTFLAGS,
-    _CS_XBS5_LPBIG_OFFBIG_CFLAGS,
-    _CS_XBS5_LPBIG_OFFBIG_LDFLAGS,
-    _CS_XBS5_LPBIG_OFFBIG_LIBS,
-    _CS_XBS5_LPBIG_OFFBIG_LINTFLAGS,
-    _CS_POSIX_V6_ILP32_OFF32_CFLAGS,
-    _CS_POSIX_V6_ILP32_OFF32_LDFLAGS,
-    _CS_POSIX_V6_ILP32_OFF32_LIBS,
-    _CS_POSIX_V6_ILP32_OFF32_LINTFLAGS,
-    _CS_POSIX_V6_ILP32_OFFBIG_CFLAGS,
-    _CS_POSIX_V6_ILP32_OFFBIG_LDFLAGS,
-    _CS_POSIX_V6_ILP32_OFFBIG_LIBS,
-    _CS_POSIX_V6_ILP32_OFFBIG_LINTFLAGS,
-    _CS_POSIX_V6_LP64_OFF64_CFLAGS,
-    _CS_POSIX_V6_LP64_OFF64_LDFLAGS,
-    _CS_POSIX_V6_LP64_OFF64_LIBS,
-    _CS_POSIX_V6_LP64_OFF64_LINTFLAGS,
-    _CS_POSIX_V6_LPBIG_OFFBIG_CFLAGS,
-    _CS_POSIX_V6_LPBIG_OFFBIG_LDFLAGS,
-    _CS_POSIX_V6_LPBIG_OFFBIG_LIBS,
-    _CS_POSIX_V6_LPBIG_OFFBIG_LINTFLAGS,
-    _CS_POSIX_V7_ILP32_OFF32_CFLAGS,
-    _CS_POSIX_V7_ILP32_OFF32_LDFLAGS,
-    _CS_POSIX_V7_ILP32_OFF32_LIBS,
-    _CS_POSIX_V7_ILP32_OFF32_LINTFLAGS,
-    _CS_POSIX_V7_ILP32_OFFBIG_CFLAGS,
-    _CS_POSIX_V7_ILP32_OFFBIG_LDFLAGS,
-    _CS_POSIX_V7_ILP32_OFFBIG_LIBS,
-    _CS_POSIX_V7_ILP32_OFFBIG_LINTFLAGS,
-    _CS_POSIX_V7_LP64_OFF64_CFLAGS,
-    _CS_POSIX_V7_LP64_OFF64_LDFLAGS,
-    _CS_POSIX_V7_LP64_OFF64_LIBS,
-    _CS_POSIX_V7_LP64_OFF64_LINTFLAGS,
-    _CS_POSIX_V7_LPBIG_OFFBIG_CFLAGS,
-    _CS_POSIX_V7_LPBIG_OFFBIG_LDFLAGS,
-    _CS_POSIX_V7_LPBIG_OFFBIG_LIBS,
-    _CS_POSIX_V7_LPBIG_OFFBIG_LINTFLAGS,
-    _CS_V6_ENV,
-    _CS_V7_ENV
-  };
-extern long int pathconf (const char *__path, int __name)
-     __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__nonnull__ (1)));
-extern long int fpathconf (int __fd, int __name) __attribute__ ((__nothrow__ , __leaf__));
-extern long int sysconf (int __name) __attribute__ ((__nothrow__ , __leaf__));
-extern size_t confstr (int __name, char *__buf, size_t __len) __attribute__ ((__nothrow__ , __leaf__))
-    __attribute__ ((__access__ (__write_only__, 2, 3)));
-extern __pid_t getpid (void) __attribute__ ((__nothrow__ , __leaf__));
-extern __pid_t getppid (void) __attribute__ ((__nothrow__ , __leaf__));
-extern __pid_t getpgrp (void) __attribute__ ((__nothrow__ , __leaf__));
-extern __pid_t __getpgid (__pid_t __pid) __attribute__ ((__nothrow__ , __leaf__));
-extern __pid_t getpgid (__pid_t __pid) __attribute__ ((__nothrow__ , __leaf__));
-extern int setpgid (__pid_t __pid, __pid_t __pgid) __attribute__ ((__nothrow__ , __leaf__));
-extern int setpgrp (void) __attribute__ ((__nothrow__ , __leaf__));
-extern __pid_t setsid (void) __attribute__ ((__nothrow__ , __leaf__));
-extern __pid_t getsid (__pid_t __pid) __attribute__ ((__nothrow__ , __leaf__));
-extern __uid_t getuid (void) __attribute__ ((__nothrow__ , __leaf__));
-extern __uid_t geteuid (void) __attribute__ ((__nothrow__ , __leaf__));
-extern __gid_t getgid (void) __attribute__ ((__nothrow__ , __leaf__));
-extern __gid_t getegid (void) __attribute__ ((__nothrow__ , __leaf__));
-extern int getgroups (int __size, __gid_t __list[]) __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__warn_unused_result__))
-    __attribute__ ((__access__ (__write_only__, 2, 1)));
-extern int setuid (__uid_t __uid) __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__warn_unused_result__));
-extern int setreuid (__uid_t __ruid, __uid_t __euid) __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__warn_unused_result__));
-extern int seteuid (__uid_t __uid) __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__warn_unused_result__));
-extern int setgid (__gid_t __gid) __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__warn_unused_result__));
-extern int setregid (__gid_t __rgid, __gid_t __egid) __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__warn_unused_result__));
-extern int setegid (__gid_t __gid) __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__warn_unused_result__));
-extern __pid_t fork (void) __attribute__ ((__nothrow__));
-extern __pid_t vfork (void) __attribute__ ((__nothrow__ , __leaf__));
-extern char *ttyname (int __fd) __attribute__ ((__nothrow__ , __leaf__));
-extern int ttyname_r (int __fd, char *__buf, size_t __buflen)
-     __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__nonnull__ (2))) __attribute__ ((__warn_unused_result__))
-     __attribute__ ((__access__ (__write_only__, 2, 3)));
-extern int isatty (int __fd) __attribute__ ((__nothrow__ , __leaf__));
-extern int ttyslot (void) __attribute__ ((__nothrow__ , __leaf__));
-extern int link (const char *__from, const char *__to)
-     __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__nonnull__ (1, 2))) __attribute__ ((__warn_unused_result__));
-extern int linkat (int __fromfd, const char *__from, int __tofd,
-     const char *__to, int __flags)
-     __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__nonnull__ (2, 4))) __attribute__ ((__warn_unused_result__));
-extern int symlink (const char *__from, const char *__to)
-     __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__nonnull__ (1, 2))) __attribute__ ((__warn_unused_result__));
-extern ssize_t readlink (const char *__restrict __path,
-    char *__restrict __buf, size_t __len)
-     __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__nonnull__ (1, 2))) __attribute__ ((__warn_unused_result__))
-     __attribute__ ((__access__ (__write_only__, 2, 3)));
-extern int symlinkat (const char *__from, int __tofd,
-        const char *__to) __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__nonnull__ (1, 3))) __attribute__ ((__warn_unused_result__));
-extern ssize_t readlinkat (int __fd, const char *__restrict __path,
-      char *__restrict __buf, size_t __len)
-     __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__nonnull__ (2, 3))) __attribute__ ((__warn_unused_result__))
-     __attribute__ ((__access__ (__write_only__, 3, 4)));
-extern int unlink (const char *__name) __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__nonnull__ (1)));
-extern int unlinkat (int __fd, const char *__name, int __flag)
-     __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__nonnull__ (2)));
-extern int rmdir (const char *__path) __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__nonnull__ (1)));
-extern __pid_t tcgetpgrp (int __fd) __attribute__ ((__nothrow__ , __leaf__));
-extern int tcsetpgrp (int __fd, __pid_t __pgrp_id) __attribute__ ((__nothrow__ , __leaf__));
-extern char *getlogin (void);
-extern int getlogin_r (char *__name, size_t __name_len) __attribute__ ((__nonnull__ (1)))
-    __attribute__ ((__access__ (__write_only__, 1, 2)));
-extern int setlogin (const char *__name) __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__nonnull__ (1)));
-
-extern char *optarg;
-extern int optind;
-extern int opterr;
-extern int optopt;
-extern int getopt (int ___argc, char *const *___argv, const char *__shortopts)
-       __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__nonnull__ (2, 3)));
-
-
-
-extern int gethostname (char *__name, size_t __len) __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__nonnull__ (1)))
-    __attribute__ ((__access__ (__write_only__, 1, 2)));
-extern int sethostname (const char *__name, size_t __len)
-     __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__nonnull__ (1))) __attribute__ ((__warn_unused_result__)) __attribute__ ((__access__ (__read_only__, 1, 2)));
-extern int sethostid (long int __id) __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__warn_unused_result__));
-extern int getdomainname (char *__name, size_t __len)
-     __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__nonnull__ (1))) __attribute__ ((__warn_unused_result__))
-     __attribute__ ((__access__ (__write_only__, 1, 2)));
-extern int setdomainname (const char *__name, size_t __len)
-     __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__nonnull__ (1))) __attribute__ ((__warn_unused_result__)) __attribute__ ((__access__ (__read_only__, 1, 2)));
-extern int vhangup (void) __attribute__ ((__nothrow__ , __leaf__));
-extern int revoke (const char *__file) __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__nonnull__ (1))) __attribute__ ((__warn_unused_result__));
-extern int profil (unsigned short int *__sample_buffer, size_t __size,
-     size_t __offset, unsigned int __scale)
-     __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__nonnull__ (1)));
-extern int acct (const char *__name) __attribute__ ((__nothrow__ , __leaf__));
-extern char *getusershell (void) __attribute__ ((__nothrow__ , __leaf__));
-extern void endusershell (void) __attribute__ ((__nothrow__ , __leaf__));
-extern void setusershell (void) __attribute__ ((__nothrow__ , __leaf__));
-extern int daemon (int __nochdir, int __noclose) __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__warn_unused_result__));
-extern int chroot (const char *__path) __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__nonnull__ (1))) __attribute__ ((__warn_unused_result__));
-extern char *getpass (const char *__prompt) __attribute__ ((__nonnull__ (1)));
-extern int fsync (int __fd);
-extern long int gethostid (void);
-extern void sync (void) __attribute__ ((__nothrow__ , __leaf__));
-extern int getpagesize (void) __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__const__));
-extern int getdtablesize (void) __attribute__ ((__nothrow__ , __leaf__));
-extern int truncate (const char *__file, __off_t __length)
-     __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__nonnull__ (1))) __attribute__ ((__warn_unused_result__));
-extern int ftruncate (int __fd, __off_t __length) __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__warn_unused_result__));
-extern int brk (void *__addr) __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__warn_unused_result__));
-extern void *sbrk (intptr_t __delta) __attribute__ ((__nothrow__ , __leaf__));
-extern long int syscall (long int __sysno, ...) __attribute__ ((__nothrow__ , __leaf__));
-extern int lockf (int __fd, int __cmd, __off_t __len) __attribute__ ((__warn_unused_result__));
-extern int fdatasync (int __fildes);
-extern char *crypt (const char *__key, const char *__salt)
-     __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__nonnull__ (1, 2)));
-int getentropy (void *__buffer, size_t __length) __attribute__ ((__warn_unused_result__))
-    __attribute__ ((__access__ (__write_only__, 1, 2)));
-extern ssize_t __read_chk (int __fd, void *__buf, size_t __nbytes,
-      size_t __buflen)
-  __attribute__ ((__warn_unused_result__)) __attribute__ ((__access__ (__write_only__, 2, 3)));
-extern ssize_t __read_alias (int __fd, void *__buf, size_t __nbytes) __asm__ ("" "read")
-  __attribute__ ((__warn_unused_result__)) __attribute__ ((__access__ (__write_only__, 2, 3)));
-extern ssize_t __read_chk_warn (int __fd, void *__buf, size_t __nbytes, size_t __buflen) __asm__ ("" "__read_chk")
-     __attribute__ ((__warn_unused_result__)) __attribute__((__warning__ ("read called with bigger length than size of " "the destination buffer")));
-extern __inline __attribute__ ((__always_inline__)) __attribute__ ((__gnu_inline__)) __attribute__ ((__artificial__)) __attribute__ ((__warn_unused_result__)) ssize_t
-read (int __fd, void *__buf, size_t __nbytes)
-{
-  return ((((__typeof (__nbytes)) 0 < (__typeof (__nbytes)) -1 || (__builtin_constant_p (__nbytes) && (__nbytes) > 0)) && __builtin_constant_p ((((long unsigned int) (__nbytes)) <= (__builtin_object_size (__buf, 0)) / (sizeof (char)))) && (((long unsigned int) (__nbytes)) <= (__builtin_object_size (__buf, 0)) / (sizeof (char)))) ? __read_alias (__fd, __buf, __nbytes) : ((((__typeof (__nbytes)) 0 < (__typeof (__nbytes)) -1 || (__builtin_constant_p (__nbytes) && (__nbytes) > 0)) && __builtin_constant_p ((((long unsigned int) (__nbytes)) <= (__builtin_object_size (__buf, 0)) / (sizeof (char)))) && !(((long unsigned int) (__nbytes)) <= (__builtin_object_size (__buf, 0)) / (sizeof (char)))) ? __read_chk_warn (__fd, __buf, __nbytes, __builtin_object_size (__buf, 0)) : __read_chk (__fd, __buf, __nbytes, __builtin_object_size (__buf, 0))));
-}
-extern ssize_t __pread_chk (int __fd, void *__buf, size_t __nbytes,
-       __off_t __offset, size_t __bufsize)
-  __attribute__ ((__warn_unused_result__)) __attribute__ ((__access__ (__write_only__, 2, 3)));
-extern ssize_t __pread64_chk (int __fd, void *__buf, size_t __nbytes,
-         __off64_t __offset, size_t __bufsize)
-  __attribute__ ((__warn_unused_result__)) __attribute__ ((__access__ (__write_only__, 2, 3)));
-extern ssize_t __pread_alias (int __fd, void *__buf, size_t __nbytes, __off_t __offset) __asm__ ("" "pread")
-  __attribute__ ((__warn_unused_result__)) __attribute__ ((__access__ (__write_only__, 2, 3)));
-extern ssize_t __pread64_alias (int __fd, void *__buf, size_t __nbytes, __off64_t __offset) __asm__ ("" "pread64")
-  __attribute__ ((__warn_unused_result__)) __attribute__ ((__access__ (__write_only__, 2, 3)));
-extern ssize_t __pread_chk_warn (int __fd, void *__buf, size_t __nbytes, __off_t __offset, size_t __bufsize) __asm__ ("" "__pread_chk")
-     __attribute__ ((__warn_unused_result__)) __attribute__((__warning__ ("pread called with bigger length than size of " "the destination buffer")));
-extern ssize_t __pread64_chk_warn (int __fd, void *__buf, size_t __nbytes, __off64_t __offset, size_t __bufsize) __asm__ ("" "__pread64_chk")
-     __attribute__ ((__warn_unused_result__)) __attribute__((__warning__ ("pread64 called with bigger length than size of " "the destination buffer")));
-extern __inline __attribute__ ((__always_inline__)) __attribute__ ((__gnu_inline__)) __attribute__ ((__artificial__)) __attribute__ ((__warn_unused_result__)) ssize_t
-pread (int __fd, void *__buf, size_t __nbytes, __off_t __offset)
-{
-  return ((((__typeof (__nbytes)) 0 < (__typeof (__nbytes)) -1 || (__builtin_constant_p (__nbytes) && (__nbytes) > 0)) && __builtin_constant_p ((((long unsigned int) (__nbytes)) <= (__builtin_object_size (__buf, 0)) / (sizeof (char)))) && (((long unsigned int) (__nbytes)) <= (__builtin_object_size (__buf, 0)) / (sizeof (char)))) ? __pread_alias (__fd, __buf, __nbytes, __offset) : ((((__typeof (__nbytes)) 0 < (__typeof (__nbytes)) -1 || (__builtin_constant_p (__nbytes) && (__nbytes) > 0)) && __builtin_constant_p ((((long unsigned int) (__nbytes)) <= (__builtin_object_size (__buf, 0)) / (sizeof (char)))) && !(((long unsigned int) (__nbytes)) <= (__builtin_object_size (__buf, 0)) / (sizeof (char)))) ? __pread_chk_warn (__fd, __buf, __nbytes, __offset, __builtin_object_size (__buf, 0)) : __pread_chk (__fd, __buf, __nbytes, __offset, __builtin_object_size (__buf, 0))));
-}
-extern ssize_t __readlink_chk (const char *__restrict __path,
-          char *__restrict __buf, size_t __len,
-          size_t __buflen)
-     __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__nonnull__ (1, 2))) __attribute__ ((__warn_unused_result__)) __attribute__ ((__access__ (__write_only__, 2, 3)));
-extern ssize_t __readlink_alias (const char *__restrict __path, char *__restrict __buf, size_t __len) __asm__ ("" "readlink") __attribute__ ((__nothrow__ , __leaf__))
-     __attribute__ ((__nonnull__ (1, 2))) __attribute__ ((__warn_unused_result__)) __attribute__ ((__access__ (__write_only__, 2, 3)));
-extern ssize_t __readlink_chk_warn (const char *__restrict __path, char *__restrict __buf, size_t __len, size_t __buflen) __asm__ ("" "__readlink_chk") __attribute__ ((__nothrow__ , __leaf__))
-     __attribute__ ((__nonnull__ (1, 2))) __attribute__ ((__warn_unused_result__)) __attribute__((__warning__ ("readlink called with bigger length " "than size of destination buffer")));
-extern __inline __attribute__ ((__always_inline__)) __attribute__ ((__gnu_inline__)) __attribute__ ((__artificial__)) __attribute__ ((__nonnull__ (1, 2))) __attribute__ ((__warn_unused_result__)) ssize_t
-__attribute__ ((__nothrow__ , __leaf__)) readlink (const char *__restrict __path, char *__restrict __buf, size_t __len)
-{
-  return ((((__typeof (__len)) 0 < (__typeof (__len)) -1 || (__builtin_constant_p (__len) && (__len) > 0)) && __builtin_constant_p ((((long unsigned int) (__len)) <= (__builtin_object_size (__buf, 2 > 1)) / (sizeof (char)))) && (((long unsigned int) (__len)) <= (__builtin_object_size (__buf, 2 > 1)) / (sizeof (char)))) ? __readlink_alias (__path, __buf, __len) : ((((__typeof (__len)) 0 < (__typeof (__len)) -1 || (__builtin_constant_p (__len) && (__len) > 0)) && __builtin_constant_p ((((long unsigned int) (__len)) <= (__builtin_object_size (__buf, 2 > 1)) / (sizeof (char)))) && !(((long unsigned int) (__len)) <= (__builtin_object_size (__buf, 2 > 1)) / (sizeof (char)))) ? __readlink_chk_warn (__path, __buf, __len, __builtin_object_size (__buf, 2 > 1)) : __readlink_chk (__path, __buf, __len, __builtin_object_size (__buf, 2 > 1))));
-}
-extern ssize_t __readlinkat_chk (int __fd, const char *__restrict __path,
-     char *__restrict __buf, size_t __len,
-     size_t __buflen)
-     __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__nonnull__ (2, 3))) __attribute__ ((__warn_unused_result__)) __attribute__ ((__access__ (__write_only__, 3, 4)));
-extern ssize_t __readlinkat_alias (int __fd, const char *__restrict __path, char *__restrict __buf, size_t __len) __asm__ ("" "readlinkat") __attribute__ ((__nothrow__ , __leaf__))
-     __attribute__ ((__nonnull__ (2, 3))) __attribute__ ((__warn_unused_result__)) __attribute__ ((__access__ (__write_only__, 3, 4)));
-extern ssize_t __readlinkat_chk_warn (int __fd, const char *__restrict __path, char *__restrict __buf, size_t __len, size_t __buflen) __asm__ ("" "__readlinkat_chk") __attribute__ ((__nothrow__ , __leaf__))
-     __attribute__ ((__nonnull__ (2, 3))) __attribute__ ((__warn_unused_result__)) __attribute__((__warning__ ("readlinkat called with bigger " "length than size of destination " "buffer")));
-extern __inline __attribute__ ((__always_inline__)) __attribute__ ((__gnu_inline__)) __attribute__ ((__artificial__)) __attribute__ ((__nonnull__ (2, 3))) __attribute__ ((__warn_unused_result__)) ssize_t
-__attribute__ ((__nothrow__ , __leaf__)) readlinkat (int __fd, const char *__restrict __path, char *__restrict __buf, size_t __len)
-{
-  return ((((__typeof (__len)) 0 < (__typeof (__len)) -1 || (__builtin_constant_p (__len) && (__len) > 0)) && __builtin_constant_p ((((long unsigned int) (__len)) <= (__builtin_object_size (__buf, 2 > 1)) / (sizeof (char)))) && (((long unsigned int) (__len)) <= (__builtin_object_size (__buf, 2 > 1)) / (sizeof (char)))) ? __readlinkat_alias (__fd, __path, __buf, __len) : ((((__typeof (__len)) 0 < (__typeof (__len)) -1 || (__builtin_constant_p (__len) && (__len) > 0)) && __builtin_constant_p ((((long unsigned int) (__len)) <= (__builtin_object_size (__buf, 2 > 1)) / (sizeof (char)))) && !(((long unsigned int) (__len)) <= (__builtin_object_size (__buf, 2 > 1)) / (sizeof (char)))) ? __readlinkat_chk_warn (__fd, __path, __buf, __len, __builtin_object_size (__buf, 2 > 1)) : __readlinkat_chk (__fd, __path, __buf, __len, __builtin_object_size (__buf, 2 > 1))));
-}
-extern char *__getcwd_chk (char *__buf, size_t __size, size_t __buflen)
-     __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__warn_unused_result__));
-extern char *__getcwd_alias (char *__buf, size_t __size) __asm__ ("" "getcwd") __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__warn_unused_result__));
-extern char *__getcwd_chk_warn (char *__buf, size_t __size, size_t __buflen) __asm__ ("" "__getcwd_chk") __attribute__ ((__nothrow__ , __leaf__))
-     __attribute__ ((__warn_unused_result__)) __attribute__((__warning__ ("getcwd caller with bigger length than size of " "destination buffer")));
-extern __inline __attribute__ ((__always_inline__)) __attribute__ ((__gnu_inline__)) __attribute__ ((__artificial__)) __attribute__ ((__warn_unused_result__)) char *
-__attribute__ ((__nothrow__ , __leaf__)) getcwd (char *__buf, size_t __size)
-{
-  return ((((__typeof (__size)) 0 < (__typeof (__size)) -1 || (__builtin_constant_p (__size) && (__size) > 0)) && __builtin_constant_p ((((long unsigned int) (__size)) <= (__builtin_object_size (__buf, 2 > 1)) / (sizeof (char)))) && (((long unsigned int) (__size)) <= (__builtin_object_size (__buf, 2 > 1)) / (sizeof (char)))) ? __getcwd_alias (__buf, __size) : ((((__typeof (__size)) 0 < (__typeof (__size)) -1 || (__builtin_constant_p (__size) && (__size) > 0)) && __builtin_constant_p ((((long unsigned int) (__size)) <= (__builtin_object_size (__buf, 2 > 1)) / (sizeof (char)))) && !(((long unsigned int) (__size)) <= (__builtin_object_size (__buf, 2 > 1)) / (sizeof (char)))) ? __getcwd_chk_warn (__buf, __size, __builtin_object_size (__buf, 2 > 1)) : __getcwd_chk (__buf, __size, __builtin_object_size (__buf, 2 > 1))));
-}
-extern char *__getwd_chk (char *__buf, size_t buflen)
-     __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__nonnull__ (1))) __attribute__ ((__warn_unused_result__)) __attribute__ ((__access__ (__write_only__, 1, 2)));
-extern char *__getwd_warn (char *__buf) __asm__ ("" "getwd") __attribute__ ((__nothrow__ , __leaf__))
-     __attribute__ ((__nonnull__ (1))) __attribute__ ((__warn_unused_result__)) __attribute__((__warning__ ("please use getcwd instead, as getwd " "doesn't specify buffer size")));
-extern __inline __attribute__ ((__always_inline__)) __attribute__ ((__gnu_inline__)) __attribute__ ((__artificial__)) __attribute__ ((__nonnull__ (1))) __attribute__ ((__deprecated__)) __attribute__ ((__warn_unused_result__)) char *
-__attribute__ ((__nothrow__ , __leaf__)) getwd (char *__buf)
-{
-  if (__builtin_object_size (__buf, 2 > 1) != (size_t) -1)
-    return __getwd_chk (__buf, __builtin_object_size (__buf, 2 > 1));
-  return __getwd_warn (__buf);
-}
-extern size_t __confstr_chk (int __name, char *__buf, size_t __len,
-        size_t __buflen) __attribute__ ((__nothrow__ , __leaf__))
-  __attribute__ ((__access__ (__write_only__, 2, 3)));
-extern size_t __confstr_alias (int __name, char *__buf, size_t __len) __asm__ ("" "confstr") __attribute__ ((__nothrow__ , __leaf__))
-   __attribute__ ((__access__ (__write_only__, 2, 3)));
-extern size_t __confstr_chk_warn (int __name, char *__buf, size_t __len, size_t __buflen) __asm__ ("" "__confstr_chk") __attribute__ ((__nothrow__ , __leaf__))
-     __attribute__((__warning__ ("confstr called with bigger length than size of destination " "buffer")));
-extern __inline __attribute__ ((__always_inline__)) __attribute__ ((__gnu_inline__)) __attribute__ ((__artificial__)) size_t
-__attribute__ ((__nothrow__ , __leaf__)) confstr (int __name, char *__buf, size_t __len)
-{
-  return ((((__typeof (__len)) 0 < (__typeof (__len)) -1 || (__builtin_constant_p (__len) && (__len) > 0)) && __builtin_constant_p ((((long unsigned int) (__len)) <= (__builtin_object_size (__buf, 2 > 1)) / (sizeof (char)))) && (((long unsigned int) (__len)) <= (__builtin_object_size (__buf, 2 > 1)) / (sizeof (char)))) ? __confstr_alias (__name, __buf, __len) : ((((__typeof (__len)) 0 < (__typeof (__len)) -1 || (__builtin_constant_p (__len) && (__len) > 0)) && __builtin_constant_p ((((long unsigned int) (__len)) <= (__builtin_object_size (__buf, 2 > 1)) / (sizeof (char)))) && !(((long unsigned int) (__len)) <= (__builtin_object_size (__buf, 2 > 1)) / (sizeof (char)))) ? __confstr_chk_warn (__name, __buf, __len, __builtin_object_size (__buf, 2 > 1)) : __confstr_chk (__name, __buf, __len, __builtin_object_size (__buf, 2 > 1))));
-}
-extern int __getgroups_chk (int __size, __gid_t __list[], size_t __listlen)
-  __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__warn_unused_result__)) __attribute__ ((__access__ (__write_only__, 2, 1)));
-extern int __getgroups_alias (int __size, __gid_t __list[]) __asm__ ("" "getgroups") __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__warn_unused_result__)) __attribute__ ((__access__ (__write_only__, 2, 1)));
-extern int __getgroups_chk_warn (int __size, __gid_t __list[], size_t __listlen) __asm__ ("" "__getgroups_chk") __attribute__ ((__nothrow__ , __leaf__))
-     __attribute__ ((__warn_unused_result__)) __attribute__((__warning__ ("getgroups called with bigger group count than what " "can fit into destination buffer")));
-extern __inline __attribute__ ((__always_inline__)) __attribute__ ((__gnu_inline__)) __attribute__ ((__artificial__)) int
-__attribute__ ((__nothrow__ , __leaf__)) getgroups (int __size, __gid_t __list[])
-{
-  return ((((__typeof (__size)) 0 < (__typeof (__size)) -1 || (__builtin_constant_p (__size) && (__size) > 0)) && __builtin_constant_p ((((long unsigned int) (__size)) <= (__builtin_object_size (__list, 2 > 1)) / (sizeof (__gid_t)))) && (((long unsigned int) (__size)) <= (__builtin_object_size (__list, 2 > 1)) / (sizeof (__gid_t)))) ? __getgroups_alias (__size, __list) : ((((__typeof (__size)) 0 < (__typeof (__size)) -1 || (__builtin_constant_p (__size) && (__size) > 0)) && __builtin_constant_p ((((long unsigned int) (__size)) <= (__builtin_object_size (__list, 2 > 1)) / (sizeof (__gid_t)))) && !(((long unsigned int) (__size)) <= (__builtin_object_size (__list, 2 > 1)) / (sizeof (__gid_t)))) ? __getgroups_chk_warn (__size, __list, __builtin_object_size (__list, 2 > 1)) : __getgroups_chk (__size, __list, __builtin_object_size (__list, 2 > 1))));
-}
-extern int __ttyname_r_chk (int __fd, char *__buf, size_t __buflen,
-       size_t __nreal) __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__nonnull__ (2)))
-   __attribute__ ((__access__ (__write_only__, 2, 3)));
-extern int __ttyname_r_alias (int __fd, char *__buf, size_t __buflen) __asm__ ("" "ttyname_r") __attribute__ ((__nothrow__ , __leaf__))
-     __attribute__ ((__nonnull__ (2)));
-extern int __ttyname_r_chk_warn (int __fd, char *__buf, size_t __buflen, size_t __nreal) __asm__ ("" "__ttyname_r_chk") __attribute__ ((__nothrow__ , __leaf__))
-     __attribute__ ((__nonnull__ (2))) __attribute__((__warning__ ("ttyname_r called with bigger buflen than " "size of destination buffer")));
-extern __inline __attribute__ ((__always_inline__)) __attribute__ ((__gnu_inline__)) __attribute__ ((__artificial__)) int
-__attribute__ ((__nothrow__ , __leaf__)) ttyname_r (int __fd, char *__buf, size_t __buflen)
-{
-  return ((((__typeof (__buflen)) 0 < (__typeof (__buflen)) -1 || (__builtin_constant_p (__buflen) && (__buflen) > 0)) && __builtin_constant_p ((((long unsigned int) (__buflen)) <= (__builtin_object_size (__buf, 2 > 1)) / (sizeof (char)))) && (((long unsigned int) (__buflen)) <= (__builtin_object_size (__buf, 2 > 1)) / (sizeof (char)))) ? __ttyname_r_alias (__fd, __buf, __buflen) : ((((__typeof (__buflen)) 0 < (__typeof (__buflen)) -1 || (__builtin_constant_p (__buflen) && (__buflen) > 0)) && __builtin_constant_p ((((long unsigned int) (__buflen)) <= (__builtin_object_size (__buf, 2 > 1)) / (sizeof (char)))) && !(((long unsigned int) (__buflen)) <= (__builtin_object_size (__buf, 2 > 1)) / (sizeof (char)))) ? __ttyname_r_chk_warn (__fd, __buf, __buflen, __builtin_object_size (__buf, 2 > 1)) : __ttyname_r_chk (__fd, __buf, __buflen, __builtin_object_size (__buf, 2 > 1))));
-}
-extern int __getlogin_r_chk (char *__buf, size_t __buflen, size_t __nreal)
-     __attribute__ ((__nonnull__ (1))) __attribute__ ((__access__ (__write_only__, 1, 2)));
-extern int __getlogin_r_alias (char *__buf, size_t __buflen) __asm__ ("" "getlogin_r") __attribute__ ((__nonnull__ (1)));
-extern int __getlogin_r_chk_warn (char *__buf, size_t __buflen, size_t __nreal) __asm__ ("" "__getlogin_r_chk")
-     __attribute__ ((__nonnull__ (1))) __attribute__((__warning__ ("getlogin_r called with bigger buflen than " "size of destination buffer")));
-extern __inline __attribute__ ((__always_inline__)) __attribute__ ((__gnu_inline__)) __attribute__ ((__artificial__)) int
-getlogin_r (char *__buf, size_t __buflen)
-{
-  return ((((__typeof (__buflen)) 0 < (__typeof (__buflen)) -1 || (__builtin_constant_p (__buflen) && (__buflen) > 0)) && __builtin_constant_p ((((long unsigned int) (__buflen)) <= (__builtin_object_size (__buf, 2 > 1)) / (sizeof (char)))) && (((long unsigned int) (__buflen)) <= (__builtin_object_size (__buf, 2 > 1)) / (sizeof (char)))) ? __getlogin_r_alias (__buf, __buflen) : ((((__typeof (__buflen)) 0 < (__typeof (__buflen)) -1 || (__builtin_constant_p (__buflen) && (__buflen) > 0)) && __builtin_constant_p ((((long unsigned int) (__buflen)) <= (__builtin_object_size (__buf, 2 > 1)) / (sizeof (char)))) && !(((long unsigned int) (__buflen)) <= (__builtin_object_size (__buf, 2 > 1)) / (sizeof (char)))) ? __getlogin_r_chk_warn (__buf, __buflen, __builtin_object_size (__buf, 2 > 1)) : __getlogin_r_chk (__buf, __buflen, __builtin_object_size (__buf, 2 > 1))));
-}
-extern int __gethostname_chk (char *__buf, size_t __buflen, size_t __nreal)
-     __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__nonnull__ (1))) __attribute__ ((__access__ (__write_only__, 1, 2)));
-extern int __gethostname_alias (char *__buf, size_t __buflen) __asm__ ("" "gethostname") __attribute__ ((__nothrow__ , __leaf__))
-  __attribute__ ((__nonnull__ (1))) __attribute__ ((__access__ (__write_only__, 1, 2)));
-extern int __gethostname_chk_warn (char *__buf, size_t __buflen, size_t __nreal) __asm__ ("" "__gethostname_chk") __attribute__ ((__nothrow__ , __leaf__))
-     __attribute__ ((__nonnull__ (1))) __attribute__((__warning__ ("gethostname called with bigger buflen than " "size of destination buffer")));
-extern __inline __attribute__ ((__always_inline__)) __attribute__ ((__gnu_inline__)) __attribute__ ((__artificial__)) int
-__attribute__ ((__nothrow__ , __leaf__)) gethostname (char *__buf, size_t __buflen)
-{
-  return ((((__typeof (__buflen)) 0 < (__typeof (__buflen)) -1 || (__builtin_constant_p (__buflen) && (__buflen) > 0)) && __builtin_constant_p ((((long unsigned int) (__buflen)) <= (__builtin_object_size (__buf, 2 > 1)) / (sizeof (char)))) && (((long unsigned int) (__buflen)) <= (__builtin_object_size (__buf, 2 > 1)) / (sizeof (char)))) ? __gethostname_alias (__buf, __buflen) : ((((__typeof (__buflen)) 0 < (__typeof (__buflen)) -1 || (__builtin_constant_p (__buflen) && (__buflen) > 0)) && __builtin_constant_p ((((long unsigned int) (__buflen)) <= (__builtin_object_size (__buf, 2 > 1)) / (sizeof (char)))) && !(((long unsigned int) (__buflen)) <= (__builtin_object_size (__buf, 2 > 1)) / (sizeof (char)))) ? __gethostname_chk_warn (__buf, __buflen, __builtin_object_size (__buf, 2 > 1)) : __gethostname_chk (__buf, __buflen, __builtin_object_size (__buf, 2 > 1))));
-}
-extern int __getdomainname_chk (char *__buf, size_t __buflen, size_t __nreal)
-     __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__nonnull__ (1))) __attribute__ ((__warn_unused_result__)) __attribute__ ((__access__ (__write_only__, 1, 2)));
-extern int __getdomainname_alias (char *__buf, size_t __buflen) __asm__ ("" "getdomainname") __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__nonnull__ (1)))
-  __attribute__ ((__warn_unused_result__)) __attribute__ ((__access__ (__write_only__, 1, 2)));
-extern int __getdomainname_chk_warn (char *__buf, size_t __buflen, size_t __nreal) __asm__ ("" "__getdomainname_chk") __attribute__ ((__nothrow__ , __leaf__))
-     __attribute__ ((__nonnull__ (1))) __attribute__ ((__warn_unused_result__)) __attribute__((__warning__ ("getdomainname called with bigger " "buflen than size of destination " "buffer")));
-extern __inline __attribute__ ((__always_inline__)) __attribute__ ((__gnu_inline__)) __attribute__ ((__artificial__)) int
-__attribute__ ((__nothrow__ , __leaf__)) getdomainname (char *__buf, size_t __buflen)
-{
-  return ((((__typeof (__buflen)) 0 < (__typeof (__buflen)) -1 || (__builtin_constant_p (__buflen) && (__buflen) > 0)) && __builtin_constant_p ((((long unsigned int) (__buflen)) <= (__builtin_object_size (__buf, 2 > 1)) / (sizeof (char)))) && (((long unsigned int) (__buflen)) <= (__builtin_object_size (__buf, 2 > 1)) / (sizeof (char)))) ? __getdomainname_alias (__buf, __buflen) : ((((__typeof (__buflen)) 0 < (__typeof (__buflen)) -1 || (__builtin_constant_p (__buflen) && (__buflen) > 0)) && __builtin_constant_p ((((long unsigned int) (__buflen)) <= (__builtin_object_size (__buf, 2 > 1)) / (sizeof (char)))) && !(((long unsigned int) (__buflen)) <= (__builtin_object_size (__buf, 2 > 1)) / (sizeof (char)))) ? __getdomainname_chk_warn (__buf, __buflen, __builtin_object_size (__buf, 2 > 1)) : __getdomainname_chk (__buf, __buflen, __builtin_object_size (__buf, 2 > 1))));
-}
-
-
-typedef __sig_atomic_t sig_atomic_t;
-union sigval
-{
-  int sival_int;
-  void *sival_ptr;
-};
-typedef union sigval __sigval_t;
-typedef struct
-  {
-    int si_signo;
-    int si_errno;
-    int si_code;
-    int __pad0;
-    union
-      {
- int _pad[((128 / sizeof (int)) - 4)];
- struct
-   {
-     __pid_t si_pid;
-     __uid_t si_uid;
-   } _kill;
- struct
-   {
-     int si_tid;
-     int si_overrun;
-     __sigval_t si_sigval;
-   } _timer;
- struct
-   {
-     __pid_t si_pid;
-     __uid_t si_uid;
-     __sigval_t si_sigval;
-   } _rt;
- struct
-   {
-     __pid_t si_pid;
-     __uid_t si_uid;
-     int si_status;
-     __clock_t si_utime;
-     __clock_t si_stime;
-   } _sigchld;
- struct
-   {
-     void *si_addr;
-    
-     short int si_addr_lsb;
-     union
-       {
-  struct
-    {
-      void *_lower;
-      void *_upper;
-    } _addr_bnd;
-  __uint32_t _pkey;
-       } _bounds;
-   } _sigfault;
- struct
-   {
-     long int si_band;
-     int si_fd;
-   } _sigpoll;
- struct
-   {
-     void *_call_addr;
-     int _syscall;
-     unsigned int _arch;
-   } _sigsys;
-      } _sifields;
-  } siginfo_t ;
-enum
-{
-  SI_ASYNCNL = -60,
-  SI_DETHREAD = -7,
-  SI_TKILL,
-  SI_SIGIO,
-  SI_ASYNCIO,
-  SI_MESGQ,
-  SI_TIMER,
-  SI_QUEUE,
-  SI_USER,
-  SI_KERNEL = 0x80
-};
-enum
-{
-  ILL_ILLOPC = 1,
-  ILL_ILLOPN,
-  ILL_ILLADR,
-  ILL_ILLTRP,
-  ILL_PRVOPC,
-  ILL_PRVREG,
-  ILL_COPROC,
-  ILL_BADSTK,
-  ILL_BADIADDR
-};
-enum
-{
-  FPE_INTDIV = 1,
-  FPE_INTOVF,
-  FPE_FLTDIV,
-  FPE_FLTOVF,
-  FPE_FLTUND,
-  FPE_FLTRES,
-  FPE_FLTINV,
-  FPE_FLTSUB,
-  FPE_FLTUNK = 14,
-  FPE_CONDTRAP
-};
-enum
-{
-  SEGV_MAPERR = 1,
-  SEGV_ACCERR,
-  SEGV_BNDERR,
-  SEGV_PKUERR,
-  SEGV_ACCADI,
-  SEGV_ADIDERR,
-  SEGV_ADIPERR,
-  SEGV_MTEAERR,
-  SEGV_MTESERR
-};
-enum
-{
-  BUS_ADRALN = 1,
-  BUS_ADRERR,
-  BUS_OBJERR,
-  BUS_MCEERR_AR,
-  BUS_MCEERR_AO
-};
-enum
-{
-  CLD_EXITED = 1,
-  CLD_KILLED,
-  CLD_DUMPED,
-  CLD_TRAPPED,
-  CLD_STOPPED,
-  CLD_CONTINUED
-};
-enum
-{
-  POLL_IN = 1,
-  POLL_OUT,
-  POLL_MSG,
-  POLL_ERR,
-  POLL_PRI,
-  POLL_HUP
-};
-typedef __sigval_t sigval_t;
-typedef struct sigevent
-  {
-    __sigval_t sigev_value;
-    int sigev_signo;
-    int sigev_notify;
-    union
-      {
- int _pad[((64 / sizeof (int)) - 4)];
- __pid_t _tid;
- struct
-   {
-     void (*_function) (__sigval_t);
-     pthread_attr_t *_attribute;
-   } _sigev_thread;
-      } _sigev_un;
-  } sigevent_t;
-enum
-{
-  SIGEV_SIGNAL = 0,
-  SIGEV_NONE,
-  SIGEV_THREAD,
-  SIGEV_THREAD_ID = 4
-};
-typedef void (*__sighandler_t) (int);
-extern __sighandler_t __sysv_signal (int __sig, __sighandler_t __handler)
-     __attribute__ ((__nothrow__ , __leaf__));
-extern __sighandler_t signal (int __sig, __sighandler_t __handler)
-     __attribute__ ((__nothrow__ , __leaf__));
-extern int kill (__pid_t __pid, int __sig) __attribute__ ((__nothrow__ , __leaf__));
-extern int killpg (__pid_t __pgrp, int __sig) __attribute__ ((__nothrow__ , __leaf__));
-extern int raise (int __sig) __attribute__ ((__nothrow__ , __leaf__));
-extern __sighandler_t ssignal (int __sig, __sighandler_t __handler)
-     __attribute__ ((__nothrow__ , __leaf__));
-extern int gsignal (int __sig) __attribute__ ((__nothrow__ , __leaf__));
-extern void psignal (int __sig, const char *__s);
-extern void psiginfo (const siginfo_t *__pinfo, const char *__s);
-extern int sigblock (int __mask) __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__deprecated__));
-extern int sigsetmask (int __mask) __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__deprecated__));
-extern int siggetmask (void) __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__deprecated__));
-typedef __sighandler_t sig_t;
-extern int sigemptyset (sigset_t *__set) __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__nonnull__ (1)));
-extern int sigfillset (sigset_t *__set) __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__nonnull__ (1)));
-extern int sigaddset (sigset_t *__set, int __signo) __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__nonnull__ (1)));
-extern int sigdelset (sigset_t *__set, int __signo) __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__nonnull__ (1)));
-extern int sigismember (const sigset_t *__set, int __signo)
-     __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__nonnull__ (1)));
-struct sigaction
-  {
-    union
-      {
- __sighandler_t sa_handler;
- void (*sa_sigaction) (int, siginfo_t *, void *);
-      }
-    __sigaction_handler;
-    __sigset_t sa_mask;
-    int sa_flags;
-    void (*sa_restorer) (void);
-  };
-extern int sigprocmask (int __how, const sigset_t *__restrict __set,
-   sigset_t *__restrict __oset) __attribute__ ((__nothrow__ , __leaf__));
-extern int sigsuspend (const sigset_t *__set) __attribute__ ((__nonnull__ (1)));
-extern int sigaction (int __sig, const struct sigaction *__restrict __act,
-        struct sigaction *__restrict __oact) __attribute__ ((__nothrow__ , __leaf__));
-extern int sigpending (sigset_t *__set) __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__nonnull__ (1)));
-extern int sigwait (const sigset_t *__restrict __set, int *__restrict __sig)
-     __attribute__ ((__nonnull__ (1, 2)));
-extern int sigwaitinfo (const sigset_t *__restrict __set,
-   siginfo_t *__restrict __info) __attribute__ ((__nonnull__ (1)));
-extern int sigtimedwait (const sigset_t *__restrict __set,
-    siginfo_t *__restrict __info,
-    const struct timespec *__restrict __timeout)
-     __attribute__ ((__nonnull__ (1)));
-extern int sigqueue (__pid_t __pid, int __sig, const union sigval __val)
-     __attribute__ ((__nothrow__ , __leaf__));
-struct _fpx_sw_bytes
-{
-  __uint32_t magic1;
-  __uint32_t extended_size;
-  __uint64_t xstate_bv;
-  __uint32_t xstate_size;
-  __uint32_t __glibc_reserved1[7];
-};
-struct _fpreg
-{
-  unsigned short significand[4];
-  unsigned short exponent;
-};
-struct _fpxreg
-{
-  unsigned short significand[4];
-  unsigned short exponent;
-  unsigned short __glibc_reserved1[3];
-};
-struct _xmmreg
-{
-  __uint32_t element[4];
-};
-struct _fpstate
-{
-  __uint16_t cwd;
-  __uint16_t swd;
-  __uint16_t ftw;
-  __uint16_t fop;
-  __uint64_t rip;
-  __uint64_t rdp;
-  __uint32_t mxcsr;
-  __uint32_t mxcr_mask;
-  struct _fpxreg _st[8];
-  struct _xmmreg _xmm[16];
-  __uint32_t __glibc_reserved1[24];
-};
-struct sigcontext
-{
-  __uint64_t r8;
-  __uint64_t r9;
-  __uint64_t r10;
-  __uint64_t r11;
-  __uint64_t r12;
-  __uint64_t r13;
-  __uint64_t r14;
-  __uint64_t r15;
-  __uint64_t rdi;
-  __uint64_t rsi;
-  __uint64_t rbp;
-  __uint64_t rbx;
-  __uint64_t rdx;
-  __uint64_t rax;
-  __uint64_t rcx;
-  __uint64_t rsp;
-  __uint64_t rip;
-  __uint64_t eflags;
-  unsigned short cs;
-  unsigned short gs;
-  unsigned short fs;
-  unsigned short __pad0;
-  __uint64_t err;
-  __uint64_t trapno;
-  __uint64_t oldmask;
-  __uint64_t cr2;
-  __extension__ union
-    {
-      struct _fpstate * fpstate;
-      __uint64_t __fpstate_word;
-    };
-  __uint64_t __reserved1 [8];
-};
-struct _xsave_hdr
-{
-  __uint64_t xstate_bv;
-  __uint64_t __glibc_reserved1[2];
-  __uint64_t __glibc_reserved2[5];
-};
-struct _ymmh_state
-{
-  __uint32_t ymmh_space[64];
-};
-struct _xstate
-{
-  struct _fpstate fpstate;
-  struct _xsave_hdr xstate_hdr;
-  struct _ymmh_state ymmh;
-};
-extern int sigreturn (struct sigcontext *__scp) __attribute__ ((__nothrow__ , __leaf__));
-typedef struct
-  {
-    void *ss_sp;
-    int ss_flags;
-    size_t ss_size;
-  } stack_t;
-__extension__ typedef long long int greg_t;
-typedef greg_t gregset_t[23];
-struct _libc_fpxreg
-{
-  unsigned short int significand[4];
-  unsigned short int exponent;
-  unsigned short int __glibc_reserved1[3];
-};
-struct _libc_xmmreg
-{
-  __uint32_t element[4];
-};
-struct _libc_fpstate
-{
-  __uint16_t cwd;
-  __uint16_t swd;
-  __uint16_t ftw;
-  __uint16_t fop;
-  __uint64_t rip;
-  __uint64_t rdp;
-  __uint32_t mxcsr;
-  __uint32_t mxcr_mask;
-  struct _libc_fpxreg _st[8];
-  struct _libc_xmmreg _xmm[16];
-  __uint32_t __glibc_reserved1[24];
-};
-typedef struct _libc_fpstate *fpregset_t;
-typedef struct
-  {
-    gregset_t gregs;
-    fpregset_t fpregs;
-    __extension__ unsigned long long __reserved1 [8];
-} mcontext_t;
-typedef struct ucontext_t
-  {
-    unsigned long int uc_flags;
-    struct ucontext_t *uc_link;
-    stack_t uc_stack;
-    mcontext_t uc_mcontext;
-    sigset_t uc_sigmask;
-    struct _libc_fpstate __fpregs_mem;
-    __extension__ unsigned long long int __ssp[4];
-  } ucontext_t;
-extern int siginterrupt (int __sig, int __interrupt) __attribute__ ((__nothrow__ , __leaf__))
-  __attribute__ ((__deprecated__ ("Use sigaction with SA_RESTART instead")));
-enum
-{
-  SS_ONSTACK = 1,
-  SS_DISABLE
-};
-extern int sigaltstack (const stack_t *__restrict __ss,
-   stack_t *__restrict __oss) __attribute__ ((__nothrow__ , __leaf__));
-struct sigstack
-  {
-    void *ss_sp;
-    int ss_onstack;
-  };
-extern int sigstack (struct sigstack *__ss, struct sigstack *__oss)
-     __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__deprecated__));
-extern int pthread_sigmask (int __how,
-       const __sigset_t *__restrict __newmask,
-       __sigset_t *__restrict __oldmask)__attribute__ ((__nothrow__ , __leaf__));
-extern int pthread_kill (pthread_t __threadid, int __signo) __attribute__ ((__nothrow__ , __leaf__));
-extern int __libc_current_sigrtmin (void) __attribute__ ((__nothrow__ , __leaf__));
-extern int __libc_current_sigrtmax (void) __attribute__ ((__nothrow__ , __leaf__));
-
-
-struct rpcent
-{
-  char *r_name;
-  char **r_aliases;
-  int r_number;
-};
-extern void setrpcent (int __stayopen) __attribute__ ((__nothrow__ , __leaf__));
-extern void endrpcent (void) __attribute__ ((__nothrow__ , __leaf__));
-extern struct rpcent *getrpcbyname (const char *__name) __attribute__ ((__nothrow__ , __leaf__));
-extern struct rpcent *getrpcbynumber (int __number) __attribute__ ((__nothrow__ , __leaf__));
-extern struct rpcent *getrpcent (void) __attribute__ ((__nothrow__ , __leaf__));
-extern int getrpcbyname_r (const char *__name, struct rpcent *__result_buf,
-      char *__buffer, size_t __buflen,
-      struct rpcent **__result) __attribute__ ((__nothrow__ , __leaf__));
-extern int getrpcbynumber_r (int __number, struct rpcent *__result_buf,
-        char *__buffer, size_t __buflen,
-        struct rpcent **__result) __attribute__ ((__nothrow__ , __leaf__));
-extern int getrpcent_r (struct rpcent *__result_buf, char *__buffer,
-   size_t __buflen, struct rpcent **__result) __attribute__ ((__nothrow__ , __leaf__));
-
-struct netent
-{
-  char *n_name;
-  char **n_aliases;
-  int n_addrtype;
-  uint32_t n_net;
-};
-
-extern int *__h_errno_location (void) __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__const__));
-extern void herror (const char *__str) __attribute__ ((__nothrow__ , __leaf__));
-extern const char *hstrerror (int __err_num) __attribute__ ((__nothrow__ , __leaf__));
-struct hostent
-{
-  char *h_name;
-  char **h_aliases;
-  int h_addrtype;
-  int h_length;
-  char **h_addr_list;
-};
-extern void sethostent (int __stay_open);
-extern void endhostent (void);
-extern struct hostent *gethostent (void);
-extern struct hostent *gethostbyaddr (const void *__addr, __socklen_t __len,
-          int __type);
-extern struct hostent *gethostbyname (const char *__name);
-extern struct hostent *gethostbyname2 (const char *__name, int __af);
-extern int gethostent_r (struct hostent *__restrict __result_buf,
-    char *__restrict __buf, size_t __buflen,
-    struct hostent **__restrict __result,
-    int *__restrict __h_errnop);
-extern int gethostbyaddr_r (const void *__restrict __addr, __socklen_t __len,
-       int __type,
-       struct hostent *__restrict __result_buf,
-       char *__restrict __buf, size_t __buflen,
-       struct hostent **__restrict __result,
-       int *__restrict __h_errnop);
-extern int gethostbyname_r (const char *__restrict __name,
-       struct hostent *__restrict __result_buf,
-       char *__restrict __buf, size_t __buflen,
-       struct hostent **__restrict __result,
-       int *__restrict __h_errnop);
-extern int gethostbyname2_r (const char *__restrict __name, int __af,
-        struct hostent *__restrict __result_buf,
-        char *__restrict __buf, size_t __buflen,
-        struct hostent **__restrict __result,
-        int *__restrict __h_errnop);
-extern void setnetent (int __stay_open);
-extern void endnetent (void);
-extern struct netent *getnetent (void);
-extern struct netent *getnetbyaddr (uint32_t __net, int __type);
-extern struct netent *getnetbyname (const char *__name);
-extern int getnetent_r (struct netent *__restrict __result_buf,
-   char *__restrict __buf, size_t __buflen,
-   struct netent **__restrict __result,
-   int *__restrict __h_errnop);
-extern int getnetbyaddr_r (uint32_t __net, int __type,
-      struct netent *__restrict __result_buf,
-      char *__restrict __buf, size_t __buflen,
-      struct netent **__restrict __result,
-      int *__restrict __h_errnop);
-extern int getnetbyname_r (const char *__restrict __name,
-      struct netent *__restrict __result_buf,
-      char *__restrict __buf, size_t __buflen,
-      struct netent **__restrict __result,
-      int *__restrict __h_errnop);
-struct servent
-{
-  char *s_name;
-  char **s_aliases;
-  int s_port;
-  char *s_proto;
-};
-extern void setservent (int __stay_open);
-extern void endservent (void);
-extern struct servent *getservent (void);
-extern struct servent *getservbyname (const char *__name, const char *__proto);
-extern struct servent *getservbyport (int __port, const char *__proto);
-extern int getservent_r (struct servent *__restrict __result_buf,
-    char *__restrict __buf, size_t __buflen,
-    struct servent **__restrict __result);
-extern int getservbyname_r (const char *__restrict __name,
-       const char *__restrict __proto,
-       struct servent *__restrict __result_buf,
-       char *__restrict __buf, size_t __buflen,
-       struct servent **__restrict __result);
-extern int getservbyport_r (int __port, const char *__restrict __proto,
-       struct servent *__restrict __result_buf,
-       char *__restrict __buf, size_t __buflen,
-       struct servent **__restrict __result);
-struct protoent
-{
-  char *p_name;
-  char **p_aliases;
-  int p_proto;
-};
-extern void setprotoent (int __stay_open);
-extern void endprotoent (void);
-extern struct protoent *getprotoent (void);
-extern struct protoent *getprotobyname (const char *__name);
-extern struct protoent *getprotobynumber (int __proto);
-extern int getprotoent_r (struct protoent *__restrict __result_buf,
-     char *__restrict __buf, size_t __buflen,
-     struct protoent **__restrict __result);
-extern int getprotobyname_r (const char *__restrict __name,
-        struct protoent *__restrict __result_buf,
-        char *__restrict __buf, size_t __buflen,
-        struct protoent **__restrict __result);
-extern int getprotobynumber_r (int __proto,
-          struct protoent *__restrict __result_buf,
-          char *__restrict __buf, size_t __buflen,
-          struct protoent **__restrict __result);
-extern int setnetgrent (const char *__netgroup);
-extern void endnetgrent (void);
-extern int getnetgrent (char **__restrict __hostp,
-   char **__restrict __userp,
-   char **__restrict __domainp);
-extern int innetgr (const char *__netgroup, const char *__host,
-      const char *__user, const char *__domain);
-extern int getnetgrent_r (char **__restrict __hostp,
-     char **__restrict __userp,
-     char **__restrict __domainp,
-     char *__restrict __buffer, size_t __buflen);
-extern int rcmd (char **__restrict __ahost, unsigned short int __rport,
-   const char *__restrict __locuser,
-   const char *__restrict __remuser,
-   const char *__restrict __cmd, int *__restrict __fd2p);
-extern int rcmd_af (char **__restrict __ahost, unsigned short int __rport,
-      const char *__restrict __locuser,
-      const char *__restrict __remuser,
-      const char *__restrict __cmd, int *__restrict __fd2p,
-      sa_family_t __af);
-extern int rexec (char **__restrict __ahost, int __rport,
-    const char *__restrict __name,
-    const char *__restrict __pass,
-    const char *__restrict __cmd, int *__restrict __fd2p);
-extern int rexec_af (char **__restrict __ahost, int __rport,
-       const char *__restrict __name,
-       const char *__restrict __pass,
-       const char *__restrict __cmd, int *__restrict __fd2p,
-       sa_family_t __af);
-extern int ruserok (const char *__rhost, int __suser,
-      const char *__remuser, const char *__locuser);
-extern int ruserok_af (const char *__rhost, int __suser,
-         const char *__remuser, const char *__locuser,
-         sa_family_t __af);
-extern int iruserok (uint32_t __raddr, int __suser,
-       const char *__remuser, const char *__locuser);
-extern int iruserok_af (const void *__raddr, int __suser,
-   const char *__remuser, const char *__locuser,
-   sa_family_t __af);
-extern int rresvport (int *__alport);
-extern int rresvport_af (int *__alport, sa_family_t __af);
-struct addrinfo
-{
-  int ai_flags;
-  int ai_family;
-  int ai_socktype;
-  int ai_protocol;
-  socklen_t ai_addrlen;
-  struct sockaddr *ai_addr;
-  char *ai_canonname;
-  struct addrinfo *ai_next;
-};
-extern int getaddrinfo (const char *__restrict __name,
-   const char *__restrict __service,
-   const struct addrinfo *__restrict __req,
-   struct addrinfo **__restrict __pai);
-extern void freeaddrinfo (struct addrinfo *__ai) __attribute__ ((__nothrow__ , __leaf__));
-extern const char *gai_strerror (int __ecode) __attribute__ ((__nothrow__ , __leaf__));
-extern int getnameinfo (const struct sockaddr *__restrict __sa,
-   socklen_t __salen, char *__restrict __host,
-   socklen_t __hostlen, char *__restrict __serv,
-   socklen_t __servlen, int __flags);
-
-
-struct flock
-  {
-    short int l_type;
-    short int l_whence;
-    __off_t l_start;
-    __off_t l_len;
-    __pid_t l_pid;
-  };
-
-
-struct stat
-  {
-    __dev_t st_dev;
-    __ino_t st_ino;
-    __nlink_t st_nlink;
-    __mode_t st_mode;
-    __uid_t st_uid;
-    __gid_t st_gid;
-    int __pad0;
-    __dev_t st_rdev;
-    __off_t st_size;
-    __blksize_t st_blksize;
-    __blkcnt_t st_blocks;
-    struct timespec st_atim;
-    struct timespec st_mtim;
-    struct timespec st_ctim;
-    __syscall_slong_t __glibc_reserved[3];
-  };
-extern int fcntl (int __fd, int __cmd, ...);
-extern int open (const char *__file, int __oflag, ...) __attribute__ ((__nonnull__ (1)));
-extern int openat (int __fd, const char *__file, int __oflag, ...)
-     __attribute__ ((__nonnull__ (2)));
-extern int creat (const char *__file, mode_t __mode) __attribute__ ((__nonnull__ (1)));
-extern int posix_fadvise (int __fd, off_t __offset, off_t __len,
-     int __advise) __attribute__ ((__nothrow__ , __leaf__));
-extern int posix_fallocate (int __fd, off_t __offset, off_t __len);
-extern int __open_2 (const char *__path, int __oflag) __attribute__ ((__nonnull__ (1)));
-extern int __open_alias (const char *__path, int __oflag, ...) __asm__ ("" "open") __attribute__ ((__nonnull__ (1)));
-extern void __open_too_many_args (void) __attribute__((__error__ ("open can be called either with 2 or 3 arguments, not more")));
-extern void __open_missing_mode (void) __attribute__((__error__ ("open with O_CREAT or O_TMPFILE in second argument needs 3 arguments")));
-extern __inline __attribute__ ((__always_inline__)) __attribute__ ((__gnu_inline__)) __attribute__ ((__artificial__)) int
-open (const char *__path, int __oflag, ...)
-{
-  if (__builtin_va_arg_pack_len () > 1)
-    __open_too_many_args ();
-  if (__builtin_constant_p (__oflag))
-    {
-      if ((((__oflag) & 0100) != 0 || ((__oflag) & (020000000 | 0200000)) == (020000000 | 0200000)) && __builtin_va_arg_pack_len () < 1)
- {
-   __open_missing_mode ();
-   return __open_2 (__path, __oflag);
- }
-      return __open_alias (__path, __oflag, __builtin_va_arg_pack ());
-    }
-  if (__builtin_va_arg_pack_len () < 1)
-    return __open_2 (__path, __oflag);
-  return __open_alias (__path, __oflag, __builtin_va_arg_pack ());
-}
-extern int __openat_2 (int __fd, const char *__path, int __oflag)
-     __attribute__ ((__nonnull__ (2)));
-extern int __openat_alias (int __fd, const char *__path, int __oflag, ...) __asm__ ("" "openat")
-     __attribute__ ((__nonnull__ (2)));
-extern void __openat_too_many_args (void) __attribute__((__error__ ("openat can be called either with 3 or 4 arguments, not more")));
-extern void __openat_missing_mode (void) __attribute__((__error__ ("openat with O_CREAT or O_TMPFILE in third argument needs 4 arguments")));
-extern __inline __attribute__ ((__always_inline__)) __attribute__ ((__gnu_inline__)) __attribute__ ((__artificial__)) int
-openat (int __fd, const char *__path, int __oflag, ...)
-{
-  if (__builtin_va_arg_pack_len () > 1)
-    __openat_too_many_args ();
-  if (__builtin_constant_p (__oflag))
-    {
-      if ((((__oflag) & 0100) != 0 || ((__oflag) & (020000000 | 0200000)) == (020000000 | 0200000)) && __builtin_va_arg_pack_len () < 1)
- {
-   __openat_missing_mode ();
-   return __openat_2 (__fd, __path, __oflag);
- }
-      return __openat_alias (__fd, __path, __oflag, __builtin_va_arg_pack ());
-    }
-  if (__builtin_va_arg_pack_len () < 1)
-    return __openat_2 (__fd, __path, __oflag);
-  return __openat_alias (__fd, __path, __oflag, __builtin_va_arg_pack ());
-}
-
-
-struct winsize
-  {
-    unsigned short int ws_row;
-    unsigned short int ws_col;
-    unsigned short int ws_xpixel;
-    unsigned short int ws_ypixel;
-  };
-struct termio
-  {
-    unsigned short int c_iflag;
-    unsigned short int c_oflag;
-    unsigned short int c_cflag;
-    unsigned short int c_lflag;
-    unsigned char c_line;
-    unsigned char c_cc[8];
-};
-extern int ioctl (int __fd, unsigned long int __request, ...) __attribute__ ((__nothrow__ , __leaf__));
-
        
-PTimeServer tf_Create();
-void tf_OnFrame(PTimeServer self, uint64_t deltaMS);
-void tf_Delete(PTimeServer self);
-void tf_ExecuteAfter(PTimeServer self, TimeMethod currentMethod, uint64_t afterMS);
-void tf_ExecuteLoop(PTimeServer self, TimeMethod currentMethod, uint64_t afterMS);
-uint64_t tf_CurrentTimeMS();
-typedef struct CloseConnStruct_t {
-  PSocketServer self;
-  Connection conn;
-  size_t index;
-} CloseConnStruct;
-typedef CloseConnStruct *PCloseConnStruct;
-uint8_t _sock_StartConnections(PSocketServer self);
-void sigpipe_handler(int signum) {
-  return ;
-}
-PSocketServer sock_Create(uint16_t port) {
-  PSocketServer server = malloc(sizeof(SocketServer));
-  memset(server, 0, sizeof(SocketServer));
-  server->connections = vct_Init(sizeof(Connection));
-  server->port = port;
-  server->maxActiveConnections = 16;
-  server->maxBytesPerReadConnection = 1024 * 1024 * 10;
-  server->inputReads = vct_Init(sizeof(DataFragment));
-  server->outputCommands = vct_Init(sizeof(DataFragment));
-  server->closeConnectionsQueue = vct_Init(sizeof(Connection));
-  if(!_sock_StartConnections(server)) {
-    sock_Delete(server);
-    return ((void *)0);
-  }
-  return server;
-}
-void _sock_CloseConnection(void *buffer) {
-  PCloseConnStruct conn = buffer;
-  close(conn->conn.fd);
-  vct_RemoveElement(conn->self->connections, conn->index);
-  free(buffer);
-}
-void sock_PushCloseConnMethod(PSocketServer self, Connection conn, size_t index) {
-  if(!self->timeServer.timeServer) {
-    return ;
-  }
-  PCloseConnStruct closeCmd = malloc(sizeof(CloseConnStruct));
-  closeCmd->conn = conn;
-  closeCmd->self = self;
-  closeCmd->index = index;
-  TimeMethod timeFragment = (TimeMethod) {
-    .method = (void *)_sock_CloseConnection,
-    .buffer = closeCmd
-  };
-  tf_ExecuteAfter(self->timeServer.timeServer, timeFragment, self->timeServer.timeout);
-}
-void sock_SetMaxConnections(PSocketServer self, int32_t maxActiveConnections) {
-  ((void) sizeof ((maxActiveConnections < 1024) ? 1 : 0), __extension__ ({ if (maxActiveConnections < 1024) ; else __assert_fail ("maxActiveConnections < MAX_CONNECTIONS_PER_SERVER", "bin/svv.c", 1748, __extension__ __PRETTY_FUNCTION__); }));
-  self->maxActiveConnections = maxActiveConnections;
-}
-void sock_Write_Push(PSocketServer self, DataFragment *dt) {
-  char *memory = dt->data;
-  if(dt->persistent) {
-    memory = malloc(dt->size);
-    memcpy(memory, dt->data, dt->size);
-  }
-  DataFragment newDt = *dt;
-  newDt.data = memory;
-  vct_Push(self->outputCommands, &newDt);
-}
-uint8_t _sock_StartConnections(PSocketServer self) {
-  int32_t sockfd;
-  struct sockaddr_in servaddr;
-  sockfd = socket(2, SOCK_STREAM, 0);
-  if (sockfd == -1) {
-    return 0;
-  }
-  bzero(&servaddr, sizeof(servaddr));
-  servaddr.sin_family = 2;
-  servaddr.sin_addr.s_addr = __bswap_32 (((in_addr_t) 0x00000000));
-  servaddr.sin_port = __bswap_16 (self->port);
-  signal(13, sigpipe_handler);
-  const int32_t trueFlag = 1;
-  if (setsockopt(sockfd, 1, 2, &trueFlag, sizeof(int)) < 0) {
-    return 0;
-  }
-  if ((bind(sockfd, (struct sockaddr*)&servaddr, sizeof(servaddr))) != 0) {
-    return 0;
-  }
-  if ((listen(sockfd, 5)) != 0) {
-    return 0;
-  }
-  self->serverFD.fd = sockfd;
-  fcntl(sockfd, 4, fcntl(sockfd, 3, 0) | 04000);
-  return 1;
-}
-static inline void sock_ExecuteMetaMethod(Connection *conn, PSocketMethod routine) {
-  if(!routine) {
-    return ;
-  }
-  void (*method)(Connection, void *) = routine->method;
-  method(*conn, routine->mirrorBuffer);
-}
-static inline void sock_ExecuteOnReceiveMethod(DataFragment *dataFragment, PSocketMethod routine) {
-  if(!routine) {
-    return ;
-  }
-  void (*method)(DataFragment *, void *) = routine->method;
-  method(dataFragment, routine->mirrorBuffer);
-}
-static inline void sock_ReadData(PSocketServer self, Connection *conn, char *buffer, size_t count) {
-  (void)!read(conn->fd, buffer, count);
-  DataFragment dt = (DataFragment) {
-    .conn = *conn,
-    .data = buffer,
-    .persistent = 0,
-    .size = count
-  };
-  sock_ExecuteOnReceiveMethod(&dt, self->onReceiveMessage);
-}
-static inline ssize_t sock_FindConnIndex(PSocketServer self, PConnection conn) {
-  Connection *connections = self->connections->buffer;
-  for(ssize_t i = 0, c = (ssize_t)self->connections->buffer; i < c; i++) {
-    if(conn->fd == connections[i].fd) {
-      return i;
-    }
-  }
-  return -1;
-}
-void sock_CloseConnection(PSocketServer self, size_t index) {
-  Connection conn = ((Connection *)self->connections->buffer)[index];
-  close(conn.fd);
-  vct_RemoveElement(self->connections, index);
-}
-void sock_PushCloseConnections(PSocketServer self, PConnection conn) {
-  vct_Push(self->closeConnectionsQueue, conn);
-}
-size_t sock_DoesConnectionExists(PSocketServer self, PConnection conn, uint8_t *found) {
-  *found = 0;
-  Connection *connections = self->connections->buffer;
-  for(size_t i = 0, c = self->connections->size; i < c; i++) {
-    if(connections[i].fd == conn->fd) {
-      *found = 1;
-      return i;
-    }
-  }
-  return 0;
-}
-void sock_ClearPushedConnections(PSocketServer self) {
-  Connection *connections = self->closeConnectionsQueue->buffer;
-  Vector indexes = vct_Init(sizeof(size_t));
-  uint8_t found;
-  for(size_t i = 0, c = self->closeConnectionsQueue->size; i < c; i++) {
-    size_t connIndex = sock_DoesConnectionExists(self, &connections[i], &found);
-    if(found) {
-      close(connections[i].fd);
-      vct_Push(indexes, &connIndex);
-    }
-  }
-  vct_RemoveElementsWithReplacing(&self->connections, indexes);
-  vct_Delete(indexes);
-  vct_Clear(self->closeConnectionsQueue);
-}
-static inline void sock_OnReceiveMessage(PSocketServer self, Connection *conn, size_t index) {
-  size_t count = 0;
-  int32_t error = ioctl(conn->fd, 0x541B, &count);
-  if(!count || error == -1) {
-    return ;
-  }
-  if(count >= self->maxBytesPerReadConnection) {
-    sock_ExecuteMetaMethod(conn, self->onConnectionRelease);
-    sock_CloseConnection(self, index);
-    return ;
-  }
-  if(count <= (1<<12)) {
-    char buffer[(1<<12)];
-    sock_ReadData(self, conn, buffer, count);
-    return ;
-  }
-  void *buffer = malloc(count);
-  sock_ReadData(self, conn, buffer, count);
-  free(buffer);
-}
-void sock_ProcessReadMessage(PSocketServer self) {
-  Connection *conn = self->connections->buffer;
-  for(size_t i = 0, c = self->connections->size; i < c; i++) {
-    sock_OnReceiveMessage(self, &conn[i], i);
-  }
-}
-static inline void sock_AcceptConnectionsRoutine(PSocketServer self) {
-  if(self->maxActiveConnections <= self->connections->size) {
-    return ;
-  }
-  struct sockaddr_in cli;
-  socklen_t len;
-  int32_t sockfd = self->serverFD.fd;
-  len = sizeof( (struct sockaddr *) &len);
-  int32_t connfd = accept(sockfd, (struct sockaddr*)&cli, &len);
-  if (connfd < 0) {
-    return ;
-  }
-  Connection currentCon = (Connection) {
-    .fd = connfd
-  };
-  sock_PushCloseConnMethod(self, currentCon, self->connections->size);
-  vct_Push(self->connections, &currentCon);
-  sock_ExecuteMetaMethod(&currentCon, self->onConnectionAquire);
-}
-static inline void sock_WriteBufferCleanup(PSocketServer self) {
-  DataFragment *dataFragments = self->outputCommands->buffer;
-  for(size_t i = 0, c = self->outputCommands->size; i < c; i++) {
-    if(dataFragments[i].persistent) {
-      free(dataFragments[i].data);
-    }
-  }
-  vct_Clear(self->outputCommands);
-}
-PSocketMethod sock_Method_Create(void *method, void *mirrorBuffer) {
-  PSocketMethod self = malloc(sizeof(SocketMethod));
-  self->method = method;
-  self->mirrorBuffer = mirrorBuffer;
-  return self;
-}
-void sock_Method_Delete(PSocketMethod self) {
-  free(self);
-}
-void sock_ProcessWriteRequests_t(PSocketServer self, Vector markedForDeletionRequests) {
-  DataFragment *dataFragments = self->outputCommands->buffer;
-  for(size_t i = 0, c = self->outputCommands->size; i < c; i++) {
-    ssize_t response = send(dataFragments[i].conn.fd, dataFragments[i].data, dataFragments[i].size, MSG_DONTWAIT);
-    if(response < 0) {
-      vct_Push(markedForDeletionRequests, &i);
-      sock_ExecuteMetaMethod(&dataFragments[i].conn, self->onConnectionRelease);
-      close(dataFragments[i].conn.fd);
-    }
-  }
-}
-size_t sock_ConnectionCount(PSocketServer self) {
-  return self->connections->size;
-}
-static inline void sock_ProcessWriteRequests(PSocketServer self) {
-  Vector markedForDeletionRequests = vct_Init(sizeof(size_t));
-  sock_ProcessWriteRequests_t(self, markedForDeletionRequests);
-  sock_WriteBufferCleanup(self);
-  Vector prunnedArray = vct_RemoveElements(self->connections, markedForDeletionRequests);
-  vct_Delete(self->connections);
-  vct_Delete(markedForDeletionRequests);
-  self->connections = prunnedArray;
-}
-static inline void sock_ClearConnections(PSocketServer self) {
-  Connection *conn = self->connections->buffer;
-  for(size_t i = 0, c = self->connections->size; i < c; i++) {
-    close(conn[i].fd);
-  }
-  vct_Delete(self->closeConnectionsQueue);
-  vct_Delete(self->connections);
-}
-PConnection sock_FindConnectionByIndex(PSocketServer self, size_t index) {
-  if(index >= self->connections->size) {
-    return ((void *)0);
-  }
-  Connection *conn = self->connections->buffer;
-  return conn + index;
-}
-static inline void sock_Time_OnFrame(PSocketServer self, uint64_t deltaMS) {
-  if(self->timeServer.timeServer) {
-    tf_OnFrame(self->timeServer.timeServer, deltaMS);
-  }
-}
-void sock_OnFrame(PSocketServer self, uint64_t deltaMS) {
-  sock_AcceptConnectionsRoutine(self);
-  sock_ProcessReadMessage(self);
-  sock_ProcessWriteRequests(self);
-  sock_ClearPushedConnections(self);
-  sock_Time_OnFrame(self, deltaMS);
-}
-static inline void sock_Time_Delete(PSocketServer self) {
-  if(self->timeServer.timeServer) {
-    tf_Delete(self->timeServer.timeServer);
-  }
-}
-int32_t _sock_Client_Conn(uint16_t port, char *ip) {
-  int32_t sock;
-  struct sockaddr_in server_addr;
-  sock = socket(2, SOCK_STREAM, 0);
-  if (sock < 0) {
-    return -1;
-  }
-  memset(&server_addr, 0, sizeof(server_addr));
-  server_addr.sin_family = 2;
-  server_addr.sin_port = __bswap_16 (port);
-  if (inet_pton(2, ip, &server_addr.sin_addr) <= 0) {
-    close(sock);
-    return -1;
-  }
-  if (connect(sock, (struct sockaddr*)&server_addr, sizeof(server_addr)) < 0) {
-    close(sock);
-    return -1;
-  }
-  fcntl(sock, 4, fcntl(sock, 3, 0) | 04000);
-  return sock;
-}
-PConnection sock_Client_Connect(uint16_t port, char *ip) {
-  int32_t fd = _sock_Client_Conn(port, ip);
-  if(fd == -1) {
-    return ((void *)0);
-  }
-  PConnection conn = malloc(sizeof(Connection));
-  conn->fd = fd;
-  return conn;
-}
-void sock_Client_SendMessage(PDataFragment frag) {
-  (void)!send(frag->conn.fd, frag->data, frag->size, MSG_DONTWAIT);
-}
-DataFragment sock_Client_Receive(PConnection conn) {
-  Vector dataToRead = vct_Init(sizeof(char));
-  char bufferChunk[1024];
-  ssize_t bytesRead = -1;
-  while((bytesRead = recv(conn->fd, bufferChunk, sizeof(bufferChunk), 0)) && bytesRead != -1) {
-    for(size_t i = 0; i < bytesRead; i++) {
-      vct_Push(dataToRead, &bufferChunk[i]);
-    }
-  }
-  DataFragment fragment = {
-    .conn = *conn,
-    .data = dataToRead->buffer,
-    .persistent = 0,
-    .size = dataToRead->size
-  };
-  vct_DeleteWOBuffer(dataToRead);
-  return fragment;
-}
-void sock_Client_Free(PConnection conn) {
-  close(conn->fd);
-  free(conn);
-}
-static inline void sock_Delete_OutputCommands(PSocketServer self) {
-  DataFragment *dataFragments = self->outputCommands->buffer;
-  for(size_t i = 0, c = self->outputCommands->size; i < c; i++) {
-    if(dataFragments[i].persistent) {
-      free(dataFragments[i].data);
-    }
-  }
-  vct_Delete(self->outputCommands);
-}
-void sock_Delete(PSocketServer self) {
-  vct_Delete(self->inputReads);
-  sock_ClearConnections(self);
-  sock_Delete_OutputCommands(self);
-  close(self->serverFD.fd);
-  sock_Time_Delete(self);
-  free(self);
-}
-
-struct timezone
-  {
-    int tz_minuteswest;
-    int tz_dsttime;
-  };
-extern int gettimeofday (struct timeval *__restrict __tv,
-    void *__restrict __tz) __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__nonnull__ (1)));
-extern int settimeofday (const struct timeval *__tv,
-    const struct timezone *__tz)
-     __attribute__ ((__nothrow__ , __leaf__));
-extern int adjtime (const struct timeval *__delta,
-      struct timeval *__olddelta) __attribute__ ((__nothrow__ , __leaf__));
-enum __itimer_which
-  {
-    ITIMER_REAL = 0,
-    ITIMER_VIRTUAL = 1,
-    ITIMER_PROF = 2
-  };
-struct itimerval
-  {
-    struct timeval it_interval;
-    struct timeval it_value;
-  };
-typedef int __itimer_which_t;
-extern int getitimer (__itimer_which_t __which,
-        struct itimerval *__value) __attribute__ ((__nothrow__ , __leaf__));
-extern int setitimer (__itimer_which_t __which,
-        const struct itimerval *__restrict __new,
-        struct itimerval *__restrict __old) __attribute__ ((__nothrow__ , __leaf__));
-extern int utimes (const char *__file, const struct timeval __tvp[2])
-     __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__nonnull__ (1)));
-extern int lutimes (const char *__file, const struct timeval __tvp[2])
-     __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__nonnull__ (1)));
-extern int futimes (int __fd, const struct timeval __tvp[2]) __attribute__ ((__nothrow__ , __leaf__));
-
-uint64_t tf_CurrentTimeMS() {
-  struct timeval tv;
-  gettimeofday(&tv, ((void *)0));
-  return (long long)(tv.tv_sec) * 1000 + (tv.tv_usec) / 1000;
-}
-PTimeServer tf_Create() {
-  PTimeServer self = malloc(sizeof(TimeServer));
-  self->methods = vct_Init(sizeof(TimeFragment));
-  self->loopMethods = vct_Init(sizeof(TimeFragment));
-  return self;
-}
-void tf_Delete(PTimeServer self) {
-  vct_Delete(self->methods);
-  vct_Delete(self->loopMethods);
-  free(self);
-}
-void tf_ExecuteAfter(PTimeServer self, TimeMethod currentMethod, uint64_t afterMS) {
-  TimeFragment fragment = (TimeFragment) {
-    .executeAfter = afterMS,
-    .methodFragment = currentMethod
-  };
-  vct_Push(self->methods, &fragment);
-}
-static inline void tf_ExecuteFragMethods(PTimeServer self, uint64_t deltaMS) {
-  TimeFragment *fragment = self->methods->buffer;
-  Vector fragmentsToRemove = vct_Init(sizeof(size_t));
-  for(size_t i = 0, c = self->methods->size; i < c; i++) {
-    fragment[i].executeAfter -= (int64_t)deltaMS;
-    if(fragment[i].executeAfter <= 0) {
-      void (*method)(void *) = fragment[i].methodFragment.method;
-      method(fragment[i].methodFragment.buffer);
-      vct_Push(fragmentsToRemove, &i);
-    }
-  }
-  Vector cpyVector = vct_RemoveElements(self->methods, fragmentsToRemove);
-  vct_Delete(self->methods);
-  self->methods = cpyVector;
-  vct_Delete(fragmentsToRemove);
-}
-static inline void tf_ExecuteLoopMethods(PTimeServer self, uint64_t deltaMS) {
-  TimeFragment *fragment = self->loopMethods->buffer;
-  for(size_t i = 0, c = self->loopMethods->size; i < c; i++) {
-    fragment[i].executeAfter -= (int64_t)deltaMS;
-    if(fragment[i].executeAfter <= 0) {
-      void (*method)(void *) = fragment[i].methodFragment.method;
-      method(fragment[i].methodFragment.buffer);
-      fragment[i].executeAfter = fragment[i].time;
-    }
-  }
-}
-void tf_ExecuteLoop(PTimeServer self, TimeMethod currentMethod, uint64_t afterMS) {
-  TimeFragment fragment = (TimeFragment) {
-    .executeAfter = afterMS,
-    .methodFragment = currentMethod,
-    .time = afterMS
-  };
-  vct_Push(self->loopMethods, &fragment);
-}
-void tf_OnFrame(PTimeServer self, uint64_t deltaMS) {
-  tf_ExecuteFragMethods(self, deltaMS);
-  tf_ExecuteLoopMethods(self, deltaMS);
-}
-PTrieNode trn_Create();
-uint8_t trn_AddValues(PTrieNode self, void* key, uint32_t keySize, void* value, uint32_t valueSize, uint32_t position);
-PTrieHash trh_Create() {
-  PTrieHash self = malloc(sizeof(TrieHash));
-  memset(self, 0, sizeof(TrieHash));
-  self->parentNode = trn_Create();
-  return self;
-}
-void trh_Add(PTrieHash self, void* key, uint32_t keySize, void* value, uint32_t valueSize) {
-  if(!trn_AddValues(self->parentNode, key, keySize, value, valueSize, 0)) {
-    self->count++;
-  }
-}
-PTrieNode trn_Create() {
-  PTrieNode self = malloc(sizeof(TrieNode));
-  memset(self, 0, sizeof(TrieNode));
-  self->nextNodes = malloc(sizeof(PTrieNode) * 16);
-  memset(self->nextNodes, 0, sizeof(PTrieNode) * 16);
-  return self;
-}
-static inline void trh_FreeNode(PTrieNode self) {
-  free(self->nextNodes);
-  free(self);
-}
-void trn_DeleteNodes(PTrieNode self) {
-  for(uint8_t i = 0; i < 16; i++) {
-    if(self->nextNodes[i]) {
-      trn_DeleteNodes(self->nextNodes[i]);
-      self->nextNodes[i] = ((void *)0);
-    }
-  }
-  if(self->buffer) {
-    free(self->buffer);
-  }
-  trh_FreeNode(self);
-}
-uint8_t trn_RemoveNode_t(PTrieNode self, void* key, uint32_t keySize, uint32_t position) {
-  if(position >= (keySize << 1)) {
-    if(self->buffer) {
-      free(self->buffer);
-      self->buffer = ((void *)0);
-      return 1;
-    }
-    return 0;
-  }
-  uint8_t currentValue;
-  if(position & 1) {
-    currentValue = (((uint8_t *)key)[(position >> 1)] & 15);
-  }
-  else {
-    currentValue = (((uint8_t *)key)[(position >> 1)] >> 4);
-  }
-  PTrieNode node = self->nextNodes[currentValue];
-  uint8_t deleted = 0;
-  if(node) {
-    deleted = trn_RemoveNode_t(node, key, keySize, position + 1);
-    node->count--;
-    if(!node->count) {
-      self->nextNodes[currentValue] = ((void *)0);
-      trh_FreeNode(node);
-    }
-  }
-  return deleted;
-}
-void trh_Buffer_AddToIndex(PTrieHash self, uint32_t id, void* buffer, uint32_t bufferSize) {
-  trh_Add(self, &id, sizeof(uint32_t), buffer, bufferSize);
-}
-void trh_Buffer_AddToIndex64(PTrieHash self, uint64_t id, void* buffer, uint32_t bufferSize) {
-  trh_Add(self, &id, sizeof(uint64_t), buffer, bufferSize);
-}
-void* trh_Buffer_GetFromIndex(PTrieHash self, uint32_t id) {
-  return trh_GetBuffer(self, &id, sizeof(uint32_t));
-}
-void* trh_Buffer_GetFromIndex64(PTrieHash self, uint64_t id) {
-  return trh_GetBuffer(self, &id, sizeof(uint64_t));
-}
-void trh_Buffer_RemoveAtIndex(PTrieHash self, uint32_t id) {
-  trh_RemoveNode(self, &id, sizeof(uint32_t));
-}
-void trh_Buffer_RemoveAtIndex64(PTrieHash self, uint64_t id) {
-  trh_RemoveNode(self, &id, sizeof(uint64_t));
-}
-void* trn_GetBuffer_t(PTrieNode self, void* key, uint32_t keySize, uint32_t position) {
-  if(position >= (keySize << 1)) {
-    return self->buffer;
-  }
-  uint8_t currentValue;
-  if(position & 1) {
-    currentValue = (((uint8_t *)key)[(position >> 1)] & 15);
-  }
-  else {
-    currentValue = (((uint8_t *)key)[(position >> 1)] >> 4);
-  }
-  PTrieNode node = self->nextNodes[currentValue];
-  if(node) {
-    return trn_GetBuffer_t(node, key, keySize, position + 1);
-  }
-  return ((void *)0);
-}
-void trh_GetValues_t(PTrieNode self, Vector values) {
-  if(!self) {
-    return ;
-  }
-  if(self->buffer) {
-    vct_Push(values, self->buffer);
-  }
-  PTrieNode *nextNodes = self->nextNodes;
-  for(size_t i = 0; i < 16; i++) {
-    if(nextNodes[i]) {
-      trh_GetValues_t(nextNodes[i], values);
-    }
-  }
-}
-Vector trh_GetValues(PTrieHash self, size_t valueSize) {
-  Vector response = vct_Init(valueSize);
-  trh_GetValues_t(self->parentNode, response);
-  return response;
-}
-void trh_Key_Push(Vector currentKey, uint8_t value, size_t position) {
-  if(!(position & 1)) {
-    value <<= 4;
-    vct_Push(currentKey, &value);
-    return ;
-  }
-  uint8_t *last = (uint8_t *)vct_Last(currentKey);
-  if(!last) {
-    return ;
-  }
-  (*last) += value;
-}
-static inline void trh_Key_Pop(Vector currentKey, size_t position) {
-  if(!(position & 1)) {
-    vct_Pop(currentKey);
-  }
-  else {
-    uint8_t *last = (uint8_t *)vct_Last(currentKey);
-    if(!last) {
-      return ;
-    }
-    (*last) &= 0xF0;
-  }
-}
-void trh_GetKeys_t(PTrieNode self, Vector keys, Vector currentKey, size_t position) {
-  if(!self) {
-    return ;
-  }
-  if(self->buffer) {
-    Key key;
-    key.keySize = currentKey->size;
-    key.key = malloc(key.keySize);
-    memcpy(key.key, currentKey->buffer, key.keySize);
-    vct_Push(keys, &key);
-  }
-  PTrieNode *nextNodes = self->nextNodes;
-  for(uint8_t i = 0; i < 16; i++) {
-    if(nextNodes[i]) {
-      trh_Key_Push(currentKey, i, position);
-      trh_GetKeys_t(nextNodes[i], keys, currentKey, position + 1);
-      trh_Key_Pop(currentKey, position);
-    }
-  }
-}
-Vector trh_GetKeys(PTrieHash self) {
-  Vector response = vct_Init(sizeof(Key));
-  Vector currentKey = vct_Init(sizeof(uint8_t));
-  trh_GetKeys_t(self->parentNode, response, currentKey, 0);
-  vct_Delete(currentKey);
-  return response;
-}
-void trh_FreeKeys(Vector keys) {
-  Key *buffer = (Key *)keys->buffer;
-  for(size_t i = 0, c = keys->size; i < c; i++) {
-    free(buffer[i].key);
-  }
-  vct_Delete(keys);
-}
-void* trh_GetBuffer(PTrieHash self, void* key, uint32_t keySize) {
-  return trn_GetBuffer_t(self->parentNode, key, keySize, 0);
-}
-void trh_RemoveNode(PTrieHash self, void* key, uint32_t keySize) {
-  if(trn_RemoveNode_t(self->parentNode, key, keySize, 0)) {
-    self->count--;
-  }
-}
-uint8_t trn_AddValues(PTrieNode self, void* key, uint32_t keySize, void* value, uint32_t valueSize, uint32_t position) {
-  if(position >= (keySize << 1)) {
-    void* lastBuffer = self->buffer;
-    self->buffer = malloc(valueSize);
-    memcpy(self->buffer, value, valueSize);
-    if(lastBuffer) {
-      free(lastBuffer);
-      return 0;
-    }
-    return 1;
-  }
-  uint8_t currentValue;
-  if(position & 1) {
-    currentValue = (((uint8_t *)key)[(position >> 1)] & 15);
-  }
-  else {
-    currentValue = (((uint8_t *)key)[(position >> 1)] >> 4);
-  }
-  PTrieNode node = self->nextNodes[currentValue];
-  if(!node) {
-    node = trn_Create();
-    self->nextNodes[currentValue] = node;
-  }
-  node->count++;
-  return trn_AddValues(node, key, keySize, value, valueSize, position + 1);
-}
-void trh_Integer32_Insert(PTrieHash self, uint32_t key, uint32_t value) {
-  trh_Add(self, &key, sizeof(uint32_t), &value, sizeof(uint32_t));
-}
-void* trh_Integer32_Get(PTrieHash self, uint32_t key) {
-  return trh_GetBuffer(self, &key, sizeof(uint32_t));
-}
-void trh_Integer32_RemoveElement(PTrieHash self, uint32_t key) {
-  trh_RemoveNode(self, &key, sizeof(uint32_t));
-}
-void trh_Delete(PTrieHash self) {
-  trn_DeleteNodes(self->parentNode);
-  free(self);
-}
-Vector vct_Init(size_t size) {
-  Vector self = (Vector)malloc(sizeof(struct Vector_t));
-  self->buffer = malloc(size);
-  self->size = 0;
-  self->capacity = 1;
-  self->objSize = size;
-  return self;
-}
-Vector vct_InitWithCapacity(size_t size, size_t count) {
-  Vector self = malloc(sizeof(struct Vector_t));
-  self->buffer = malloc(size * count);
-  self->size = 0;
-  self->capacity = count;
-  self->objSize = size;
-  return self;
-}
-Vector vct_InitWithSize(size_t objSize, size_t count) {
-  Vector self = malloc(sizeof(struct Vector_t));
-  self->buffer = malloc(objSize * count);
-  self->size = count;
-  self->capacity = count;
-  self->objSize = objSize;
-  return self;
-}
-void copyData(Vector self, void *buffer) {
-  memcpy(self->buffer + (self->size * self->objSize), buffer, self->objSize);
-  self->size++;
-}
-void vct_Push(Vector self, void *buffer) {
-  if(self->size >= self->capacity) {
-    self->capacity <<= 1;
-    self->buffer = realloc(self->buffer, self->capacity * self->objSize);
-  }
-  copyData(self, buffer);
-}
-void vct_RemoveElement(Vector self, size_t index) {
-  ((void) sizeof ((self->size != 0) ? 1 : 0), __extension__ ({ if (self->size != 0) ; else __assert_fail ("self->size != 0", "bin/svv.c", 2457, __extension__ __PRETTY_FUNCTION__); }));
-  if(index >= self->size) {
-    return ;
-  }
-  char *payloadBuffer = self->buffer;
-  for(ssize_t i = index, c = (ssize_t)self->size - 1; i < c; i++) {
-    memcpy(payloadBuffer + i * self->objSize, payloadBuffer + (i + 1) * self->objSize, self->objSize);
-  }
-  self->size--;
-}
-void vct_Delete(Vector self) {
-  free(self->buffer);
-  free(self);
-}
-void vct_DeleteWOBuffer(Vector self) {
-  free(self);
-}
-char *vct_Last(Vector self) {
-  if(!self->size) {
-    return ((void *)0);
-  }
-  return self->buffer + (self->size - 1) * self->objSize;
-}
-void vct_Pop(Vector self) {
-  if(!self->size) {
-    return ;
-  }
-  self->size--;
-}
-Vector vct_RemoveElements(Vector payload, Vector indexes) {
-  Vector indexesCount = vct_InitWithSize(sizeof(uint8_t), payload->size);
-  memset(indexesCount->buffer, 0, sizeof(uint8_t) * payload->size);
-  size_t *indexesBuffer = indexes->buffer;
-  uint8_t *aparitionCount = indexesCount->buffer;
-  for(size_t i = 0, c = indexes->size; i < c; i++) {
-    if(indexesBuffer[i] < payload->size) {
-      aparitionCount[indexesBuffer[i]] = 1;
-    }
-  }
-  Vector payloadWithMissingElements = vct_Init(payload->objSize);
-  for(size_t i = 0, c = payload->size; i < c; i++) {
-    if(!aparitionCount[i]) {
-      vct_Push(payloadWithMissingElements, payload->buffer + i * payload->objSize);
-    }
-  }
-  vct_Delete(indexesCount);
-  return payloadWithMissingElements;
-}
-void vct_RemoveElementsWithReplacing(Vector *self, Vector indexes) {
-  Vector deleted = vct_RemoveElements(*self, indexes);
-  vct_Delete(*self);
-  *self = deleted;
-}
-int64_t vct_Find(Vector payload, void *element) {
-  void *startingPointer = payload->buffer;
-  size_t objSize = payload->objSize;
-  for(size_t i = 0, c = payload->size; i < c; i++) {
-    if(!memcmp(startingPointer + i * objSize, element, objSize)) {
-      return i;
-    }
-  }
-  return -1;
-}
-void vct_Clear(Vector self) {
-  self->size = 0;
-}
+HttpString jwt_Encode(JsonElement payload, HttpString secret, uint64_t expirationInMS);
+size_t jwt_Base64_Size_Public(size_t sz);
+uint8_t jwt_IsSigned(HttpString str, HttpString secret);
+        
+        
         
         
         
@@ -5668,58 +3228,6 @@ extern uintmax_t wcstoumax (const __gwchar_t *__restrict __nptr,
 
 typedef intmax_t ossl_intmax_t;
 typedef uintmax_t ossl_uintmax_t;
-typedef struct SHAstate_st {
-    unsigned int h0, h1, h2, h3, h4;
-    unsigned int Nl, Nh;
-    unsigned int data[16];
-    unsigned int num;
-} SHA_CTX;
-__attribute__((deprecated("Since OpenSSL " "3.0"))) int SHA1_Init(SHA_CTX *c);
-__attribute__((deprecated("Since OpenSSL " "3.0"))) int SHA1_Update(SHA_CTX *c, const void *data, size_t len);
-__attribute__((deprecated("Since OpenSSL " "3.0"))) int SHA1_Final(unsigned char *md, SHA_CTX *c);
-__attribute__((deprecated("Since OpenSSL " "3.0"))) void SHA1_Transform(SHA_CTX *c, const unsigned char *data);
-unsigned char *SHA1(const unsigned char *d, size_t n, unsigned char *md);
-typedef struct SHA256state_st {
-    unsigned int h[8];
-    unsigned int Nl, Nh;
-    unsigned int data[16];
-    unsigned int num, md_len;
-} SHA256_CTX;
-__attribute__((deprecated("Since OpenSSL " "3.0"))) int SHA224_Init(SHA256_CTX *c);
-__attribute__((deprecated("Since OpenSSL " "3.0"))) int SHA224_Update(SHA256_CTX *c,
-                                        const void *data, size_t len);
-__attribute__((deprecated("Since OpenSSL " "3.0"))) int SHA224_Final(unsigned char *md, SHA256_CTX *c);
-__attribute__((deprecated("Since OpenSSL " "3.0"))) int SHA256_Init(SHA256_CTX *c);
-__attribute__((deprecated("Since OpenSSL " "3.0"))) int SHA256_Update(SHA256_CTX *c,
-                                        const void *data, size_t len);
-__attribute__((deprecated("Since OpenSSL " "3.0"))) int SHA256_Final(unsigned char *md, SHA256_CTX *c);
-__attribute__((deprecated("Since OpenSSL " "3.0"))) void SHA256_Transform(SHA256_CTX *c,
-                                            const unsigned char *data);
-unsigned char *SHA224(const unsigned char *d, size_t n, unsigned char *md);
-unsigned char *SHA256(const unsigned char *d, size_t n, unsigned char *md);
-typedef struct SHA512state_st {
-    unsigned long long h[8];
-    unsigned long long Nl, Nh;
-    union {
-        unsigned long long d[16];
-        unsigned char p[(16*8)];
-    } u;
-    unsigned int num, md_len;
-} SHA512_CTX;
-__attribute__((deprecated("Since OpenSSL " "3.0"))) int SHA384_Init(SHA512_CTX *c);
-__attribute__((deprecated("Since OpenSSL " "3.0"))) int SHA384_Update(SHA512_CTX *c,
-                                        const void *data, size_t len);
-__attribute__((deprecated("Since OpenSSL " "3.0"))) int SHA384_Final(unsigned char *md, SHA512_CTX *c);
-__attribute__((deprecated("Since OpenSSL " "3.0"))) int SHA512_Init(SHA512_CTX *c);
-__attribute__((deprecated("Since OpenSSL " "3.0"))) int SHA512_Update(SHA512_CTX *c,
-                                        const void *data, size_t len);
-__attribute__((deprecated("Since OpenSSL " "3.0"))) int SHA512_Final(unsigned char *md, SHA512_CTX *c);
-__attribute__((deprecated("Since OpenSSL " "3.0"))) void SHA512_Transform(SHA512_CTX *c,
-                                            const unsigned char *data);
-unsigned char *SHA384(const unsigned char *d, size_t n, unsigned char *md);
-unsigned char *SHA512(const unsigned char *d, size_t n, unsigned char *md);
-        
-        
         
         
 typedef struct stack_st OPENSSL_STACK;
@@ -9062,6 +6570,2715 @@ int EVP_PKEY_get_group_name(const EVP_PKEY *pkey, char *name, size_t name_sz,
 OSSL_LIB_CTX *EVP_PKEY_CTX_get0_libctx(EVP_PKEY_CTX *ctx);
 const char *EVP_PKEY_CTX_get0_propq(const EVP_PKEY_CTX *ctx);
 const OSSL_PROVIDER *EVP_PKEY_CTX_get0_provider(const EVP_PKEY_CTX *ctx);
+__attribute__((deprecated("Since OpenSSL " "3.0"))) size_t HMAC_size(const HMAC_CTX *e);
+__attribute__((deprecated("Since OpenSSL " "3.0"))) HMAC_CTX *HMAC_CTX_new(void);
+__attribute__((deprecated("Since OpenSSL " "3.0"))) int HMAC_CTX_reset(HMAC_CTX *ctx);
+__attribute__((deprecated("Since OpenSSL " "3.0"))) void HMAC_CTX_free(HMAC_CTX *ctx);
+__attribute__((deprecated("Since OpenSSL " "1.1.0"))) int HMAC_Init(HMAC_CTX *ctx,
+                                             const void *key, int len,
+                                             const EVP_MD *md);
+__attribute__((deprecated("Since OpenSSL " "3.0"))) int HMAC_Init_ex(HMAC_CTX *ctx, const void *key, int len,
+                                       const EVP_MD *md, ENGINE *impl);
+__attribute__((deprecated("Since OpenSSL " "3.0"))) int HMAC_Update(HMAC_CTX *ctx, const unsigned char *data,
+                                      size_t len);
+__attribute__((deprecated("Since OpenSSL " "3.0"))) int HMAC_Final(HMAC_CTX *ctx, unsigned char *md,
+                                     unsigned int *len);
+__attribute__((deprecated("Since OpenSSL " "3.0"))) int HMAC_CTX_copy(HMAC_CTX *dctx, HMAC_CTX *sctx);
+__attribute__((deprecated("Since OpenSSL " "3.0"))) void HMAC_CTX_set_flags(HMAC_CTX *ctx, unsigned long flags);
+__attribute__((deprecated("Since OpenSSL " "3.0"))) const EVP_MD *HMAC_CTX_get_md(const HMAC_CTX *ctx);
+unsigned char *HMAC(const EVP_MD *evp_md, const void *key, int key_len,
+                    const unsigned char *data, size_t data_len,
+                    unsigned char *md, unsigned int *md_len);
+       
+PTimeServer tf_Create();
+void tf_OnFrame(PTimeServer self, uint64_t deltaMS);
+void tf_Delete(PTimeServer self);
+void tf_ExecuteAfter(PTimeServer self, TimeMethod currentMethod, uint64_t afterMS);
+void tf_ExecuteLoop(PTimeServer self, TimeMethod currentMethod, uint64_t afterMS);
+uint64_t tf_CurrentTimeMS();
+static inline char *jwt_CreateHeader();
+static inline void jwt_ToBase64UrlEncoded(HttpString str, uint8_t *response, size_t *finalSize);
+static inline size_t jwt_Base64_Size(size_t sz);
+static inline void jwt_EncodeElement(JsonElement payload, uint8_t *code, size_t *sz);
+void jwt_HMAC(HttpString key, HttpString secret, uint8_t *hmacResult, size_t *currentSize);
+void jwt_PrintHMAC(uint8_t *hmacCode, size_t sz);
+static inline void jwt_Add_String(Vector strDrt, HttpString str) {
+  for(size_t i = 0, c = str.sz; i < c; i++) {
+    vct_Push(strDrt, &str.buffer[i]);
+  }
+}
+static inline void jwt_Add_Char(Vector strDrt, char chr) {
+  vct_Push(strDrt, &chr);
+}
+static inline void jwt_Add_Header(Vector strDrt) {
+  char *header = jwt_CreateHeader();
+  size_t sz = strlen(header);
+  size_t headerBase64Size = jwt_Base64_Size(sz);
+  size_t newB64Size;
+  uint8_t headerBase64[headerBase64Size + 2];
+  jwt_ToBase64UrlEncoded((HttpString) {
+    .buffer = header,
+    .sz = sz
+  }, headerBase64, &newB64Size);
+  jwt_Add_String(strDrt, (HttpString) {
+    .buffer = (char *)headerBase64,
+    .sz = newB64Size
+  });
+}
+void jwt_AddSignature(Vector str, HttpString secret) {
+  HttpString newStr = {
+    .buffer = str->buffer,
+    .sz = str->size
+  };
+  const size_t csz = jwt_Base64_Size(32);
+  uint8_t hmacResult[csz + 2];
+  size_t newB64Size;
+  jwt_HMAC(newStr, secret, hmacResult, &newB64Size);
+  jwt_Add_Char(str, '.');
+  for(size_t i = 0; i < newB64Size; i++) {
+    vct_Push(str, &hmacResult[i]);
+  }
+}
+HttpString jwt_Encode_t(JsonElement payload, HttpString secret, uint64_t iam, uint64_t expirationInMS) {
+  Vector response = vct_Init(sizeof(char));
+  jwt_Add_Header(response);
+  jwt_Add_Char(response, '.');
+  json_Map_Add(payload, "iat", json_Integer_Create((int64_t)iam));
+  json_Map_Add(payload, "exp", json_Integer_Create((int64_t)expirationInMS + iam));
+  HttpString payloadString = json_Element_ToString(payload);
+  size_t payloadBase64Size = jwt_Base64_Size(payloadString.sz);
+  uint8_t payloadBase64[payloadBase64Size + 1];
+  size_t cB64Sz;
+  jwt_EncodeElement(payload, payloadBase64, &cB64Sz);
+  jwt_Add_String(response, (HttpString) {
+    .buffer = (char *)payloadBase64,
+    .sz = cB64Sz
+  });
+  jwt_AddSignature(response, secret);
+  char *bff = response->buffer;
+  size_t sz = response->size;
+  vct_DeleteWOBuffer(response);
+  free(payloadString.buffer);
+  return (HttpString){
+    .buffer = bff,
+    .sz = sz
+  };
+}
+HttpString jwt_Encode(JsonElement payload, HttpString secret, uint64_t expirationInMS) {
+  return jwt_Encode_t(payload, secret, tf_CurrentTimeMS(), expirationInMS);
+}
+static inline void jwt_EncodeElement(JsonElement payload, uint8_t *code, size_t *sz) {
+  HttpString payloadString = json_Element_ToString(payload);
+  jwt_ToBase64UrlEncoded(payloadString, code, sz);
+  free(payloadString.buffer);
+}
+void jwt_HMAC(HttpString key, HttpString secret, uint8_t *hmacResult, size_t *currentSize) {
+  unsigned int hmac_length = 0;
+  uint8_t hmalRes[50];
+  HMAC(
+    EVP_sha256(),
+    (uint8_t *)secret.buffer, secret.sz,
+    (uint8_t *)key.buffer, key.sz,
+    hmalRes, &hmac_length
+  );
+  jwt_ToBase64UrlEncoded((HttpString) {
+    .buffer = (char *)hmalRes,
+    .sz = 32
+  }, hmacResult, currentSize);
+}
+void jwt_PrintHMAC(uint8_t *hmacCode, size_t sz) {
+  printf("HMAC-SHA256: ");
+  for (unsigned int i = 0; i < sz; i++)
+    printf("%c", hmacCode[i]);
+  printf("\n");
+}
+static inline size_t jwt_Base64_Size(size_t sz) {
+  return 4 * ((sz + 2) / 3);
+}
+size_t jwt_Base64_Size_Public(size_t sz) {
+  return jwt_Base64_Size(sz);
+}
+static inline void jwt_ToBase64UrlEncoded(HttpString str, uint8_t *response, size_t *finalSize) {
+  const size_t cSize = jwt_Base64_Size(str.sz);
+  EVP_EncodeBlock(response, (uint8_t *)str.buffer, str.sz);
+  for(size_t i = 0; i < cSize; i++) {
+    if (response[i] == '+') {
+      response[i] = '-';
+    }
+    else if (response[i] == '/') {
+      response[i] = '_';
+    }
+  }
+  if(!finalSize) {
+    return ;
+  }
+  *finalSize = cSize;
+  while(*finalSize > 0 && response[(*finalSize) - 1] == '=') {
+    (*finalSize)--;
+  }
+}
+uint8_t jwt_IsSigned(HttpString str, HttpString secret) {
+  char *buffer = str.buffer;
+  size_t sz = 0;
+  int8_t pnt = 0;
+  while(sz < str.sz && pnt < 2) {
+    if(buffer[sz] == '.') {
+      pnt++;
+    }
+    sz++;
+  }
+  const size_t csz = jwt_Base64_Size(32);
+  uint8_t hmacResult[csz + 2];
+  size_t newB64Size;
+  jwt_HMAC((HttpString) {
+    .buffer = buffer,
+    .sz = sz - 1
+  }, secret, hmacResult, &newB64Size);
+  if(newB64Size != (str.sz - sz)) {
+    return 0;
+  }
+  return !memcmp(buffer + sz, hmacResult, newB64Size);
+}
+static inline char *jwt_CreateHeader() {
+  return "{\"alg\":\"HS256\",\"typ\":\"JWT\"}";
+}
+
+struct iovec
+  {
+    void *iov_base;
+    size_t iov_len;
+  };
+typedef __socklen_t socklen_t;
+enum __socket_type
+{
+  SOCK_STREAM = 1,
+  SOCK_DGRAM = 2,
+  SOCK_RAW = 3,
+  SOCK_RDM = 4,
+  SOCK_SEQPACKET = 5,
+  SOCK_DCCP = 6,
+  SOCK_PACKET = 10,
+  SOCK_CLOEXEC = 02000000,
+  SOCK_NONBLOCK = 00004000
+};
+typedef unsigned short int sa_family_t;
+struct sockaddr
+  {
+    sa_family_t sa_family;
+    char sa_data[14];
+  };
+struct sockaddr_storage
+  {
+    sa_family_t ss_family;
+    char __ss_padding[(128 - (sizeof (unsigned short int)) - sizeof (unsigned long int))];
+    unsigned long int __ss_align;
+  };
+enum
+  {
+    MSG_OOB = 0x01,
+    MSG_PEEK = 0x02,
+    MSG_DONTROUTE = 0x04,
+    MSG_CTRUNC = 0x08,
+    MSG_PROXY = 0x10,
+    MSG_TRUNC = 0x20,
+    MSG_DONTWAIT = 0x40,
+    MSG_EOR = 0x80,
+    MSG_WAITALL = 0x100,
+    MSG_FIN = 0x200,
+    MSG_SYN = 0x400,
+    MSG_CONFIRM = 0x800,
+    MSG_RST = 0x1000,
+    MSG_ERRQUEUE = 0x2000,
+    MSG_NOSIGNAL = 0x4000,
+    MSG_MORE = 0x8000,
+    MSG_WAITFORONE = 0x10000,
+    MSG_BATCH = 0x40000,
+    MSG_ZEROCOPY = 0x4000000,
+    MSG_FASTOPEN = 0x20000000,
+    MSG_CMSG_CLOEXEC = 0x40000000
+  };
+struct msghdr
+  {
+    void *msg_name;
+    socklen_t msg_namelen;
+    struct iovec *msg_iov;
+    size_t msg_iovlen;
+    void *msg_control;
+    size_t msg_controllen;
+    int msg_flags;
+  };
+struct cmsghdr
+  {
+    size_t cmsg_len;
+    int cmsg_level;
+    int cmsg_type;
+    __extension__ unsigned char __cmsg_data [];
+  };
+extern struct cmsghdr *__cmsg_nxthdr (struct msghdr *__mhdr,
+          struct cmsghdr *__cmsg) __attribute__ ((__nothrow__ , __leaf__));
+extern __inline __attribute__ ((__gnu_inline__)) struct cmsghdr *
+__attribute__ ((__nothrow__ , __leaf__)) __cmsg_nxthdr (struct msghdr *__mhdr, struct cmsghdr *__cmsg)
+{
+  if ((size_t) __cmsg->cmsg_len < sizeof (struct cmsghdr))
+    return (struct cmsghdr *) 0;
+  __cmsg = (struct cmsghdr *) ((unsigned char *) __cmsg
+          + (((__cmsg->cmsg_len) + sizeof (size_t) - 1) & (size_t) ~(sizeof (size_t) - 1)));
+  if ((unsigned char *) (__cmsg + 1) > ((unsigned char *) __mhdr->msg_control
+     + __mhdr->msg_controllen)
+      || ((unsigned char *) __cmsg + (((__cmsg->cmsg_len) + sizeof (size_t) - 1) & (size_t) ~(sizeof (size_t) - 1))
+   > ((unsigned char *) __mhdr->msg_control + __mhdr->msg_controllen)))
+    return (struct cmsghdr *) 0;
+  return __cmsg;
+}
+enum
+  {
+    SCM_RIGHTS = 0x01
+  };
+typedef struct {
+ unsigned long fds_bits[1024 / (8 * sizeof(long))];
+} __kernel_fd_set;
+typedef void (*__kernel_sighandler_t)(int);
+typedef int __kernel_key_t;
+typedef int __kernel_mqd_t;
+typedef unsigned short __kernel_old_uid_t;
+typedef unsigned short __kernel_old_gid_t;
+typedef unsigned long __kernel_old_dev_t;
+typedef long __kernel_long_t;
+typedef unsigned long __kernel_ulong_t;
+typedef __kernel_ulong_t __kernel_ino_t;
+typedef unsigned int __kernel_mode_t;
+typedef int __kernel_pid_t;
+typedef int __kernel_ipc_pid_t;
+typedef unsigned int __kernel_uid_t;
+typedef unsigned int __kernel_gid_t;
+typedef __kernel_long_t __kernel_suseconds_t;
+typedef int __kernel_daddr_t;
+typedef unsigned int __kernel_uid32_t;
+typedef unsigned int __kernel_gid32_t;
+typedef __kernel_ulong_t __kernel_size_t;
+typedef __kernel_long_t __kernel_ssize_t;
+typedef __kernel_long_t __kernel_ptrdiff_t;
+typedef struct {
+ int val[2];
+} __kernel_fsid_t;
+typedef __kernel_long_t __kernel_off_t;
+typedef long long __kernel_loff_t;
+typedef __kernel_long_t __kernel_old_time_t;
+typedef __kernel_long_t __kernel_time_t;
+typedef long long __kernel_time64_t;
+typedef __kernel_long_t __kernel_clock_t;
+typedef int __kernel_timer_t;
+typedef int __kernel_clockid_t;
+typedef char * __kernel_caddr_t;
+typedef unsigned short __kernel_uid16_t;
+typedef unsigned short __kernel_gid16_t;
+struct linger
+  {
+    int l_onoff;
+    int l_linger;
+  };
+struct osockaddr
+{
+  unsigned short int sa_family;
+  unsigned char sa_data[14];
+};
+enum
+{
+  SHUT_RD = 0,
+  SHUT_WR,
+  SHUT_RDWR
+};
+extern int socket (int __domain, int __type, int __protocol) __attribute__ ((__nothrow__ , __leaf__));
+extern int socketpair (int __domain, int __type, int __protocol,
+         int __fds[2]) __attribute__ ((__nothrow__ , __leaf__));
+extern int bind (int __fd, const struct sockaddr * __addr, socklen_t __len)
+     __attribute__ ((__nothrow__ , __leaf__));
+extern int getsockname (int __fd, struct sockaddr *__restrict __addr,
+   socklen_t *__restrict __len) __attribute__ ((__nothrow__ , __leaf__));
+extern int connect (int __fd, const struct sockaddr * __addr, socklen_t __len);
+extern int getpeername (int __fd, struct sockaddr *__restrict __addr,
+   socklen_t *__restrict __len) __attribute__ ((__nothrow__ , __leaf__));
+extern ssize_t send (int __fd, const void *__buf, size_t __n, int __flags);
+extern ssize_t recv (int __fd, void *__buf, size_t __n, int __flags);
+extern ssize_t sendto (int __fd, const void *__buf, size_t __n,
+         int __flags, const struct sockaddr * __addr,
+         socklen_t __addr_len);
+extern ssize_t recvfrom (int __fd, void *__restrict __buf, size_t __n,
+    int __flags, struct sockaddr *__restrict __addr,
+    socklen_t *__restrict __addr_len);
+extern ssize_t sendmsg (int __fd, const struct msghdr *__message,
+   int __flags);
+extern ssize_t recvmsg (int __fd, struct msghdr *__message, int __flags);
+extern int getsockopt (int __fd, int __level, int __optname,
+         void *__restrict __optval,
+         socklen_t *__restrict __optlen) __attribute__ ((__nothrow__ , __leaf__));
+extern int setsockopt (int __fd, int __level, int __optname,
+         const void *__optval, socklen_t __optlen) __attribute__ ((__nothrow__ , __leaf__));
+extern int listen (int __fd, int __n) __attribute__ ((__nothrow__ , __leaf__));
+extern int accept (int __fd, struct sockaddr *__restrict __addr,
+     socklen_t *__restrict __addr_len);
+extern int shutdown (int __fd, int __how) __attribute__ ((__nothrow__ , __leaf__));
+extern int sockatmark (int __fd) __attribute__ ((__nothrow__ , __leaf__));
+extern int isfdtype (int __fd, int __fdtype) __attribute__ ((__nothrow__ , __leaf__));
+extern ssize_t __recv_chk (int __fd, void *__buf, size_t __n, size_t __buflen,
+      int __flags);
+extern ssize_t __recv_alias (int __fd, void *__buf, size_t __n, int __flags) __asm__ ("" "recv");
+extern ssize_t __recv_chk_warn (int __fd, void *__buf, size_t __n, size_t __buflen, int __flags) __asm__ ("" "__recv_chk")
+     __attribute__((__warning__ ("recv called with bigger length than size of destination " "buffer")));
+extern __inline __attribute__ ((__always_inline__)) __attribute__ ((__gnu_inline__)) __attribute__ ((__artificial__)) ssize_t
+recv (int __fd, void *__buf, size_t __n, int __flags)
+{
+  size_t sz = __builtin_object_size (__buf, 0);
+  if ((((__typeof (__n)) 0 < (__typeof (__n)) -1 || (__builtin_constant_p (__n) && (__n) > 0)) && __builtin_constant_p ((((long unsigned int) (__n)) <= (sz) / (sizeof (char)))) && (((long unsigned int) (__n)) <= (sz) / (sizeof (char)))))
+    return __recv_alias (__fd, __buf, __n, __flags);
+  if ((((__typeof (__n)) 0 < (__typeof (__n)) -1 || (__builtin_constant_p (__n) && (__n) > 0)) && __builtin_constant_p ((((long unsigned int) (__n)) <= (sz) / (sizeof (char)))) && !(((long unsigned int) (__n)) <= (sz) / (sizeof (char)))))
+    return __recv_chk_warn (__fd, __buf, __n, sz, __flags);
+  return __recv_chk (__fd, __buf, __n, sz, __flags);
+}
+extern ssize_t __recvfrom_chk (int __fd, void *__restrict __buf, size_t __n,
+          size_t __buflen, int __flags,
+          struct sockaddr *__restrict __addr,
+          socklen_t *__restrict __addr_len);
+extern ssize_t __recvfrom_alias (int __fd, void *__restrict __buf, size_t __n, int __flags, struct sockaddr *__restrict __addr, socklen_t *__restrict __addr_len) __asm__ ("" "recvfrom");
+extern ssize_t __recvfrom_chk_warn (int __fd, void *__restrict __buf, size_t __n, size_t __buflen, int __flags, struct sockaddr *__restrict __addr, socklen_t *__restrict __addr_len) __asm__ ("" "__recvfrom_chk")
+     __attribute__((__warning__ ("recvfrom called with bigger length than size of " "destination buffer")));
+extern __inline __attribute__ ((__always_inline__)) __attribute__ ((__gnu_inline__)) __attribute__ ((__artificial__)) ssize_t
+recvfrom (int __fd, void *__restrict __buf, size_t __n, int __flags,
+   struct sockaddr *__restrict __addr, socklen_t *__restrict __addr_len)
+{
+  size_t sz = __builtin_object_size (__buf, 0);
+  if ((((__typeof (__n)) 0 < (__typeof (__n)) -1 || (__builtin_constant_p (__n) && (__n) > 0)) && __builtin_constant_p ((((long unsigned int) (__n)) <= (sz) / (sizeof (char)))) && (((long unsigned int) (__n)) <= (sz) / (sizeof (char)))))
+    return __recvfrom_alias (__fd, __buf, __n, __flags, __addr, __addr_len);
+  if ((((__typeof (__n)) 0 < (__typeof (__n)) -1 || (__builtin_constant_p (__n) && (__n) > 0)) && __builtin_constant_p ((((long unsigned int) (__n)) <= (sz) / (sizeof (char)))) && !(((long unsigned int) (__n)) <= (sz) / (sizeof (char)))))
+    return __recvfrom_chk_warn (__fd, __buf, __n, sz, __flags, __addr,
+    __addr_len);
+  return __recvfrom_chk (__fd, __buf, __n, sz, __flags, __addr, __addr_len);
+}
+
+
+typedef uint32_t in_addr_t;
+struct in_addr
+  {
+    in_addr_t s_addr;
+  };
+struct ip_opts
+  {
+    struct in_addr ip_dst;
+    char ip_opts[40];
+  };
+struct ip_mreqn
+  {
+    struct in_addr imr_multiaddr;
+    struct in_addr imr_address;
+    int imr_ifindex;
+  };
+struct in_pktinfo
+  {
+    int ipi_ifindex;
+    struct in_addr ipi_spec_dst;
+    struct in_addr ipi_addr;
+  };
+enum
+  {
+    IPPROTO_IP = 0,
+    IPPROTO_ICMP = 1,
+    IPPROTO_IGMP = 2,
+    IPPROTO_IPIP = 4,
+    IPPROTO_TCP = 6,
+    IPPROTO_EGP = 8,
+    IPPROTO_PUP = 12,
+    IPPROTO_UDP = 17,
+    IPPROTO_IDP = 22,
+    IPPROTO_TP = 29,
+    IPPROTO_DCCP = 33,
+    IPPROTO_IPV6 = 41,
+    IPPROTO_RSVP = 46,
+    IPPROTO_GRE = 47,
+    IPPROTO_ESP = 50,
+    IPPROTO_AH = 51,
+    IPPROTO_MTP = 92,
+    IPPROTO_BEETPH = 94,
+    IPPROTO_ENCAP = 98,
+    IPPROTO_PIM = 103,
+    IPPROTO_COMP = 108,
+    IPPROTO_SCTP = 132,
+    IPPROTO_UDPLITE = 136,
+    IPPROTO_MPLS = 137,
+    IPPROTO_ETHERNET = 143,
+    IPPROTO_RAW = 255,
+    IPPROTO_MPTCP = 262,
+    IPPROTO_MAX
+  };
+enum
+  {
+    IPPROTO_HOPOPTS = 0,
+    IPPROTO_ROUTING = 43,
+    IPPROTO_FRAGMENT = 44,
+    IPPROTO_ICMPV6 = 58,
+    IPPROTO_NONE = 59,
+    IPPROTO_DSTOPTS = 60,
+    IPPROTO_MH = 135
+  };
+typedef uint16_t in_port_t;
+enum
+  {
+    IPPORT_ECHO = 7,
+    IPPORT_DISCARD = 9,
+    IPPORT_SYSTAT = 11,
+    IPPORT_DAYTIME = 13,
+    IPPORT_NETSTAT = 15,
+    IPPORT_FTP = 21,
+    IPPORT_TELNET = 23,
+    IPPORT_SMTP = 25,
+    IPPORT_TIMESERVER = 37,
+    IPPORT_NAMESERVER = 42,
+    IPPORT_WHOIS = 43,
+    IPPORT_MTP = 57,
+    IPPORT_TFTP = 69,
+    IPPORT_RJE = 77,
+    IPPORT_FINGER = 79,
+    IPPORT_TTYLINK = 87,
+    IPPORT_SUPDUP = 95,
+    IPPORT_EXECSERVER = 512,
+    IPPORT_LOGINSERVER = 513,
+    IPPORT_CMDSERVER = 514,
+    IPPORT_EFSSERVER = 520,
+    IPPORT_BIFFUDP = 512,
+    IPPORT_WHOSERVER = 513,
+    IPPORT_ROUTESERVER = 520,
+    IPPORT_RESERVED = 1024,
+    IPPORT_USERRESERVED = 5000
+  };
+struct in6_addr
+  {
+    union
+      {
+ uint8_t __u6_addr8[16];
+ uint16_t __u6_addr16[8];
+ uint32_t __u6_addr32[4];
+      } __in6_u;
+  };
+extern const struct in6_addr in6addr_any;
+extern const struct in6_addr in6addr_loopback;
+struct sockaddr_in
+  {
+    sa_family_t sin_family;
+    in_port_t sin_port;
+    struct in_addr sin_addr;
+    unsigned char sin_zero[sizeof (struct sockaddr)
+      - (sizeof (unsigned short int))
+      - sizeof (in_port_t)
+      - sizeof (struct in_addr)];
+  };
+struct sockaddr_in6
+  {
+    sa_family_t sin6_family;
+    in_port_t sin6_port;
+    uint32_t sin6_flowinfo;
+    struct in6_addr sin6_addr;
+    uint32_t sin6_scope_id;
+  };
+struct ip_mreq
+  {
+    struct in_addr imr_multiaddr;
+    struct in_addr imr_interface;
+  };
+struct ip_mreq_source
+  {
+    struct in_addr imr_multiaddr;
+    struct in_addr imr_interface;
+    struct in_addr imr_sourceaddr;
+  };
+struct ipv6_mreq
+  {
+    struct in6_addr ipv6mr_multiaddr;
+    unsigned int ipv6mr_interface;
+  };
+struct group_req
+  {
+    uint32_t gr_interface;
+    struct sockaddr_storage gr_group;
+  };
+struct group_source_req
+  {
+    uint32_t gsr_interface;
+    struct sockaddr_storage gsr_group;
+    struct sockaddr_storage gsr_source;
+  };
+struct ip_msfilter
+  {
+    struct in_addr imsf_multiaddr;
+    struct in_addr imsf_interface;
+    uint32_t imsf_fmode;
+    uint32_t imsf_numsrc;
+    struct in_addr imsf_slist[1];
+  };
+struct group_filter
+  {
+    uint32_t gf_interface;
+    struct sockaddr_storage gf_group;
+    uint32_t gf_fmode;
+    uint32_t gf_numsrc;
+    struct sockaddr_storage gf_slist[1];
+};
+extern uint32_t ntohl (uint32_t __netlong) __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__const__));
+extern uint16_t ntohs (uint16_t __netshort)
+     __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__const__));
+extern uint32_t htonl (uint32_t __hostlong)
+     __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__const__));
+extern uint16_t htons (uint16_t __hostshort)
+     __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__const__));
+extern int bindresvport (int __sockfd, struct sockaddr_in *__sock_in) __attribute__ ((__nothrow__ , __leaf__));
+extern int bindresvport6 (int __sockfd, struct sockaddr_in6 *__sock_in)
+     __attribute__ ((__nothrow__ , __leaf__));
+
+
+extern in_addr_t inet_addr (const char *__cp) __attribute__ ((__nothrow__ , __leaf__));
+extern in_addr_t inet_lnaof (struct in_addr __in) __attribute__ ((__nothrow__ , __leaf__));
+extern struct in_addr inet_makeaddr (in_addr_t __net, in_addr_t __host)
+     __attribute__ ((__nothrow__ , __leaf__));
+extern in_addr_t inet_netof (struct in_addr __in) __attribute__ ((__nothrow__ , __leaf__));
+extern in_addr_t inet_network (const char *__cp) __attribute__ ((__nothrow__ , __leaf__));
+extern char *inet_ntoa (struct in_addr __in) __attribute__ ((__nothrow__ , __leaf__));
+extern int inet_pton (int __af, const char *__restrict __cp,
+        void *__restrict __buf) __attribute__ ((__nothrow__ , __leaf__));
+extern const char *inet_ntop (int __af, const void *__restrict __cp,
+         char *__restrict __buf, socklen_t __len)
+     __attribute__ ((__nothrow__ , __leaf__));
+extern int inet_aton (const char *__cp, struct in_addr *__inp) __attribute__ ((__nothrow__ , __leaf__));
+extern char *inet_neta (in_addr_t __net, char *__buf, size_t __len) __attribute__ ((__nothrow__ , __leaf__))
+  __attribute__ ((__deprecated__ ("Use inet_ntop instead")));
+extern char *inet_net_ntop (int __af, const void *__cp, int __bits,
+       char *__buf, size_t __len) __attribute__ ((__nothrow__ , __leaf__));
+extern int inet_net_pton (int __af, const char *__cp,
+     void *__buf, size_t __len) __attribute__ ((__nothrow__ , __leaf__));
+extern unsigned int inet_nsap_addr (const char *__cp,
+        unsigned char *__buf, int __len) __attribute__ ((__nothrow__ , __leaf__));
+extern char *inet_nsap_ntoa (int __len, const unsigned char *__cp,
+        char *__buf) __attribute__ ((__nothrow__ , __leaf__));
+
+
+typedef __useconds_t useconds_t;
+extern int access (const char *__name, int __type) __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__nonnull__ (1)));
+extern int faccessat (int __fd, const char *__file, int __type, int __flag)
+     __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__nonnull__ (2))) __attribute__ ((__warn_unused_result__));
+extern __off_t lseek (int __fd, __off_t __offset, int __whence) __attribute__ ((__nothrow__ , __leaf__));
+extern int close (int __fd);
+extern void closefrom (int __lowfd) __attribute__ ((__nothrow__ , __leaf__));
+extern ssize_t read (int __fd, void *__buf, size_t __nbytes) __attribute__ ((__warn_unused_result__))
+    __attribute__ ((__access__ (__write_only__, 2, 3)));
+extern ssize_t write (int __fd, const void *__buf, size_t __n) __attribute__ ((__warn_unused_result__))
+    __attribute__ ((__access__ (__read_only__, 2, 3)));
+extern ssize_t pread (int __fd, void *__buf, size_t __nbytes,
+        __off_t __offset) __attribute__ ((__warn_unused_result__))
+    __attribute__ ((__access__ (__write_only__, 2, 3)));
+extern ssize_t pwrite (int __fd, const void *__buf, size_t __n,
+         __off_t __offset) __attribute__ ((__warn_unused_result__))
+    __attribute__ ((__access__ (__read_only__, 2, 3)));
+extern int pipe (int __pipedes[2]) __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__warn_unused_result__));
+extern unsigned int alarm (unsigned int __seconds) __attribute__ ((__nothrow__ , __leaf__));
+extern unsigned int sleep (unsigned int __seconds);
+extern __useconds_t ualarm (__useconds_t __value, __useconds_t __interval)
+     __attribute__ ((__nothrow__ , __leaf__));
+extern int usleep (__useconds_t __useconds);
+extern int pause (void);
+extern int chown (const char *__file, __uid_t __owner, __gid_t __group)
+     __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__nonnull__ (1))) __attribute__ ((__warn_unused_result__));
+extern int fchown (int __fd, __uid_t __owner, __gid_t __group) __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__warn_unused_result__));
+extern int lchown (const char *__file, __uid_t __owner, __gid_t __group)
+     __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__nonnull__ (1))) __attribute__ ((__warn_unused_result__));
+extern int fchownat (int __fd, const char *__file, __uid_t __owner,
+       __gid_t __group, int __flag)
+     __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__nonnull__ (2))) __attribute__ ((__warn_unused_result__));
+extern int chdir (const char *__path) __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__nonnull__ (1))) __attribute__ ((__warn_unused_result__));
+extern int fchdir (int __fd) __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__warn_unused_result__));
+extern char *getcwd (char *__buf, size_t __size) __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__warn_unused_result__));
+extern char *getwd (char *__buf)
+     __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__nonnull__ (1))) __attribute__ ((__deprecated__)) __attribute__ ((__warn_unused_result__))
+    __attribute__ ((__access__ (__write_only__, 1)));
+extern int dup (int __fd) __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__warn_unused_result__));
+extern int dup2 (int __fd, int __fd2) __attribute__ ((__nothrow__ , __leaf__));
+extern char **__environ;
+extern int execve (const char *__path, char *const __argv[],
+     char *const __envp[]) __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__nonnull__ (1, 2)));
+extern int fexecve (int __fd, char *const __argv[], char *const __envp[])
+     __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__nonnull__ (2)));
+extern int execv (const char *__path, char *const __argv[])
+     __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__nonnull__ (1, 2)));
+extern int execle (const char *__path, const char *__arg, ...)
+     __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__nonnull__ (1, 2)));
+extern int execl (const char *__path, const char *__arg, ...)
+     __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__nonnull__ (1, 2)));
+extern int execvp (const char *__file, char *const __argv[])
+     __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__nonnull__ (1, 2)));
+extern int execlp (const char *__file, const char *__arg, ...)
+     __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__nonnull__ (1, 2)));
+extern int nice (int __inc) __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__warn_unused_result__));
+extern void _exit (int __status) __attribute__ ((__noreturn__));
+enum
+  {
+    _PC_LINK_MAX,
+    _PC_MAX_CANON,
+    _PC_MAX_INPUT,
+    _PC_NAME_MAX,
+    _PC_PATH_MAX,
+    _PC_PIPE_BUF,
+    _PC_CHOWN_RESTRICTED,
+    _PC_NO_TRUNC,
+    _PC_VDISABLE,
+    _PC_SYNC_IO,
+    _PC_ASYNC_IO,
+    _PC_PRIO_IO,
+    _PC_SOCK_MAXBUF,
+    _PC_FILESIZEBITS,
+    _PC_REC_INCR_XFER_SIZE,
+    _PC_REC_MAX_XFER_SIZE,
+    _PC_REC_MIN_XFER_SIZE,
+    _PC_REC_XFER_ALIGN,
+    _PC_ALLOC_SIZE_MIN,
+    _PC_SYMLINK_MAX,
+    _PC_2_SYMLINKS
+  };
+enum
+  {
+    _SC_ARG_MAX,
+    _SC_CHILD_MAX,
+    _SC_CLK_TCK,
+    _SC_NGROUPS_MAX,
+    _SC_OPEN_MAX,
+    _SC_STREAM_MAX,
+    _SC_TZNAME_MAX,
+    _SC_JOB_CONTROL,
+    _SC_SAVED_IDS,
+    _SC_REALTIME_SIGNALS,
+    _SC_PRIORITY_SCHEDULING,
+    _SC_TIMERS,
+    _SC_ASYNCHRONOUS_IO,
+    _SC_PRIORITIZED_IO,
+    _SC_SYNCHRONIZED_IO,
+    _SC_FSYNC,
+    _SC_MAPPED_FILES,
+    _SC_MEMLOCK,
+    _SC_MEMLOCK_RANGE,
+    _SC_MEMORY_PROTECTION,
+    _SC_MESSAGE_PASSING,
+    _SC_SEMAPHORES,
+    _SC_SHARED_MEMORY_OBJECTS,
+    _SC_AIO_LISTIO_MAX,
+    _SC_AIO_MAX,
+    _SC_AIO_PRIO_DELTA_MAX,
+    _SC_DELAYTIMER_MAX,
+    _SC_MQ_OPEN_MAX,
+    _SC_MQ_PRIO_MAX,
+    _SC_VERSION,
+    _SC_PAGESIZE,
+    _SC_RTSIG_MAX,
+    _SC_SEM_NSEMS_MAX,
+    _SC_SEM_VALUE_MAX,
+    _SC_SIGQUEUE_MAX,
+    _SC_TIMER_MAX,
+    _SC_BC_BASE_MAX,
+    _SC_BC_DIM_MAX,
+    _SC_BC_SCALE_MAX,
+    _SC_BC_STRING_MAX,
+    _SC_COLL_WEIGHTS_MAX,
+    _SC_EQUIV_CLASS_MAX,
+    _SC_EXPR_NEST_MAX,
+    _SC_LINE_MAX,
+    _SC_RE_DUP_MAX,
+    _SC_CHARCLASS_NAME_MAX,
+    _SC_2_VERSION,
+    _SC_2_C_BIND,
+    _SC_2_C_DEV,
+    _SC_2_FORT_DEV,
+    _SC_2_FORT_RUN,
+    _SC_2_SW_DEV,
+    _SC_2_LOCALEDEF,
+    _SC_PII,
+    _SC_PII_XTI,
+    _SC_PII_SOCKET,
+    _SC_PII_INTERNET,
+    _SC_PII_OSI,
+    _SC_POLL,
+    _SC_SELECT,
+    _SC_UIO_MAXIOV,
+    _SC_IOV_MAX = _SC_UIO_MAXIOV,
+    _SC_PII_INTERNET_STREAM,
+    _SC_PII_INTERNET_DGRAM,
+    _SC_PII_OSI_COTS,
+    _SC_PII_OSI_CLTS,
+    _SC_PII_OSI_M,
+    _SC_T_IOV_MAX,
+    _SC_THREADS,
+    _SC_THREAD_SAFE_FUNCTIONS,
+    _SC_GETGR_R_SIZE_MAX,
+    _SC_GETPW_R_SIZE_MAX,
+    _SC_LOGIN_NAME_MAX,
+    _SC_TTY_NAME_MAX,
+    _SC_THREAD_DESTRUCTOR_ITERATIONS,
+    _SC_THREAD_KEYS_MAX,
+    _SC_THREAD_STACK_MIN,
+    _SC_THREAD_THREADS_MAX,
+    _SC_THREAD_ATTR_STACKADDR,
+    _SC_THREAD_ATTR_STACKSIZE,
+    _SC_THREAD_PRIORITY_SCHEDULING,
+    _SC_THREAD_PRIO_INHERIT,
+    _SC_THREAD_PRIO_PROTECT,
+    _SC_THREAD_PROCESS_SHARED,
+    _SC_NPROCESSORS_CONF,
+    _SC_NPROCESSORS_ONLN,
+    _SC_PHYS_PAGES,
+    _SC_AVPHYS_PAGES,
+    _SC_ATEXIT_MAX,
+    _SC_PASS_MAX,
+    _SC_XOPEN_VERSION,
+    _SC_XOPEN_XCU_VERSION,
+    _SC_XOPEN_UNIX,
+    _SC_XOPEN_CRYPT,
+    _SC_XOPEN_ENH_I18N,
+    _SC_XOPEN_SHM,
+    _SC_2_CHAR_TERM,
+    _SC_2_C_VERSION,
+    _SC_2_UPE,
+    _SC_XOPEN_XPG2,
+    _SC_XOPEN_XPG3,
+    _SC_XOPEN_XPG4,
+    _SC_CHAR_BIT,
+    _SC_CHAR_MAX,
+    _SC_CHAR_MIN,
+    _SC_INT_MAX,
+    _SC_INT_MIN,
+    _SC_LONG_BIT,
+    _SC_WORD_BIT,
+    _SC_MB_LEN_MAX,
+    _SC_NZERO,
+    _SC_SSIZE_MAX,
+    _SC_SCHAR_MAX,
+    _SC_SCHAR_MIN,
+    _SC_SHRT_MAX,
+    _SC_SHRT_MIN,
+    _SC_UCHAR_MAX,
+    _SC_UINT_MAX,
+    _SC_ULONG_MAX,
+    _SC_USHRT_MAX,
+    _SC_NL_ARGMAX,
+    _SC_NL_LANGMAX,
+    _SC_NL_MSGMAX,
+    _SC_NL_NMAX,
+    _SC_NL_SETMAX,
+    _SC_NL_TEXTMAX,
+    _SC_XBS5_ILP32_OFF32,
+    _SC_XBS5_ILP32_OFFBIG,
+    _SC_XBS5_LP64_OFF64,
+    _SC_XBS5_LPBIG_OFFBIG,
+    _SC_XOPEN_LEGACY,
+    _SC_XOPEN_REALTIME,
+    _SC_XOPEN_REALTIME_THREADS,
+    _SC_ADVISORY_INFO,
+    _SC_BARRIERS,
+    _SC_BASE,
+    _SC_C_LANG_SUPPORT,
+    _SC_C_LANG_SUPPORT_R,
+    _SC_CLOCK_SELECTION,
+    _SC_CPUTIME,
+    _SC_THREAD_CPUTIME,
+    _SC_DEVICE_IO,
+    _SC_DEVICE_SPECIFIC,
+    _SC_DEVICE_SPECIFIC_R,
+    _SC_FD_MGMT,
+    _SC_FIFO,
+    _SC_PIPE,
+    _SC_FILE_ATTRIBUTES,
+    _SC_FILE_LOCKING,
+    _SC_FILE_SYSTEM,
+    _SC_MONOTONIC_CLOCK,
+    _SC_MULTI_PROCESS,
+    _SC_SINGLE_PROCESS,
+    _SC_NETWORKING,
+    _SC_READER_WRITER_LOCKS,
+    _SC_SPIN_LOCKS,
+    _SC_REGEXP,
+    _SC_REGEX_VERSION,
+    _SC_SHELL,
+    _SC_SIGNALS,
+    _SC_SPAWN,
+    _SC_SPORADIC_SERVER,
+    _SC_THREAD_SPORADIC_SERVER,
+    _SC_SYSTEM_DATABASE,
+    _SC_SYSTEM_DATABASE_R,
+    _SC_TIMEOUTS,
+    _SC_TYPED_MEMORY_OBJECTS,
+    _SC_USER_GROUPS,
+    _SC_USER_GROUPS_R,
+    _SC_2_PBS,
+    _SC_2_PBS_ACCOUNTING,
+    _SC_2_PBS_LOCATE,
+    _SC_2_PBS_MESSAGE,
+    _SC_2_PBS_TRACK,
+    _SC_SYMLOOP_MAX,
+    _SC_STREAMS,
+    _SC_2_PBS_CHECKPOINT,
+    _SC_V6_ILP32_OFF32,
+    _SC_V6_ILP32_OFFBIG,
+    _SC_V6_LP64_OFF64,
+    _SC_V6_LPBIG_OFFBIG,
+    _SC_HOST_NAME_MAX,
+    _SC_TRACE,
+    _SC_TRACE_EVENT_FILTER,
+    _SC_TRACE_INHERIT,
+    _SC_TRACE_LOG,
+    _SC_LEVEL1_ICACHE_SIZE,
+    _SC_LEVEL1_ICACHE_ASSOC,
+    _SC_LEVEL1_ICACHE_LINESIZE,
+    _SC_LEVEL1_DCACHE_SIZE,
+    _SC_LEVEL1_DCACHE_ASSOC,
+    _SC_LEVEL1_DCACHE_LINESIZE,
+    _SC_LEVEL2_CACHE_SIZE,
+    _SC_LEVEL2_CACHE_ASSOC,
+    _SC_LEVEL2_CACHE_LINESIZE,
+    _SC_LEVEL3_CACHE_SIZE,
+    _SC_LEVEL3_CACHE_ASSOC,
+    _SC_LEVEL3_CACHE_LINESIZE,
+    _SC_LEVEL4_CACHE_SIZE,
+    _SC_LEVEL4_CACHE_ASSOC,
+    _SC_LEVEL4_CACHE_LINESIZE,
+    _SC_IPV6 = _SC_LEVEL1_ICACHE_SIZE + 50,
+    _SC_RAW_SOCKETS,
+    _SC_V7_ILP32_OFF32,
+    _SC_V7_ILP32_OFFBIG,
+    _SC_V7_LP64_OFF64,
+    _SC_V7_LPBIG_OFFBIG,
+    _SC_SS_REPL_MAX,
+    _SC_TRACE_EVENT_NAME_MAX,
+    _SC_TRACE_NAME_MAX,
+    _SC_TRACE_SYS_MAX,
+    _SC_TRACE_USER_EVENT_MAX,
+    _SC_XOPEN_STREAMS,
+    _SC_THREAD_ROBUST_PRIO_INHERIT,
+    _SC_THREAD_ROBUST_PRIO_PROTECT,
+    _SC_MINSIGSTKSZ,
+    _SC_SIGSTKSZ
+  };
+enum
+  {
+    _CS_PATH,
+    _CS_V6_WIDTH_RESTRICTED_ENVS,
+    _CS_GNU_LIBC_VERSION,
+    _CS_GNU_LIBPTHREAD_VERSION,
+    _CS_V5_WIDTH_RESTRICTED_ENVS,
+    _CS_V7_WIDTH_RESTRICTED_ENVS,
+    _CS_LFS_CFLAGS = 1000,
+    _CS_LFS_LDFLAGS,
+    _CS_LFS_LIBS,
+    _CS_LFS_LINTFLAGS,
+    _CS_LFS64_CFLAGS,
+    _CS_LFS64_LDFLAGS,
+    _CS_LFS64_LIBS,
+    _CS_LFS64_LINTFLAGS,
+    _CS_XBS5_ILP32_OFF32_CFLAGS = 1100,
+    _CS_XBS5_ILP32_OFF32_LDFLAGS,
+    _CS_XBS5_ILP32_OFF32_LIBS,
+    _CS_XBS5_ILP32_OFF32_LINTFLAGS,
+    _CS_XBS5_ILP32_OFFBIG_CFLAGS,
+    _CS_XBS5_ILP32_OFFBIG_LDFLAGS,
+    _CS_XBS5_ILP32_OFFBIG_LIBS,
+    _CS_XBS5_ILP32_OFFBIG_LINTFLAGS,
+    _CS_XBS5_LP64_OFF64_CFLAGS,
+    _CS_XBS5_LP64_OFF64_LDFLAGS,
+    _CS_XBS5_LP64_OFF64_LIBS,
+    _CS_XBS5_LP64_OFF64_LINTFLAGS,
+    _CS_XBS5_LPBIG_OFFBIG_CFLAGS,
+    _CS_XBS5_LPBIG_OFFBIG_LDFLAGS,
+    _CS_XBS5_LPBIG_OFFBIG_LIBS,
+    _CS_XBS5_LPBIG_OFFBIG_LINTFLAGS,
+    _CS_POSIX_V6_ILP32_OFF32_CFLAGS,
+    _CS_POSIX_V6_ILP32_OFF32_LDFLAGS,
+    _CS_POSIX_V6_ILP32_OFF32_LIBS,
+    _CS_POSIX_V6_ILP32_OFF32_LINTFLAGS,
+    _CS_POSIX_V6_ILP32_OFFBIG_CFLAGS,
+    _CS_POSIX_V6_ILP32_OFFBIG_LDFLAGS,
+    _CS_POSIX_V6_ILP32_OFFBIG_LIBS,
+    _CS_POSIX_V6_ILP32_OFFBIG_LINTFLAGS,
+    _CS_POSIX_V6_LP64_OFF64_CFLAGS,
+    _CS_POSIX_V6_LP64_OFF64_LDFLAGS,
+    _CS_POSIX_V6_LP64_OFF64_LIBS,
+    _CS_POSIX_V6_LP64_OFF64_LINTFLAGS,
+    _CS_POSIX_V6_LPBIG_OFFBIG_CFLAGS,
+    _CS_POSIX_V6_LPBIG_OFFBIG_LDFLAGS,
+    _CS_POSIX_V6_LPBIG_OFFBIG_LIBS,
+    _CS_POSIX_V6_LPBIG_OFFBIG_LINTFLAGS,
+    _CS_POSIX_V7_ILP32_OFF32_CFLAGS,
+    _CS_POSIX_V7_ILP32_OFF32_LDFLAGS,
+    _CS_POSIX_V7_ILP32_OFF32_LIBS,
+    _CS_POSIX_V7_ILP32_OFF32_LINTFLAGS,
+    _CS_POSIX_V7_ILP32_OFFBIG_CFLAGS,
+    _CS_POSIX_V7_ILP32_OFFBIG_LDFLAGS,
+    _CS_POSIX_V7_ILP32_OFFBIG_LIBS,
+    _CS_POSIX_V7_ILP32_OFFBIG_LINTFLAGS,
+    _CS_POSIX_V7_LP64_OFF64_CFLAGS,
+    _CS_POSIX_V7_LP64_OFF64_LDFLAGS,
+    _CS_POSIX_V7_LP64_OFF64_LIBS,
+    _CS_POSIX_V7_LP64_OFF64_LINTFLAGS,
+    _CS_POSIX_V7_LPBIG_OFFBIG_CFLAGS,
+    _CS_POSIX_V7_LPBIG_OFFBIG_LDFLAGS,
+    _CS_POSIX_V7_LPBIG_OFFBIG_LIBS,
+    _CS_POSIX_V7_LPBIG_OFFBIG_LINTFLAGS,
+    _CS_V6_ENV,
+    _CS_V7_ENV
+  };
+extern long int pathconf (const char *__path, int __name)
+     __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__nonnull__ (1)));
+extern long int fpathconf (int __fd, int __name) __attribute__ ((__nothrow__ , __leaf__));
+extern long int sysconf (int __name) __attribute__ ((__nothrow__ , __leaf__));
+extern size_t confstr (int __name, char *__buf, size_t __len) __attribute__ ((__nothrow__ , __leaf__))
+    __attribute__ ((__access__ (__write_only__, 2, 3)));
+extern __pid_t getpid (void) __attribute__ ((__nothrow__ , __leaf__));
+extern __pid_t getppid (void) __attribute__ ((__nothrow__ , __leaf__));
+extern __pid_t getpgrp (void) __attribute__ ((__nothrow__ , __leaf__));
+extern __pid_t __getpgid (__pid_t __pid) __attribute__ ((__nothrow__ , __leaf__));
+extern __pid_t getpgid (__pid_t __pid) __attribute__ ((__nothrow__ , __leaf__));
+extern int setpgid (__pid_t __pid, __pid_t __pgid) __attribute__ ((__nothrow__ , __leaf__));
+extern int setpgrp (void) __attribute__ ((__nothrow__ , __leaf__));
+extern __pid_t setsid (void) __attribute__ ((__nothrow__ , __leaf__));
+extern __pid_t getsid (__pid_t __pid) __attribute__ ((__nothrow__ , __leaf__));
+extern __uid_t getuid (void) __attribute__ ((__nothrow__ , __leaf__));
+extern __uid_t geteuid (void) __attribute__ ((__nothrow__ , __leaf__));
+extern __gid_t getgid (void) __attribute__ ((__nothrow__ , __leaf__));
+extern __gid_t getegid (void) __attribute__ ((__nothrow__ , __leaf__));
+extern int getgroups (int __size, __gid_t __list[]) __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__warn_unused_result__))
+    __attribute__ ((__access__ (__write_only__, 2, 1)));
+extern int setuid (__uid_t __uid) __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__warn_unused_result__));
+extern int setreuid (__uid_t __ruid, __uid_t __euid) __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__warn_unused_result__));
+extern int seteuid (__uid_t __uid) __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__warn_unused_result__));
+extern int setgid (__gid_t __gid) __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__warn_unused_result__));
+extern int setregid (__gid_t __rgid, __gid_t __egid) __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__warn_unused_result__));
+extern int setegid (__gid_t __gid) __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__warn_unused_result__));
+extern __pid_t fork (void) __attribute__ ((__nothrow__));
+extern __pid_t vfork (void) __attribute__ ((__nothrow__ , __leaf__));
+extern char *ttyname (int __fd) __attribute__ ((__nothrow__ , __leaf__));
+extern int ttyname_r (int __fd, char *__buf, size_t __buflen)
+     __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__nonnull__ (2))) __attribute__ ((__warn_unused_result__))
+     __attribute__ ((__access__ (__write_only__, 2, 3)));
+extern int isatty (int __fd) __attribute__ ((__nothrow__ , __leaf__));
+extern int ttyslot (void) __attribute__ ((__nothrow__ , __leaf__));
+extern int link (const char *__from, const char *__to)
+     __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__nonnull__ (1, 2))) __attribute__ ((__warn_unused_result__));
+extern int linkat (int __fromfd, const char *__from, int __tofd,
+     const char *__to, int __flags)
+     __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__nonnull__ (2, 4))) __attribute__ ((__warn_unused_result__));
+extern int symlink (const char *__from, const char *__to)
+     __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__nonnull__ (1, 2))) __attribute__ ((__warn_unused_result__));
+extern ssize_t readlink (const char *__restrict __path,
+    char *__restrict __buf, size_t __len)
+     __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__nonnull__ (1, 2))) __attribute__ ((__warn_unused_result__))
+     __attribute__ ((__access__ (__write_only__, 2, 3)));
+extern int symlinkat (const char *__from, int __tofd,
+        const char *__to) __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__nonnull__ (1, 3))) __attribute__ ((__warn_unused_result__));
+extern ssize_t readlinkat (int __fd, const char *__restrict __path,
+      char *__restrict __buf, size_t __len)
+     __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__nonnull__ (2, 3))) __attribute__ ((__warn_unused_result__))
+     __attribute__ ((__access__ (__write_only__, 3, 4)));
+extern int unlink (const char *__name) __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__nonnull__ (1)));
+extern int unlinkat (int __fd, const char *__name, int __flag)
+     __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__nonnull__ (2)));
+extern int rmdir (const char *__path) __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__nonnull__ (1)));
+extern __pid_t tcgetpgrp (int __fd) __attribute__ ((__nothrow__ , __leaf__));
+extern int tcsetpgrp (int __fd, __pid_t __pgrp_id) __attribute__ ((__nothrow__ , __leaf__));
+extern char *getlogin (void);
+extern int getlogin_r (char *__name, size_t __name_len) __attribute__ ((__nonnull__ (1)))
+    __attribute__ ((__access__ (__write_only__, 1, 2)));
+extern int setlogin (const char *__name) __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__nonnull__ (1)));
+
+extern char *optarg;
+extern int optind;
+extern int opterr;
+extern int optopt;
+extern int getopt (int ___argc, char *const *___argv, const char *__shortopts)
+       __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__nonnull__ (2, 3)));
+
+
+
+extern int gethostname (char *__name, size_t __len) __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__nonnull__ (1)))
+    __attribute__ ((__access__ (__write_only__, 1, 2)));
+extern int sethostname (const char *__name, size_t __len)
+     __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__nonnull__ (1))) __attribute__ ((__warn_unused_result__)) __attribute__ ((__access__ (__read_only__, 1, 2)));
+extern int sethostid (long int __id) __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__warn_unused_result__));
+extern int getdomainname (char *__name, size_t __len)
+     __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__nonnull__ (1))) __attribute__ ((__warn_unused_result__))
+     __attribute__ ((__access__ (__write_only__, 1, 2)));
+extern int setdomainname (const char *__name, size_t __len)
+     __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__nonnull__ (1))) __attribute__ ((__warn_unused_result__)) __attribute__ ((__access__ (__read_only__, 1, 2)));
+extern int vhangup (void) __attribute__ ((__nothrow__ , __leaf__));
+extern int revoke (const char *__file) __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__nonnull__ (1))) __attribute__ ((__warn_unused_result__));
+extern int profil (unsigned short int *__sample_buffer, size_t __size,
+     size_t __offset, unsigned int __scale)
+     __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__nonnull__ (1)));
+extern int acct (const char *__name) __attribute__ ((__nothrow__ , __leaf__));
+extern char *getusershell (void) __attribute__ ((__nothrow__ , __leaf__));
+extern void endusershell (void) __attribute__ ((__nothrow__ , __leaf__));
+extern void setusershell (void) __attribute__ ((__nothrow__ , __leaf__));
+extern int daemon (int __nochdir, int __noclose) __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__warn_unused_result__));
+extern int chroot (const char *__path) __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__nonnull__ (1))) __attribute__ ((__warn_unused_result__));
+extern char *getpass (const char *__prompt) __attribute__ ((__nonnull__ (1)));
+extern int fsync (int __fd);
+extern long int gethostid (void);
+extern void sync (void) __attribute__ ((__nothrow__ , __leaf__));
+extern int getpagesize (void) __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__const__));
+extern int getdtablesize (void) __attribute__ ((__nothrow__ , __leaf__));
+extern int truncate (const char *__file, __off_t __length)
+     __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__nonnull__ (1))) __attribute__ ((__warn_unused_result__));
+extern int ftruncate (int __fd, __off_t __length) __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__warn_unused_result__));
+extern int brk (void *__addr) __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__warn_unused_result__));
+extern void *sbrk (intptr_t __delta) __attribute__ ((__nothrow__ , __leaf__));
+extern long int syscall (long int __sysno, ...) __attribute__ ((__nothrow__ , __leaf__));
+extern int lockf (int __fd, int __cmd, __off_t __len) __attribute__ ((__warn_unused_result__));
+extern int fdatasync (int __fildes);
+extern char *crypt (const char *__key, const char *__salt)
+     __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__nonnull__ (1, 2)));
+int getentropy (void *__buffer, size_t __length) __attribute__ ((__warn_unused_result__))
+    __attribute__ ((__access__ (__write_only__, 1, 2)));
+extern ssize_t __read_chk (int __fd, void *__buf, size_t __nbytes,
+      size_t __buflen)
+  __attribute__ ((__warn_unused_result__)) __attribute__ ((__access__ (__write_only__, 2, 3)));
+extern ssize_t __read_alias (int __fd, void *__buf, size_t __nbytes) __asm__ ("" "read")
+  __attribute__ ((__warn_unused_result__)) __attribute__ ((__access__ (__write_only__, 2, 3)));
+extern ssize_t __read_chk_warn (int __fd, void *__buf, size_t __nbytes, size_t __buflen) __asm__ ("" "__read_chk")
+     __attribute__ ((__warn_unused_result__)) __attribute__((__warning__ ("read called with bigger length than size of " "the destination buffer")));
+extern __inline __attribute__ ((__always_inline__)) __attribute__ ((__gnu_inline__)) __attribute__ ((__artificial__)) __attribute__ ((__warn_unused_result__)) ssize_t
+read (int __fd, void *__buf, size_t __nbytes)
+{
+  return ((((__typeof (__nbytes)) 0 < (__typeof (__nbytes)) -1 || (__builtin_constant_p (__nbytes) && (__nbytes) > 0)) && __builtin_constant_p ((((long unsigned int) (__nbytes)) <= (__builtin_object_size (__buf, 0)) / (sizeof (char)))) && (((long unsigned int) (__nbytes)) <= (__builtin_object_size (__buf, 0)) / (sizeof (char)))) ? __read_alias (__fd, __buf, __nbytes) : ((((__typeof (__nbytes)) 0 < (__typeof (__nbytes)) -1 || (__builtin_constant_p (__nbytes) && (__nbytes) > 0)) && __builtin_constant_p ((((long unsigned int) (__nbytes)) <= (__builtin_object_size (__buf, 0)) / (sizeof (char)))) && !(((long unsigned int) (__nbytes)) <= (__builtin_object_size (__buf, 0)) / (sizeof (char)))) ? __read_chk_warn (__fd, __buf, __nbytes, __builtin_object_size (__buf, 0)) : __read_chk (__fd, __buf, __nbytes, __builtin_object_size (__buf, 0))));
+}
+extern ssize_t __pread_chk (int __fd, void *__buf, size_t __nbytes,
+       __off_t __offset, size_t __bufsize)
+  __attribute__ ((__warn_unused_result__)) __attribute__ ((__access__ (__write_only__, 2, 3)));
+extern ssize_t __pread64_chk (int __fd, void *__buf, size_t __nbytes,
+         __off64_t __offset, size_t __bufsize)
+  __attribute__ ((__warn_unused_result__)) __attribute__ ((__access__ (__write_only__, 2, 3)));
+extern ssize_t __pread_alias (int __fd, void *__buf, size_t __nbytes, __off_t __offset) __asm__ ("" "pread")
+  __attribute__ ((__warn_unused_result__)) __attribute__ ((__access__ (__write_only__, 2, 3)));
+extern ssize_t __pread64_alias (int __fd, void *__buf, size_t __nbytes, __off64_t __offset) __asm__ ("" "pread64")
+  __attribute__ ((__warn_unused_result__)) __attribute__ ((__access__ (__write_only__, 2, 3)));
+extern ssize_t __pread_chk_warn (int __fd, void *__buf, size_t __nbytes, __off_t __offset, size_t __bufsize) __asm__ ("" "__pread_chk")
+     __attribute__ ((__warn_unused_result__)) __attribute__((__warning__ ("pread called with bigger length than size of " "the destination buffer")));
+extern ssize_t __pread64_chk_warn (int __fd, void *__buf, size_t __nbytes, __off64_t __offset, size_t __bufsize) __asm__ ("" "__pread64_chk")
+     __attribute__ ((__warn_unused_result__)) __attribute__((__warning__ ("pread64 called with bigger length than size of " "the destination buffer")));
+extern __inline __attribute__ ((__always_inline__)) __attribute__ ((__gnu_inline__)) __attribute__ ((__artificial__)) __attribute__ ((__warn_unused_result__)) ssize_t
+pread (int __fd, void *__buf, size_t __nbytes, __off_t __offset)
+{
+  return ((((__typeof (__nbytes)) 0 < (__typeof (__nbytes)) -1 || (__builtin_constant_p (__nbytes) && (__nbytes) > 0)) && __builtin_constant_p ((((long unsigned int) (__nbytes)) <= (__builtin_object_size (__buf, 0)) / (sizeof (char)))) && (((long unsigned int) (__nbytes)) <= (__builtin_object_size (__buf, 0)) / (sizeof (char)))) ? __pread_alias (__fd, __buf, __nbytes, __offset) : ((((__typeof (__nbytes)) 0 < (__typeof (__nbytes)) -1 || (__builtin_constant_p (__nbytes) && (__nbytes) > 0)) && __builtin_constant_p ((((long unsigned int) (__nbytes)) <= (__builtin_object_size (__buf, 0)) / (sizeof (char)))) && !(((long unsigned int) (__nbytes)) <= (__builtin_object_size (__buf, 0)) / (sizeof (char)))) ? __pread_chk_warn (__fd, __buf, __nbytes, __offset, __builtin_object_size (__buf, 0)) : __pread_chk (__fd, __buf, __nbytes, __offset, __builtin_object_size (__buf, 0))));
+}
+extern ssize_t __readlink_chk (const char *__restrict __path,
+          char *__restrict __buf, size_t __len,
+          size_t __buflen)
+     __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__nonnull__ (1, 2))) __attribute__ ((__warn_unused_result__)) __attribute__ ((__access__ (__write_only__, 2, 3)));
+extern ssize_t __readlink_alias (const char *__restrict __path, char *__restrict __buf, size_t __len) __asm__ ("" "readlink") __attribute__ ((__nothrow__ , __leaf__))
+     __attribute__ ((__nonnull__ (1, 2))) __attribute__ ((__warn_unused_result__)) __attribute__ ((__access__ (__write_only__, 2, 3)));
+extern ssize_t __readlink_chk_warn (const char *__restrict __path, char *__restrict __buf, size_t __len, size_t __buflen) __asm__ ("" "__readlink_chk") __attribute__ ((__nothrow__ , __leaf__))
+     __attribute__ ((__nonnull__ (1, 2))) __attribute__ ((__warn_unused_result__)) __attribute__((__warning__ ("readlink called with bigger length " "than size of destination buffer")));
+extern __inline __attribute__ ((__always_inline__)) __attribute__ ((__gnu_inline__)) __attribute__ ((__artificial__)) __attribute__ ((__nonnull__ (1, 2))) __attribute__ ((__warn_unused_result__)) ssize_t
+__attribute__ ((__nothrow__ , __leaf__)) readlink (const char *__restrict __path, char *__restrict __buf, size_t __len)
+{
+  return ((((__typeof (__len)) 0 < (__typeof (__len)) -1 || (__builtin_constant_p (__len) && (__len) > 0)) && __builtin_constant_p ((((long unsigned int) (__len)) <= (__builtin_object_size (__buf, 2 > 1)) / (sizeof (char)))) && (((long unsigned int) (__len)) <= (__builtin_object_size (__buf, 2 > 1)) / (sizeof (char)))) ? __readlink_alias (__path, __buf, __len) : ((((__typeof (__len)) 0 < (__typeof (__len)) -1 || (__builtin_constant_p (__len) && (__len) > 0)) && __builtin_constant_p ((((long unsigned int) (__len)) <= (__builtin_object_size (__buf, 2 > 1)) / (sizeof (char)))) && !(((long unsigned int) (__len)) <= (__builtin_object_size (__buf, 2 > 1)) / (sizeof (char)))) ? __readlink_chk_warn (__path, __buf, __len, __builtin_object_size (__buf, 2 > 1)) : __readlink_chk (__path, __buf, __len, __builtin_object_size (__buf, 2 > 1))));
+}
+extern ssize_t __readlinkat_chk (int __fd, const char *__restrict __path,
+     char *__restrict __buf, size_t __len,
+     size_t __buflen)
+     __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__nonnull__ (2, 3))) __attribute__ ((__warn_unused_result__)) __attribute__ ((__access__ (__write_only__, 3, 4)));
+extern ssize_t __readlinkat_alias (int __fd, const char *__restrict __path, char *__restrict __buf, size_t __len) __asm__ ("" "readlinkat") __attribute__ ((__nothrow__ , __leaf__))
+     __attribute__ ((__nonnull__ (2, 3))) __attribute__ ((__warn_unused_result__)) __attribute__ ((__access__ (__write_only__, 3, 4)));
+extern ssize_t __readlinkat_chk_warn (int __fd, const char *__restrict __path, char *__restrict __buf, size_t __len, size_t __buflen) __asm__ ("" "__readlinkat_chk") __attribute__ ((__nothrow__ , __leaf__))
+     __attribute__ ((__nonnull__ (2, 3))) __attribute__ ((__warn_unused_result__)) __attribute__((__warning__ ("readlinkat called with bigger " "length than size of destination " "buffer")));
+extern __inline __attribute__ ((__always_inline__)) __attribute__ ((__gnu_inline__)) __attribute__ ((__artificial__)) __attribute__ ((__nonnull__ (2, 3))) __attribute__ ((__warn_unused_result__)) ssize_t
+__attribute__ ((__nothrow__ , __leaf__)) readlinkat (int __fd, const char *__restrict __path, char *__restrict __buf, size_t __len)
+{
+  return ((((__typeof (__len)) 0 < (__typeof (__len)) -1 || (__builtin_constant_p (__len) && (__len) > 0)) && __builtin_constant_p ((((long unsigned int) (__len)) <= (__builtin_object_size (__buf, 2 > 1)) / (sizeof (char)))) && (((long unsigned int) (__len)) <= (__builtin_object_size (__buf, 2 > 1)) / (sizeof (char)))) ? __readlinkat_alias (__fd, __path, __buf, __len) : ((((__typeof (__len)) 0 < (__typeof (__len)) -1 || (__builtin_constant_p (__len) && (__len) > 0)) && __builtin_constant_p ((((long unsigned int) (__len)) <= (__builtin_object_size (__buf, 2 > 1)) / (sizeof (char)))) && !(((long unsigned int) (__len)) <= (__builtin_object_size (__buf, 2 > 1)) / (sizeof (char)))) ? __readlinkat_chk_warn (__fd, __path, __buf, __len, __builtin_object_size (__buf, 2 > 1)) : __readlinkat_chk (__fd, __path, __buf, __len, __builtin_object_size (__buf, 2 > 1))));
+}
+extern char *__getcwd_chk (char *__buf, size_t __size, size_t __buflen)
+     __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__warn_unused_result__));
+extern char *__getcwd_alias (char *__buf, size_t __size) __asm__ ("" "getcwd") __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__warn_unused_result__));
+extern char *__getcwd_chk_warn (char *__buf, size_t __size, size_t __buflen) __asm__ ("" "__getcwd_chk") __attribute__ ((__nothrow__ , __leaf__))
+     __attribute__ ((__warn_unused_result__)) __attribute__((__warning__ ("getcwd caller with bigger length than size of " "destination buffer")));
+extern __inline __attribute__ ((__always_inline__)) __attribute__ ((__gnu_inline__)) __attribute__ ((__artificial__)) __attribute__ ((__warn_unused_result__)) char *
+__attribute__ ((__nothrow__ , __leaf__)) getcwd (char *__buf, size_t __size)
+{
+  return ((((__typeof (__size)) 0 < (__typeof (__size)) -1 || (__builtin_constant_p (__size) && (__size) > 0)) && __builtin_constant_p ((((long unsigned int) (__size)) <= (__builtin_object_size (__buf, 2 > 1)) / (sizeof (char)))) && (((long unsigned int) (__size)) <= (__builtin_object_size (__buf, 2 > 1)) / (sizeof (char)))) ? __getcwd_alias (__buf, __size) : ((((__typeof (__size)) 0 < (__typeof (__size)) -1 || (__builtin_constant_p (__size) && (__size) > 0)) && __builtin_constant_p ((((long unsigned int) (__size)) <= (__builtin_object_size (__buf, 2 > 1)) / (sizeof (char)))) && !(((long unsigned int) (__size)) <= (__builtin_object_size (__buf, 2 > 1)) / (sizeof (char)))) ? __getcwd_chk_warn (__buf, __size, __builtin_object_size (__buf, 2 > 1)) : __getcwd_chk (__buf, __size, __builtin_object_size (__buf, 2 > 1))));
+}
+extern char *__getwd_chk (char *__buf, size_t buflen)
+     __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__nonnull__ (1))) __attribute__ ((__warn_unused_result__)) __attribute__ ((__access__ (__write_only__, 1, 2)));
+extern char *__getwd_warn (char *__buf) __asm__ ("" "getwd") __attribute__ ((__nothrow__ , __leaf__))
+     __attribute__ ((__nonnull__ (1))) __attribute__ ((__warn_unused_result__)) __attribute__((__warning__ ("please use getcwd instead, as getwd " "doesn't specify buffer size")));
+extern __inline __attribute__ ((__always_inline__)) __attribute__ ((__gnu_inline__)) __attribute__ ((__artificial__)) __attribute__ ((__nonnull__ (1))) __attribute__ ((__deprecated__)) __attribute__ ((__warn_unused_result__)) char *
+__attribute__ ((__nothrow__ , __leaf__)) getwd (char *__buf)
+{
+  if (__builtin_object_size (__buf, 2 > 1) != (size_t) -1)
+    return __getwd_chk (__buf, __builtin_object_size (__buf, 2 > 1));
+  return __getwd_warn (__buf);
+}
+extern size_t __confstr_chk (int __name, char *__buf, size_t __len,
+        size_t __buflen) __attribute__ ((__nothrow__ , __leaf__))
+  __attribute__ ((__access__ (__write_only__, 2, 3)));
+extern size_t __confstr_alias (int __name, char *__buf, size_t __len) __asm__ ("" "confstr") __attribute__ ((__nothrow__ , __leaf__))
+   __attribute__ ((__access__ (__write_only__, 2, 3)));
+extern size_t __confstr_chk_warn (int __name, char *__buf, size_t __len, size_t __buflen) __asm__ ("" "__confstr_chk") __attribute__ ((__nothrow__ , __leaf__))
+     __attribute__((__warning__ ("confstr called with bigger length than size of destination " "buffer")));
+extern __inline __attribute__ ((__always_inline__)) __attribute__ ((__gnu_inline__)) __attribute__ ((__artificial__)) size_t
+__attribute__ ((__nothrow__ , __leaf__)) confstr (int __name, char *__buf, size_t __len)
+{
+  return ((((__typeof (__len)) 0 < (__typeof (__len)) -1 || (__builtin_constant_p (__len) && (__len) > 0)) && __builtin_constant_p ((((long unsigned int) (__len)) <= (__builtin_object_size (__buf, 2 > 1)) / (sizeof (char)))) && (((long unsigned int) (__len)) <= (__builtin_object_size (__buf, 2 > 1)) / (sizeof (char)))) ? __confstr_alias (__name, __buf, __len) : ((((__typeof (__len)) 0 < (__typeof (__len)) -1 || (__builtin_constant_p (__len) && (__len) > 0)) && __builtin_constant_p ((((long unsigned int) (__len)) <= (__builtin_object_size (__buf, 2 > 1)) / (sizeof (char)))) && !(((long unsigned int) (__len)) <= (__builtin_object_size (__buf, 2 > 1)) / (sizeof (char)))) ? __confstr_chk_warn (__name, __buf, __len, __builtin_object_size (__buf, 2 > 1)) : __confstr_chk (__name, __buf, __len, __builtin_object_size (__buf, 2 > 1))));
+}
+extern int __getgroups_chk (int __size, __gid_t __list[], size_t __listlen)
+  __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__warn_unused_result__)) __attribute__ ((__access__ (__write_only__, 2, 1)));
+extern int __getgroups_alias (int __size, __gid_t __list[]) __asm__ ("" "getgroups") __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__warn_unused_result__)) __attribute__ ((__access__ (__write_only__, 2, 1)));
+extern int __getgroups_chk_warn (int __size, __gid_t __list[], size_t __listlen) __asm__ ("" "__getgroups_chk") __attribute__ ((__nothrow__ , __leaf__))
+     __attribute__ ((__warn_unused_result__)) __attribute__((__warning__ ("getgroups called with bigger group count than what " "can fit into destination buffer")));
+extern __inline __attribute__ ((__always_inline__)) __attribute__ ((__gnu_inline__)) __attribute__ ((__artificial__)) int
+__attribute__ ((__nothrow__ , __leaf__)) getgroups (int __size, __gid_t __list[])
+{
+  return ((((__typeof (__size)) 0 < (__typeof (__size)) -1 || (__builtin_constant_p (__size) && (__size) > 0)) && __builtin_constant_p ((((long unsigned int) (__size)) <= (__builtin_object_size (__list, 2 > 1)) / (sizeof (__gid_t)))) && (((long unsigned int) (__size)) <= (__builtin_object_size (__list, 2 > 1)) / (sizeof (__gid_t)))) ? __getgroups_alias (__size, __list) : ((((__typeof (__size)) 0 < (__typeof (__size)) -1 || (__builtin_constant_p (__size) && (__size) > 0)) && __builtin_constant_p ((((long unsigned int) (__size)) <= (__builtin_object_size (__list, 2 > 1)) / (sizeof (__gid_t)))) && !(((long unsigned int) (__size)) <= (__builtin_object_size (__list, 2 > 1)) / (sizeof (__gid_t)))) ? __getgroups_chk_warn (__size, __list, __builtin_object_size (__list, 2 > 1)) : __getgroups_chk (__size, __list, __builtin_object_size (__list, 2 > 1))));
+}
+extern int __ttyname_r_chk (int __fd, char *__buf, size_t __buflen,
+       size_t __nreal) __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__nonnull__ (2)))
+   __attribute__ ((__access__ (__write_only__, 2, 3)));
+extern int __ttyname_r_alias (int __fd, char *__buf, size_t __buflen) __asm__ ("" "ttyname_r") __attribute__ ((__nothrow__ , __leaf__))
+     __attribute__ ((__nonnull__ (2)));
+extern int __ttyname_r_chk_warn (int __fd, char *__buf, size_t __buflen, size_t __nreal) __asm__ ("" "__ttyname_r_chk") __attribute__ ((__nothrow__ , __leaf__))
+     __attribute__ ((__nonnull__ (2))) __attribute__((__warning__ ("ttyname_r called with bigger buflen than " "size of destination buffer")));
+extern __inline __attribute__ ((__always_inline__)) __attribute__ ((__gnu_inline__)) __attribute__ ((__artificial__)) int
+__attribute__ ((__nothrow__ , __leaf__)) ttyname_r (int __fd, char *__buf, size_t __buflen)
+{
+  return ((((__typeof (__buflen)) 0 < (__typeof (__buflen)) -1 || (__builtin_constant_p (__buflen) && (__buflen) > 0)) && __builtin_constant_p ((((long unsigned int) (__buflen)) <= (__builtin_object_size (__buf, 2 > 1)) / (sizeof (char)))) && (((long unsigned int) (__buflen)) <= (__builtin_object_size (__buf, 2 > 1)) / (sizeof (char)))) ? __ttyname_r_alias (__fd, __buf, __buflen) : ((((__typeof (__buflen)) 0 < (__typeof (__buflen)) -1 || (__builtin_constant_p (__buflen) && (__buflen) > 0)) && __builtin_constant_p ((((long unsigned int) (__buflen)) <= (__builtin_object_size (__buf, 2 > 1)) / (sizeof (char)))) && !(((long unsigned int) (__buflen)) <= (__builtin_object_size (__buf, 2 > 1)) / (sizeof (char)))) ? __ttyname_r_chk_warn (__fd, __buf, __buflen, __builtin_object_size (__buf, 2 > 1)) : __ttyname_r_chk (__fd, __buf, __buflen, __builtin_object_size (__buf, 2 > 1))));
+}
+extern int __getlogin_r_chk (char *__buf, size_t __buflen, size_t __nreal)
+     __attribute__ ((__nonnull__ (1))) __attribute__ ((__access__ (__write_only__, 1, 2)));
+extern int __getlogin_r_alias (char *__buf, size_t __buflen) __asm__ ("" "getlogin_r") __attribute__ ((__nonnull__ (1)));
+extern int __getlogin_r_chk_warn (char *__buf, size_t __buflen, size_t __nreal) __asm__ ("" "__getlogin_r_chk")
+     __attribute__ ((__nonnull__ (1))) __attribute__((__warning__ ("getlogin_r called with bigger buflen than " "size of destination buffer")));
+extern __inline __attribute__ ((__always_inline__)) __attribute__ ((__gnu_inline__)) __attribute__ ((__artificial__)) int
+getlogin_r (char *__buf, size_t __buflen)
+{
+  return ((((__typeof (__buflen)) 0 < (__typeof (__buflen)) -1 || (__builtin_constant_p (__buflen) && (__buflen) > 0)) && __builtin_constant_p ((((long unsigned int) (__buflen)) <= (__builtin_object_size (__buf, 2 > 1)) / (sizeof (char)))) && (((long unsigned int) (__buflen)) <= (__builtin_object_size (__buf, 2 > 1)) / (sizeof (char)))) ? __getlogin_r_alias (__buf, __buflen) : ((((__typeof (__buflen)) 0 < (__typeof (__buflen)) -1 || (__builtin_constant_p (__buflen) && (__buflen) > 0)) && __builtin_constant_p ((((long unsigned int) (__buflen)) <= (__builtin_object_size (__buf, 2 > 1)) / (sizeof (char)))) && !(((long unsigned int) (__buflen)) <= (__builtin_object_size (__buf, 2 > 1)) / (sizeof (char)))) ? __getlogin_r_chk_warn (__buf, __buflen, __builtin_object_size (__buf, 2 > 1)) : __getlogin_r_chk (__buf, __buflen, __builtin_object_size (__buf, 2 > 1))));
+}
+extern int __gethostname_chk (char *__buf, size_t __buflen, size_t __nreal)
+     __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__nonnull__ (1))) __attribute__ ((__access__ (__write_only__, 1, 2)));
+extern int __gethostname_alias (char *__buf, size_t __buflen) __asm__ ("" "gethostname") __attribute__ ((__nothrow__ , __leaf__))
+  __attribute__ ((__nonnull__ (1))) __attribute__ ((__access__ (__write_only__, 1, 2)));
+extern int __gethostname_chk_warn (char *__buf, size_t __buflen, size_t __nreal) __asm__ ("" "__gethostname_chk") __attribute__ ((__nothrow__ , __leaf__))
+     __attribute__ ((__nonnull__ (1))) __attribute__((__warning__ ("gethostname called with bigger buflen than " "size of destination buffer")));
+extern __inline __attribute__ ((__always_inline__)) __attribute__ ((__gnu_inline__)) __attribute__ ((__artificial__)) int
+__attribute__ ((__nothrow__ , __leaf__)) gethostname (char *__buf, size_t __buflen)
+{
+  return ((((__typeof (__buflen)) 0 < (__typeof (__buflen)) -1 || (__builtin_constant_p (__buflen) && (__buflen) > 0)) && __builtin_constant_p ((((long unsigned int) (__buflen)) <= (__builtin_object_size (__buf, 2 > 1)) / (sizeof (char)))) && (((long unsigned int) (__buflen)) <= (__builtin_object_size (__buf, 2 > 1)) / (sizeof (char)))) ? __gethostname_alias (__buf, __buflen) : ((((__typeof (__buflen)) 0 < (__typeof (__buflen)) -1 || (__builtin_constant_p (__buflen) && (__buflen) > 0)) && __builtin_constant_p ((((long unsigned int) (__buflen)) <= (__builtin_object_size (__buf, 2 > 1)) / (sizeof (char)))) && !(((long unsigned int) (__buflen)) <= (__builtin_object_size (__buf, 2 > 1)) / (sizeof (char)))) ? __gethostname_chk_warn (__buf, __buflen, __builtin_object_size (__buf, 2 > 1)) : __gethostname_chk (__buf, __buflen, __builtin_object_size (__buf, 2 > 1))));
+}
+extern int __getdomainname_chk (char *__buf, size_t __buflen, size_t __nreal)
+     __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__nonnull__ (1))) __attribute__ ((__warn_unused_result__)) __attribute__ ((__access__ (__write_only__, 1, 2)));
+extern int __getdomainname_alias (char *__buf, size_t __buflen) __asm__ ("" "getdomainname") __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__nonnull__ (1)))
+  __attribute__ ((__warn_unused_result__)) __attribute__ ((__access__ (__write_only__, 1, 2)));
+extern int __getdomainname_chk_warn (char *__buf, size_t __buflen, size_t __nreal) __asm__ ("" "__getdomainname_chk") __attribute__ ((__nothrow__ , __leaf__))
+     __attribute__ ((__nonnull__ (1))) __attribute__ ((__warn_unused_result__)) __attribute__((__warning__ ("getdomainname called with bigger " "buflen than size of destination " "buffer")));
+extern __inline __attribute__ ((__always_inline__)) __attribute__ ((__gnu_inline__)) __attribute__ ((__artificial__)) int
+__attribute__ ((__nothrow__ , __leaf__)) getdomainname (char *__buf, size_t __buflen)
+{
+  return ((((__typeof (__buflen)) 0 < (__typeof (__buflen)) -1 || (__builtin_constant_p (__buflen) && (__buflen) > 0)) && __builtin_constant_p ((((long unsigned int) (__buflen)) <= (__builtin_object_size (__buf, 2 > 1)) / (sizeof (char)))) && (((long unsigned int) (__buflen)) <= (__builtin_object_size (__buf, 2 > 1)) / (sizeof (char)))) ? __getdomainname_alias (__buf, __buflen) : ((((__typeof (__buflen)) 0 < (__typeof (__buflen)) -1 || (__builtin_constant_p (__buflen) && (__buflen) > 0)) && __builtin_constant_p ((((long unsigned int) (__buflen)) <= (__builtin_object_size (__buf, 2 > 1)) / (sizeof (char)))) && !(((long unsigned int) (__buflen)) <= (__builtin_object_size (__buf, 2 > 1)) / (sizeof (char)))) ? __getdomainname_chk_warn (__buf, __buflen, __builtin_object_size (__buf, 2 > 1)) : __getdomainname_chk (__buf, __buflen, __builtin_object_size (__buf, 2 > 1))));
+}
+
+
+typedef __sig_atomic_t sig_atomic_t;
+union sigval
+{
+  int sival_int;
+  void *sival_ptr;
+};
+typedef union sigval __sigval_t;
+typedef struct
+  {
+    int si_signo;
+    int si_errno;
+    int si_code;
+    int __pad0;
+    union
+      {
+ int _pad[((128 / sizeof (int)) - 4)];
+ struct
+   {
+     __pid_t si_pid;
+     __uid_t si_uid;
+   } _kill;
+ struct
+   {
+     int si_tid;
+     int si_overrun;
+     __sigval_t si_sigval;
+   } _timer;
+ struct
+   {
+     __pid_t si_pid;
+     __uid_t si_uid;
+     __sigval_t si_sigval;
+   } _rt;
+ struct
+   {
+     __pid_t si_pid;
+     __uid_t si_uid;
+     int si_status;
+     __clock_t si_utime;
+     __clock_t si_stime;
+   } _sigchld;
+ struct
+   {
+     void *si_addr;
+    
+     short int si_addr_lsb;
+     union
+       {
+  struct
+    {
+      void *_lower;
+      void *_upper;
+    } _addr_bnd;
+  __uint32_t _pkey;
+       } _bounds;
+   } _sigfault;
+ struct
+   {
+     long int si_band;
+     int si_fd;
+   } _sigpoll;
+ struct
+   {
+     void *_call_addr;
+     int _syscall;
+     unsigned int _arch;
+   } _sigsys;
+      } _sifields;
+  } siginfo_t ;
+enum
+{
+  SI_ASYNCNL = -60,
+  SI_DETHREAD = -7,
+  SI_TKILL,
+  SI_SIGIO,
+  SI_ASYNCIO,
+  SI_MESGQ,
+  SI_TIMER,
+  SI_QUEUE,
+  SI_USER,
+  SI_KERNEL = 0x80
+};
+enum
+{
+  ILL_ILLOPC = 1,
+  ILL_ILLOPN,
+  ILL_ILLADR,
+  ILL_ILLTRP,
+  ILL_PRVOPC,
+  ILL_PRVREG,
+  ILL_COPROC,
+  ILL_BADSTK,
+  ILL_BADIADDR
+};
+enum
+{
+  FPE_INTDIV = 1,
+  FPE_INTOVF,
+  FPE_FLTDIV,
+  FPE_FLTOVF,
+  FPE_FLTUND,
+  FPE_FLTRES,
+  FPE_FLTINV,
+  FPE_FLTSUB,
+  FPE_FLTUNK = 14,
+  FPE_CONDTRAP
+};
+enum
+{
+  SEGV_MAPERR = 1,
+  SEGV_ACCERR,
+  SEGV_BNDERR,
+  SEGV_PKUERR,
+  SEGV_ACCADI,
+  SEGV_ADIDERR,
+  SEGV_ADIPERR,
+  SEGV_MTEAERR,
+  SEGV_MTESERR
+};
+enum
+{
+  BUS_ADRALN = 1,
+  BUS_ADRERR,
+  BUS_OBJERR,
+  BUS_MCEERR_AR,
+  BUS_MCEERR_AO
+};
+enum
+{
+  CLD_EXITED = 1,
+  CLD_KILLED,
+  CLD_DUMPED,
+  CLD_TRAPPED,
+  CLD_STOPPED,
+  CLD_CONTINUED
+};
+enum
+{
+  POLL_IN = 1,
+  POLL_OUT,
+  POLL_MSG,
+  POLL_ERR,
+  POLL_PRI,
+  POLL_HUP
+};
+typedef __sigval_t sigval_t;
+typedef struct sigevent
+  {
+    __sigval_t sigev_value;
+    int sigev_signo;
+    int sigev_notify;
+    union
+      {
+ int _pad[((64 / sizeof (int)) - 4)];
+ __pid_t _tid;
+ struct
+   {
+     void (*_function) (__sigval_t);
+     pthread_attr_t *_attribute;
+   } _sigev_thread;
+      } _sigev_un;
+  } sigevent_t;
+enum
+{
+  SIGEV_SIGNAL = 0,
+  SIGEV_NONE,
+  SIGEV_THREAD,
+  SIGEV_THREAD_ID = 4
+};
+typedef void (*__sighandler_t) (int);
+extern __sighandler_t __sysv_signal (int __sig, __sighandler_t __handler)
+     __attribute__ ((__nothrow__ , __leaf__));
+extern __sighandler_t signal (int __sig, __sighandler_t __handler)
+     __attribute__ ((__nothrow__ , __leaf__));
+extern int kill (__pid_t __pid, int __sig) __attribute__ ((__nothrow__ , __leaf__));
+extern int killpg (__pid_t __pgrp, int __sig) __attribute__ ((__nothrow__ , __leaf__));
+extern int raise (int __sig) __attribute__ ((__nothrow__ , __leaf__));
+extern __sighandler_t ssignal (int __sig, __sighandler_t __handler)
+     __attribute__ ((__nothrow__ , __leaf__));
+extern int gsignal (int __sig) __attribute__ ((__nothrow__ , __leaf__));
+extern void psignal (int __sig, const char *__s);
+extern void psiginfo (const siginfo_t *__pinfo, const char *__s);
+extern int sigblock (int __mask) __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__deprecated__));
+extern int sigsetmask (int __mask) __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__deprecated__));
+extern int siggetmask (void) __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__deprecated__));
+typedef __sighandler_t sig_t;
+extern int sigemptyset (sigset_t *__set) __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__nonnull__ (1)));
+extern int sigfillset (sigset_t *__set) __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__nonnull__ (1)));
+extern int sigaddset (sigset_t *__set, int __signo) __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__nonnull__ (1)));
+extern int sigdelset (sigset_t *__set, int __signo) __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__nonnull__ (1)));
+extern int sigismember (const sigset_t *__set, int __signo)
+     __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__nonnull__ (1)));
+struct sigaction
+  {
+    union
+      {
+ __sighandler_t sa_handler;
+ void (*sa_sigaction) (int, siginfo_t *, void *);
+      }
+    __sigaction_handler;
+    __sigset_t sa_mask;
+    int sa_flags;
+    void (*sa_restorer) (void);
+  };
+extern int sigprocmask (int __how, const sigset_t *__restrict __set,
+   sigset_t *__restrict __oset) __attribute__ ((__nothrow__ , __leaf__));
+extern int sigsuspend (const sigset_t *__set) __attribute__ ((__nonnull__ (1)));
+extern int sigaction (int __sig, const struct sigaction *__restrict __act,
+        struct sigaction *__restrict __oact) __attribute__ ((__nothrow__ , __leaf__));
+extern int sigpending (sigset_t *__set) __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__nonnull__ (1)));
+extern int sigwait (const sigset_t *__restrict __set, int *__restrict __sig)
+     __attribute__ ((__nonnull__ (1, 2)));
+extern int sigwaitinfo (const sigset_t *__restrict __set,
+   siginfo_t *__restrict __info) __attribute__ ((__nonnull__ (1)));
+extern int sigtimedwait (const sigset_t *__restrict __set,
+    siginfo_t *__restrict __info,
+    const struct timespec *__restrict __timeout)
+     __attribute__ ((__nonnull__ (1)));
+extern int sigqueue (__pid_t __pid, int __sig, const union sigval __val)
+     __attribute__ ((__nothrow__ , __leaf__));
+struct _fpx_sw_bytes
+{
+  __uint32_t magic1;
+  __uint32_t extended_size;
+  __uint64_t xstate_bv;
+  __uint32_t xstate_size;
+  __uint32_t __glibc_reserved1[7];
+};
+struct _fpreg
+{
+  unsigned short significand[4];
+  unsigned short exponent;
+};
+struct _fpxreg
+{
+  unsigned short significand[4];
+  unsigned short exponent;
+  unsigned short __glibc_reserved1[3];
+};
+struct _xmmreg
+{
+  __uint32_t element[4];
+};
+struct _fpstate
+{
+  __uint16_t cwd;
+  __uint16_t swd;
+  __uint16_t ftw;
+  __uint16_t fop;
+  __uint64_t rip;
+  __uint64_t rdp;
+  __uint32_t mxcsr;
+  __uint32_t mxcr_mask;
+  struct _fpxreg _st[8];
+  struct _xmmreg _xmm[16];
+  __uint32_t __glibc_reserved1[24];
+};
+struct sigcontext
+{
+  __uint64_t r8;
+  __uint64_t r9;
+  __uint64_t r10;
+  __uint64_t r11;
+  __uint64_t r12;
+  __uint64_t r13;
+  __uint64_t r14;
+  __uint64_t r15;
+  __uint64_t rdi;
+  __uint64_t rsi;
+  __uint64_t rbp;
+  __uint64_t rbx;
+  __uint64_t rdx;
+  __uint64_t rax;
+  __uint64_t rcx;
+  __uint64_t rsp;
+  __uint64_t rip;
+  __uint64_t eflags;
+  unsigned short cs;
+  unsigned short gs;
+  unsigned short fs;
+  unsigned short __pad0;
+  __uint64_t err;
+  __uint64_t trapno;
+  __uint64_t oldmask;
+  __uint64_t cr2;
+  __extension__ union
+    {
+      struct _fpstate * fpstate;
+      __uint64_t __fpstate_word;
+    };
+  __uint64_t __reserved1 [8];
+};
+struct _xsave_hdr
+{
+  __uint64_t xstate_bv;
+  __uint64_t __glibc_reserved1[2];
+  __uint64_t __glibc_reserved2[5];
+};
+struct _ymmh_state
+{
+  __uint32_t ymmh_space[64];
+};
+struct _xstate
+{
+  struct _fpstate fpstate;
+  struct _xsave_hdr xstate_hdr;
+  struct _ymmh_state ymmh;
+};
+extern int sigreturn (struct sigcontext *__scp) __attribute__ ((__nothrow__ , __leaf__));
+typedef struct
+  {
+    void *ss_sp;
+    int ss_flags;
+    size_t ss_size;
+  } stack_t;
+__extension__ typedef long long int greg_t;
+typedef greg_t gregset_t[23];
+struct _libc_fpxreg
+{
+  unsigned short int significand[4];
+  unsigned short int exponent;
+  unsigned short int __glibc_reserved1[3];
+};
+struct _libc_xmmreg
+{
+  __uint32_t element[4];
+};
+struct _libc_fpstate
+{
+  __uint16_t cwd;
+  __uint16_t swd;
+  __uint16_t ftw;
+  __uint16_t fop;
+  __uint64_t rip;
+  __uint64_t rdp;
+  __uint32_t mxcsr;
+  __uint32_t mxcr_mask;
+  struct _libc_fpxreg _st[8];
+  struct _libc_xmmreg _xmm[16];
+  __uint32_t __glibc_reserved1[24];
+};
+typedef struct _libc_fpstate *fpregset_t;
+typedef struct
+  {
+    gregset_t gregs;
+    fpregset_t fpregs;
+    __extension__ unsigned long long __reserved1 [8];
+} mcontext_t;
+typedef struct ucontext_t
+  {
+    unsigned long int uc_flags;
+    struct ucontext_t *uc_link;
+    stack_t uc_stack;
+    mcontext_t uc_mcontext;
+    sigset_t uc_sigmask;
+    struct _libc_fpstate __fpregs_mem;
+    __extension__ unsigned long long int __ssp[4];
+  } ucontext_t;
+extern int siginterrupt (int __sig, int __interrupt) __attribute__ ((__nothrow__ , __leaf__))
+  __attribute__ ((__deprecated__ ("Use sigaction with SA_RESTART instead")));
+enum
+{
+  SS_ONSTACK = 1,
+  SS_DISABLE
+};
+extern int sigaltstack (const stack_t *__restrict __ss,
+   stack_t *__restrict __oss) __attribute__ ((__nothrow__ , __leaf__));
+struct sigstack
+  {
+    void *ss_sp;
+    int ss_onstack;
+  };
+extern int sigstack (struct sigstack *__ss, struct sigstack *__oss)
+     __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__deprecated__));
+extern int pthread_sigmask (int __how,
+       const __sigset_t *__restrict __newmask,
+       __sigset_t *__restrict __oldmask)__attribute__ ((__nothrow__ , __leaf__));
+extern int pthread_kill (pthread_t __threadid, int __signo) __attribute__ ((__nothrow__ , __leaf__));
+extern int __libc_current_sigrtmin (void) __attribute__ ((__nothrow__ , __leaf__));
+extern int __libc_current_sigrtmax (void) __attribute__ ((__nothrow__ , __leaf__));
+
+
+struct rpcent
+{
+  char *r_name;
+  char **r_aliases;
+  int r_number;
+};
+extern void setrpcent (int __stayopen) __attribute__ ((__nothrow__ , __leaf__));
+extern void endrpcent (void) __attribute__ ((__nothrow__ , __leaf__));
+extern struct rpcent *getrpcbyname (const char *__name) __attribute__ ((__nothrow__ , __leaf__));
+extern struct rpcent *getrpcbynumber (int __number) __attribute__ ((__nothrow__ , __leaf__));
+extern struct rpcent *getrpcent (void) __attribute__ ((__nothrow__ , __leaf__));
+extern int getrpcbyname_r (const char *__name, struct rpcent *__result_buf,
+      char *__buffer, size_t __buflen,
+      struct rpcent **__result) __attribute__ ((__nothrow__ , __leaf__));
+extern int getrpcbynumber_r (int __number, struct rpcent *__result_buf,
+        char *__buffer, size_t __buflen,
+        struct rpcent **__result) __attribute__ ((__nothrow__ , __leaf__));
+extern int getrpcent_r (struct rpcent *__result_buf, char *__buffer,
+   size_t __buflen, struct rpcent **__result) __attribute__ ((__nothrow__ , __leaf__));
+
+struct netent
+{
+  char *n_name;
+  char **n_aliases;
+  int n_addrtype;
+  uint32_t n_net;
+};
+
+extern int *__h_errno_location (void) __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__const__));
+extern void herror (const char *__str) __attribute__ ((__nothrow__ , __leaf__));
+extern const char *hstrerror (int __err_num) __attribute__ ((__nothrow__ , __leaf__));
+struct hostent
+{
+  char *h_name;
+  char **h_aliases;
+  int h_addrtype;
+  int h_length;
+  char **h_addr_list;
+};
+extern void sethostent (int __stay_open);
+extern void endhostent (void);
+extern struct hostent *gethostent (void);
+extern struct hostent *gethostbyaddr (const void *__addr, __socklen_t __len,
+          int __type);
+extern struct hostent *gethostbyname (const char *__name);
+extern struct hostent *gethostbyname2 (const char *__name, int __af);
+extern int gethostent_r (struct hostent *__restrict __result_buf,
+    char *__restrict __buf, size_t __buflen,
+    struct hostent **__restrict __result,
+    int *__restrict __h_errnop);
+extern int gethostbyaddr_r (const void *__restrict __addr, __socklen_t __len,
+       int __type,
+       struct hostent *__restrict __result_buf,
+       char *__restrict __buf, size_t __buflen,
+       struct hostent **__restrict __result,
+       int *__restrict __h_errnop);
+extern int gethostbyname_r (const char *__restrict __name,
+       struct hostent *__restrict __result_buf,
+       char *__restrict __buf, size_t __buflen,
+       struct hostent **__restrict __result,
+       int *__restrict __h_errnop);
+extern int gethostbyname2_r (const char *__restrict __name, int __af,
+        struct hostent *__restrict __result_buf,
+        char *__restrict __buf, size_t __buflen,
+        struct hostent **__restrict __result,
+        int *__restrict __h_errnop);
+extern void setnetent (int __stay_open);
+extern void endnetent (void);
+extern struct netent *getnetent (void);
+extern struct netent *getnetbyaddr (uint32_t __net, int __type);
+extern struct netent *getnetbyname (const char *__name);
+extern int getnetent_r (struct netent *__restrict __result_buf,
+   char *__restrict __buf, size_t __buflen,
+   struct netent **__restrict __result,
+   int *__restrict __h_errnop);
+extern int getnetbyaddr_r (uint32_t __net, int __type,
+      struct netent *__restrict __result_buf,
+      char *__restrict __buf, size_t __buflen,
+      struct netent **__restrict __result,
+      int *__restrict __h_errnop);
+extern int getnetbyname_r (const char *__restrict __name,
+      struct netent *__restrict __result_buf,
+      char *__restrict __buf, size_t __buflen,
+      struct netent **__restrict __result,
+      int *__restrict __h_errnop);
+struct servent
+{
+  char *s_name;
+  char **s_aliases;
+  int s_port;
+  char *s_proto;
+};
+extern void setservent (int __stay_open);
+extern void endservent (void);
+extern struct servent *getservent (void);
+extern struct servent *getservbyname (const char *__name, const char *__proto);
+extern struct servent *getservbyport (int __port, const char *__proto);
+extern int getservent_r (struct servent *__restrict __result_buf,
+    char *__restrict __buf, size_t __buflen,
+    struct servent **__restrict __result);
+extern int getservbyname_r (const char *__restrict __name,
+       const char *__restrict __proto,
+       struct servent *__restrict __result_buf,
+       char *__restrict __buf, size_t __buflen,
+       struct servent **__restrict __result);
+extern int getservbyport_r (int __port, const char *__restrict __proto,
+       struct servent *__restrict __result_buf,
+       char *__restrict __buf, size_t __buflen,
+       struct servent **__restrict __result);
+struct protoent
+{
+  char *p_name;
+  char **p_aliases;
+  int p_proto;
+};
+extern void setprotoent (int __stay_open);
+extern void endprotoent (void);
+extern struct protoent *getprotoent (void);
+extern struct protoent *getprotobyname (const char *__name);
+extern struct protoent *getprotobynumber (int __proto);
+extern int getprotoent_r (struct protoent *__restrict __result_buf,
+     char *__restrict __buf, size_t __buflen,
+     struct protoent **__restrict __result);
+extern int getprotobyname_r (const char *__restrict __name,
+        struct protoent *__restrict __result_buf,
+        char *__restrict __buf, size_t __buflen,
+        struct protoent **__restrict __result);
+extern int getprotobynumber_r (int __proto,
+          struct protoent *__restrict __result_buf,
+          char *__restrict __buf, size_t __buflen,
+          struct protoent **__restrict __result);
+extern int setnetgrent (const char *__netgroup);
+extern void endnetgrent (void);
+extern int getnetgrent (char **__restrict __hostp,
+   char **__restrict __userp,
+   char **__restrict __domainp);
+extern int innetgr (const char *__netgroup, const char *__host,
+      const char *__user, const char *__domain);
+extern int getnetgrent_r (char **__restrict __hostp,
+     char **__restrict __userp,
+     char **__restrict __domainp,
+     char *__restrict __buffer, size_t __buflen);
+extern int rcmd (char **__restrict __ahost, unsigned short int __rport,
+   const char *__restrict __locuser,
+   const char *__restrict __remuser,
+   const char *__restrict __cmd, int *__restrict __fd2p);
+extern int rcmd_af (char **__restrict __ahost, unsigned short int __rport,
+      const char *__restrict __locuser,
+      const char *__restrict __remuser,
+      const char *__restrict __cmd, int *__restrict __fd2p,
+      sa_family_t __af);
+extern int rexec (char **__restrict __ahost, int __rport,
+    const char *__restrict __name,
+    const char *__restrict __pass,
+    const char *__restrict __cmd, int *__restrict __fd2p);
+extern int rexec_af (char **__restrict __ahost, int __rport,
+       const char *__restrict __name,
+       const char *__restrict __pass,
+       const char *__restrict __cmd, int *__restrict __fd2p,
+       sa_family_t __af);
+extern int ruserok (const char *__rhost, int __suser,
+      const char *__remuser, const char *__locuser);
+extern int ruserok_af (const char *__rhost, int __suser,
+         const char *__remuser, const char *__locuser,
+         sa_family_t __af);
+extern int iruserok (uint32_t __raddr, int __suser,
+       const char *__remuser, const char *__locuser);
+extern int iruserok_af (const void *__raddr, int __suser,
+   const char *__remuser, const char *__locuser,
+   sa_family_t __af);
+extern int rresvport (int *__alport);
+extern int rresvport_af (int *__alport, sa_family_t __af);
+struct addrinfo
+{
+  int ai_flags;
+  int ai_family;
+  int ai_socktype;
+  int ai_protocol;
+  socklen_t ai_addrlen;
+  struct sockaddr *ai_addr;
+  char *ai_canonname;
+  struct addrinfo *ai_next;
+};
+extern int getaddrinfo (const char *__restrict __name,
+   const char *__restrict __service,
+   const struct addrinfo *__restrict __req,
+   struct addrinfo **__restrict __pai);
+extern void freeaddrinfo (struct addrinfo *__ai) __attribute__ ((__nothrow__ , __leaf__));
+extern const char *gai_strerror (int __ecode) __attribute__ ((__nothrow__ , __leaf__));
+extern int getnameinfo (const struct sockaddr *__restrict __sa,
+   socklen_t __salen, char *__restrict __host,
+   socklen_t __hostlen, char *__restrict __serv,
+   socklen_t __servlen, int __flags);
+
+
+struct flock
+  {
+    short int l_type;
+    short int l_whence;
+    __off_t l_start;
+    __off_t l_len;
+    __pid_t l_pid;
+  };
+
+
+struct stat
+  {
+    __dev_t st_dev;
+    __ino_t st_ino;
+    __nlink_t st_nlink;
+    __mode_t st_mode;
+    __uid_t st_uid;
+    __gid_t st_gid;
+    int __pad0;
+    __dev_t st_rdev;
+    __off_t st_size;
+    __blksize_t st_blksize;
+    __blkcnt_t st_blocks;
+    struct timespec st_atim;
+    struct timespec st_mtim;
+    struct timespec st_ctim;
+    __syscall_slong_t __glibc_reserved[3];
+  };
+extern int fcntl (int __fd, int __cmd, ...);
+extern int open (const char *__file, int __oflag, ...) __attribute__ ((__nonnull__ (1)));
+extern int openat (int __fd, const char *__file, int __oflag, ...)
+     __attribute__ ((__nonnull__ (2)));
+extern int creat (const char *__file, mode_t __mode) __attribute__ ((__nonnull__ (1)));
+extern int posix_fadvise (int __fd, off_t __offset, off_t __len,
+     int __advise) __attribute__ ((__nothrow__ , __leaf__));
+extern int posix_fallocate (int __fd, off_t __offset, off_t __len);
+extern int __open_2 (const char *__path, int __oflag) __attribute__ ((__nonnull__ (1)));
+extern int __open_alias (const char *__path, int __oflag, ...) __asm__ ("" "open") __attribute__ ((__nonnull__ (1)));
+extern void __open_too_many_args (void) __attribute__((__error__ ("open can be called either with 2 or 3 arguments, not more")));
+extern void __open_missing_mode (void) __attribute__((__error__ ("open with O_CREAT or O_TMPFILE in second argument needs 3 arguments")));
+extern __inline __attribute__ ((__always_inline__)) __attribute__ ((__gnu_inline__)) __attribute__ ((__artificial__)) int
+open (const char *__path, int __oflag, ...)
+{
+  if (__builtin_va_arg_pack_len () > 1)
+    __open_too_many_args ();
+  if (__builtin_constant_p (__oflag))
+    {
+      if ((((__oflag) & 0100) != 0 || ((__oflag) & (020000000 | 0200000)) == (020000000 | 0200000)) && __builtin_va_arg_pack_len () < 1)
+ {
+   __open_missing_mode ();
+   return __open_2 (__path, __oflag);
+ }
+      return __open_alias (__path, __oflag, __builtin_va_arg_pack ());
+    }
+  if (__builtin_va_arg_pack_len () < 1)
+    return __open_2 (__path, __oflag);
+  return __open_alias (__path, __oflag, __builtin_va_arg_pack ());
+}
+extern int __openat_2 (int __fd, const char *__path, int __oflag)
+     __attribute__ ((__nonnull__ (2)));
+extern int __openat_alias (int __fd, const char *__path, int __oflag, ...) __asm__ ("" "openat")
+     __attribute__ ((__nonnull__ (2)));
+extern void __openat_too_many_args (void) __attribute__((__error__ ("openat can be called either with 3 or 4 arguments, not more")));
+extern void __openat_missing_mode (void) __attribute__((__error__ ("openat with O_CREAT or O_TMPFILE in third argument needs 4 arguments")));
+extern __inline __attribute__ ((__always_inline__)) __attribute__ ((__gnu_inline__)) __attribute__ ((__artificial__)) int
+openat (int __fd, const char *__path, int __oflag, ...)
+{
+  if (__builtin_va_arg_pack_len () > 1)
+    __openat_too_many_args ();
+  if (__builtin_constant_p (__oflag))
+    {
+      if ((((__oflag) & 0100) != 0 || ((__oflag) & (020000000 | 0200000)) == (020000000 | 0200000)) && __builtin_va_arg_pack_len () < 1)
+ {
+   __openat_missing_mode ();
+   return __openat_2 (__fd, __path, __oflag);
+ }
+      return __openat_alias (__fd, __path, __oflag, __builtin_va_arg_pack ());
+    }
+  if (__builtin_va_arg_pack_len () < 1)
+    return __openat_2 (__fd, __path, __oflag);
+  return __openat_alias (__fd, __path, __oflag, __builtin_va_arg_pack ());
+}
+
+
+struct winsize
+  {
+    unsigned short int ws_row;
+    unsigned short int ws_col;
+    unsigned short int ws_xpixel;
+    unsigned short int ws_ypixel;
+  };
+struct termio
+  {
+    unsigned short int c_iflag;
+    unsigned short int c_oflag;
+    unsigned short int c_cflag;
+    unsigned short int c_lflag;
+    unsigned char c_line;
+    unsigned char c_cc[8];
+};
+extern int ioctl (int __fd, unsigned long int __request, ...) __attribute__ ((__nothrow__ , __leaf__));
+
+typedef struct CloseConnStruct_t {
+  PSocketServer self;
+  Connection conn;
+  size_t index;
+} CloseConnStruct;
+typedef CloseConnStruct *PCloseConnStruct;
+uint8_t _sock_StartConnections(PSocketServer self);
+void sigpipe_handler(int signum) {
+  return ;
+}
+PSocketServer sock_Create(uint16_t port) {
+  PSocketServer server = malloc(sizeof(SocketServer));
+  memset(server, 0, sizeof(SocketServer));
+  server->connections = vct_Init(sizeof(Connection));
+  server->port = port;
+  server->maxActiveConnections = 16;
+  server->maxBytesPerReadConnection = 1024 * 1024 * 10;
+  server->inputReads = vct_Init(sizeof(DataFragment));
+  server->outputCommands = vct_Init(sizeof(DataFragment));
+  server->closeConnectionsQueue = vct_Init(sizeof(Connection));
+  if(!_sock_StartConnections(server)) {
+    sock_Delete(server);
+    return ((void *)0);
+  }
+  return server;
+}
+void _sock_CloseConnection(void *buffer) {
+  PCloseConnStruct conn = buffer;
+  close(conn->conn.fd);
+  vct_RemoveElement(conn->self->connections, conn->index);
+  free(buffer);
+}
+void sock_PushCloseConnMethod(PSocketServer self, Connection conn, size_t index) {
+  if(!self->timeServer.timeServer) {
+    return ;
+  }
+  PCloseConnStruct closeCmd = malloc(sizeof(CloseConnStruct));
+  closeCmd->conn = conn;
+  closeCmd->self = self;
+  closeCmd->index = index;
+  TimeMethod timeFragment = (TimeMethod) {
+    .method = (void *)_sock_CloseConnection,
+    .buffer = closeCmd
+  };
+  tf_ExecuteAfter(self->timeServer.timeServer, timeFragment, self->timeServer.timeout);
+}
+void sock_SetMaxConnections(PSocketServer self, int32_t maxActiveConnections) {
+  ((void) sizeof ((maxActiveConnections < 1024) ? 1 : 0), __extension__ ({ if (maxActiveConnections < 1024) ; else __assert_fail ("maxActiveConnections < MAX_CONNECTIONS_PER_SERVER", "bin/svv.c", 1963, __extension__ __PRETTY_FUNCTION__); }));
+  self->maxActiveConnections = maxActiveConnections;
+}
+void sock_Write_Push(PSocketServer self, DataFragment *dt) {
+  char *memory = dt->data;
+  if(dt->persistent) {
+    memory = malloc(dt->size);
+    memcpy(memory, dt->data, dt->size);
+  }
+  DataFragment newDt = *dt;
+  newDt.data = memory;
+  vct_Push(self->outputCommands, &newDt);
+}
+uint8_t _sock_StartConnections(PSocketServer self) {
+  int32_t sockfd;
+  struct sockaddr_in servaddr;
+  sockfd = socket(2, SOCK_STREAM, 0);
+  if (sockfd == -1) {
+    return 0;
+  }
+  bzero(&servaddr, sizeof(servaddr));
+  servaddr.sin_family = 2;
+  servaddr.sin_addr.s_addr = __bswap_32 (((in_addr_t) 0x00000000));
+  servaddr.sin_port = __bswap_16 (self->port);
+  signal(13, sigpipe_handler);
+  const int32_t trueFlag = 1;
+  if (setsockopt(sockfd, 1, 2, &trueFlag, sizeof(int)) < 0) {
+    return 0;
+  }
+  if ((bind(sockfd, (struct sockaddr*)&servaddr, sizeof(servaddr))) != 0) {
+    return 0;
+  }
+  if ((listen(sockfd, 5)) != 0) {
+    return 0;
+  }
+  self->serverFD.fd = sockfd;
+  fcntl(sockfd, 4, fcntl(sockfd, 3, 0) | 04000);
+  return 1;
+}
+static inline void sock_ExecuteMetaMethod(Connection *conn, PSocketMethod routine) {
+  if(!routine) {
+    return ;
+  }
+  void (*method)(Connection, void *) = routine->method;
+  method(*conn, routine->mirrorBuffer);
+}
+static inline void sock_ExecuteOnReceiveMethod(DataFragment *dataFragment, PSocketMethod routine) {
+  if(!routine) {
+    return ;
+  }
+  void (*method)(DataFragment *, void *) = routine->method;
+  method(dataFragment, routine->mirrorBuffer);
+}
+static inline void sock_ReadData(PSocketServer self, Connection *conn, char *buffer, size_t count) {
+  (void)!read(conn->fd, buffer, count);
+  DataFragment dt = (DataFragment) {
+    .conn = *conn,
+    .data = buffer,
+    .persistent = 0,
+    .size = count
+  };
+  sock_ExecuteOnReceiveMethod(&dt, self->onReceiveMessage);
+}
+static inline ssize_t sock_FindConnIndex(PSocketServer self, PConnection conn) {
+  Connection *connections = self->connections->buffer;
+  for(ssize_t i = 0, c = (ssize_t)self->connections->buffer; i < c; i++) {
+    if(conn->fd == connections[i].fd) {
+      return i;
+    }
+  }
+  return -1;
+}
+void sock_CloseConnection(PSocketServer self, size_t index) {
+  Connection conn = ((Connection *)self->connections->buffer)[index];
+  close(conn.fd);
+  vct_RemoveElement(self->connections, index);
+}
+void sock_PushCloseConnections(PSocketServer self, PConnection conn) {
+  vct_Push(self->closeConnectionsQueue, conn);
+}
+size_t sock_DoesConnectionExists(PSocketServer self, PConnection conn, uint8_t *found) {
+  *found = 0;
+  Connection *connections = self->connections->buffer;
+  for(size_t i = 0, c = self->connections->size; i < c; i++) {
+    if(connections[i].fd == conn->fd) {
+      *found = 1;
+      return i;
+    }
+  }
+  return 0;
+}
+void sock_ClearPushedConnections(PSocketServer self) {
+  Connection *connections = self->closeConnectionsQueue->buffer;
+  Vector indexes = vct_Init(sizeof(size_t));
+  uint8_t found;
+  for(size_t i = 0, c = self->closeConnectionsQueue->size; i < c; i++) {
+    size_t connIndex = sock_DoesConnectionExists(self, &connections[i], &found);
+    if(found) {
+      close(connections[i].fd);
+      vct_Push(indexes, &connIndex);
+    }
+  }
+  vct_RemoveElementsWithReplacing(&self->connections, indexes);
+  vct_Delete(indexes);
+  vct_Clear(self->closeConnectionsQueue);
+}
+static inline void sock_OnReceiveMessage(PSocketServer self, Connection *conn, size_t index) {
+  size_t count = 0;
+  int32_t error = ioctl(conn->fd, 0x541B, &count);
+  if(!count || error == -1) {
+    return ;
+  }
+  if(count >= self->maxBytesPerReadConnection) {
+    sock_ExecuteMetaMethod(conn, self->onConnectionRelease);
+    sock_CloseConnection(self, index);
+    return ;
+  }
+  if(count <= (1<<12)) {
+    char buffer[(1<<12)];
+    sock_ReadData(self, conn, buffer, count);
+    return ;
+  }
+  void *buffer = malloc(count);
+  sock_ReadData(self, conn, buffer, count);
+  free(buffer);
+}
+void sock_ProcessReadMessage(PSocketServer self) {
+  Connection *conn = self->connections->buffer;
+  for(size_t i = 0, c = self->connections->size; i < c; i++) {
+    sock_OnReceiveMessage(self, &conn[i], i);
+  }
+}
+static inline void sock_AcceptConnectionsRoutine(PSocketServer self) {
+  if(self->maxActiveConnections <= self->connections->size) {
+    return ;
+  }
+  struct sockaddr_in cli;
+  socklen_t len;
+  int32_t sockfd = self->serverFD.fd;
+  len = sizeof( (struct sockaddr *) &len);
+  int32_t connfd = accept(sockfd, (struct sockaddr*)&cli, &len);
+  if (connfd < 0) {
+    return ;
+  }
+  Connection currentCon = (Connection) {
+    .fd = connfd
+  };
+  sock_PushCloseConnMethod(self, currentCon, self->connections->size);
+  vct_Push(self->connections, &currentCon);
+  sock_ExecuteMetaMethod(&currentCon, self->onConnectionAquire);
+}
+static inline void sock_WriteBufferCleanup(PSocketServer self) {
+  DataFragment *dataFragments = self->outputCommands->buffer;
+  for(size_t i = 0, c = self->outputCommands->size; i < c; i++) {
+    if(dataFragments[i].persistent) {
+      free(dataFragments[i].data);
+    }
+  }
+  vct_Clear(self->outputCommands);
+}
+PSocketMethod sock_Method_Create(void *method, void *mirrorBuffer) {
+  PSocketMethod self = malloc(sizeof(SocketMethod));
+  self->method = method;
+  self->mirrorBuffer = mirrorBuffer;
+  return self;
+}
+void sock_Method_Delete(PSocketMethod self) {
+  free(self);
+}
+void sock_ProcessWriteRequests_t(PSocketServer self, Vector markedForDeletionRequests) {
+  DataFragment *dataFragments = self->outputCommands->buffer;
+  for(size_t i = 0, c = self->outputCommands->size; i < c; i++) {
+    ssize_t response = send(dataFragments[i].conn.fd, dataFragments[i].data, dataFragments[i].size, MSG_DONTWAIT);
+    if(response < 0) {
+      vct_Push(markedForDeletionRequests, &i);
+      sock_ExecuteMetaMethod(&dataFragments[i].conn, self->onConnectionRelease);
+      close(dataFragments[i].conn.fd);
+    }
+  }
+}
+size_t sock_ConnectionCount(PSocketServer self) {
+  return self->connections->size;
+}
+static inline void sock_ProcessWriteRequests(PSocketServer self) {
+  Vector markedForDeletionRequests = vct_Init(sizeof(size_t));
+  sock_ProcessWriteRequests_t(self, markedForDeletionRequests);
+  sock_WriteBufferCleanup(self);
+  Vector prunnedArray = vct_RemoveElements(self->connections, markedForDeletionRequests);
+  vct_Delete(self->connections);
+  vct_Delete(markedForDeletionRequests);
+  self->connections = prunnedArray;
+}
+static inline void sock_ClearConnections(PSocketServer self) {
+  Connection *conn = self->connections->buffer;
+  for(size_t i = 0, c = self->connections->size; i < c; i++) {
+    close(conn[i].fd);
+  }
+  vct_Delete(self->closeConnectionsQueue);
+  vct_Delete(self->connections);
+}
+PConnection sock_FindConnectionByIndex(PSocketServer self, size_t index) {
+  if(index >= self->connections->size) {
+    return ((void *)0);
+  }
+  Connection *conn = self->connections->buffer;
+  return conn + index;
+}
+static inline void sock_Time_OnFrame(PSocketServer self, uint64_t deltaMS) {
+  if(self->timeServer.timeServer) {
+    tf_OnFrame(self->timeServer.timeServer, deltaMS);
+  }
+}
+void sock_OnFrame(PSocketServer self, uint64_t deltaMS) {
+  sock_AcceptConnectionsRoutine(self);
+  sock_ProcessReadMessage(self);
+  sock_ProcessWriteRequests(self);
+  sock_ClearPushedConnections(self);
+  sock_Time_OnFrame(self, deltaMS);
+}
+static inline void sock_Time_Delete(PSocketServer self) {
+  if(self->timeServer.timeServer) {
+    tf_Delete(self->timeServer.timeServer);
+  }
+}
+int32_t _sock_Client_Conn(uint16_t port, char *ip) {
+  int32_t sock;
+  struct sockaddr_in server_addr;
+  sock = socket(2, SOCK_STREAM, 0);
+  if (sock < 0) {
+    return -1;
+  }
+  memset(&server_addr, 0, sizeof(server_addr));
+  server_addr.sin_family = 2;
+  server_addr.sin_port = __bswap_16 (port);
+  if (inet_pton(2, ip, &server_addr.sin_addr) <= 0) {
+    close(sock);
+    return -1;
+  }
+  if (connect(sock, (struct sockaddr*)&server_addr, sizeof(server_addr)) < 0) {
+    close(sock);
+    return -1;
+  }
+  fcntl(sock, 4, fcntl(sock, 3, 0) | 04000);
+  return sock;
+}
+PConnection sock_Client_Connect(uint16_t port, char *ip) {
+  int32_t fd = _sock_Client_Conn(port, ip);
+  if(fd == -1) {
+    return ((void *)0);
+  }
+  PConnection conn = malloc(sizeof(Connection));
+  conn->fd = fd;
+  return conn;
+}
+void sock_Client_SendMessage(PDataFragment frag) {
+  (void)!send(frag->conn.fd, frag->data, frag->size, MSG_DONTWAIT);
+}
+DataFragment sock_Client_Receive(PConnection conn) {
+  Vector dataToRead = vct_Init(sizeof(char));
+  char bufferChunk[1024];
+  ssize_t bytesRead = -1;
+  while((bytesRead = recv(conn->fd, bufferChunk, sizeof(bufferChunk), 0)) && bytesRead != -1) {
+    for(size_t i = 0; i < bytesRead; i++) {
+      vct_Push(dataToRead, &bufferChunk[i]);
+    }
+  }
+  DataFragment fragment = {
+    .conn = *conn,
+    .data = dataToRead->buffer,
+    .persistent = 0,
+    .size = dataToRead->size
+  };
+  vct_DeleteWOBuffer(dataToRead);
+  return fragment;
+}
+void sock_Client_Free(PConnection conn) {
+  close(conn->fd);
+  free(conn);
+}
+static inline void sock_Delete_OutputCommands(PSocketServer self) {
+  DataFragment *dataFragments = self->outputCommands->buffer;
+  for(size_t i = 0, c = self->outputCommands->size; i < c; i++) {
+    if(dataFragments[i].persistent) {
+      free(dataFragments[i].data);
+    }
+  }
+  vct_Delete(self->outputCommands);
+}
+void sock_Delete(PSocketServer self) {
+  vct_Delete(self->inputReads);
+  sock_ClearConnections(self);
+  sock_Delete_OutputCommands(self);
+  close(self->serverFD.fd);
+  sock_Time_Delete(self);
+  free(self);
+}
+
+struct timezone
+  {
+    int tz_minuteswest;
+    int tz_dsttime;
+  };
+extern int gettimeofday (struct timeval *__restrict __tv,
+    void *__restrict __tz) __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__nonnull__ (1)));
+extern int settimeofday (const struct timeval *__tv,
+    const struct timezone *__tz)
+     __attribute__ ((__nothrow__ , __leaf__));
+extern int adjtime (const struct timeval *__delta,
+      struct timeval *__olddelta) __attribute__ ((__nothrow__ , __leaf__));
+enum __itimer_which
+  {
+    ITIMER_REAL = 0,
+    ITIMER_VIRTUAL = 1,
+    ITIMER_PROF = 2
+  };
+struct itimerval
+  {
+    struct timeval it_interval;
+    struct timeval it_value;
+  };
+typedef int __itimer_which_t;
+extern int getitimer (__itimer_which_t __which,
+        struct itimerval *__value) __attribute__ ((__nothrow__ , __leaf__));
+extern int setitimer (__itimer_which_t __which,
+        const struct itimerval *__restrict __new,
+        struct itimerval *__restrict __old) __attribute__ ((__nothrow__ , __leaf__));
+extern int utimes (const char *__file, const struct timeval __tvp[2])
+     __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__nonnull__ (1)));
+extern int lutimes (const char *__file, const struct timeval __tvp[2])
+     __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__nonnull__ (1)));
+extern int futimes (int __fd, const struct timeval __tvp[2]) __attribute__ ((__nothrow__ , __leaf__));
+
+uint64_t tf_CurrentTimeMS() {
+  struct timeval tv;
+  gettimeofday(&tv, ((void *)0));
+  return (long long)(tv.tv_sec) * 1000 + (tv.tv_usec) / 1000;
+}
+PTimeServer tf_Create() {
+  PTimeServer self = malloc(sizeof(TimeServer));
+  self->methods = vct_Init(sizeof(TimeFragment));
+  self->loopMethods = vct_Init(sizeof(TimeFragment));
+  return self;
+}
+void tf_Delete(PTimeServer self) {
+  vct_Delete(self->methods);
+  vct_Delete(self->loopMethods);
+  free(self);
+}
+void tf_ExecuteAfter(PTimeServer self, TimeMethod currentMethod, uint64_t afterMS) {
+  TimeFragment fragment = (TimeFragment) {
+    .executeAfter = afterMS,
+    .methodFragment = currentMethod
+  };
+  vct_Push(self->methods, &fragment);
+}
+static inline void tf_ExecuteFragMethods(PTimeServer self, uint64_t deltaMS) {
+  TimeFragment *fragment = self->methods->buffer;
+  Vector fragmentsToRemove = vct_Init(sizeof(size_t));
+  for(size_t i = 0, c = self->methods->size; i < c; i++) {
+    fragment[i].executeAfter -= (int64_t)deltaMS;
+    if(fragment[i].executeAfter <= 0) {
+      void (*method)(void *) = fragment[i].methodFragment.method;
+      method(fragment[i].methodFragment.buffer);
+      vct_Push(fragmentsToRemove, &i);
+    }
+  }
+  Vector cpyVector = vct_RemoveElements(self->methods, fragmentsToRemove);
+  vct_Delete(self->methods);
+  self->methods = cpyVector;
+  vct_Delete(fragmentsToRemove);
+}
+static inline void tf_ExecuteLoopMethods(PTimeServer self, uint64_t deltaMS) {
+  TimeFragment *fragment = self->loopMethods->buffer;
+  for(size_t i = 0, c = self->loopMethods->size; i < c; i++) {
+    fragment[i].executeAfter -= (int64_t)deltaMS;
+    if(fragment[i].executeAfter <= 0) {
+      void (*method)(void *) = fragment[i].methodFragment.method;
+      method(fragment[i].methodFragment.buffer);
+      fragment[i].executeAfter = fragment[i].time;
+    }
+  }
+}
+void tf_ExecuteLoop(PTimeServer self, TimeMethod currentMethod, uint64_t afterMS) {
+  TimeFragment fragment = (TimeFragment) {
+    .executeAfter = afterMS,
+    .methodFragment = currentMethod,
+    .time = afterMS
+  };
+  vct_Push(self->loopMethods, &fragment);
+}
+void tf_OnFrame(PTimeServer self, uint64_t deltaMS) {
+  tf_ExecuteFragMethods(self, deltaMS);
+  tf_ExecuteLoopMethods(self, deltaMS);
+}
+PTrieNode trn_Create();
+uint8_t trn_AddValues(PTrieNode self, void* key, uint32_t keySize, void* value, uint32_t valueSize, uint32_t position);
+PTrieHash trh_Create() {
+  PTrieHash self = malloc(sizeof(TrieHash));
+  memset(self, 0, sizeof(TrieHash));
+  self->parentNode = trn_Create();
+  return self;
+}
+void trh_Add(PTrieHash self, void* key, uint32_t keySize, void* value, uint32_t valueSize) {
+  if(!trn_AddValues(self->parentNode, key, keySize, value, valueSize, 0)) {
+    self->count++;
+  }
+}
+PTrieNode trn_Create() {
+  PTrieNode self = malloc(sizeof(TrieNode));
+  memset(self, 0, sizeof(TrieNode));
+  self->nextNodes = malloc(sizeof(PTrieNode) * 16);
+  memset(self->nextNodes, 0, sizeof(PTrieNode) * 16);
+  return self;
+}
+static inline void trh_FreeNode(PTrieNode self) {
+  free(self->nextNodes);
+  free(self);
+}
+void trn_DeleteNodes(PTrieNode self) {
+  for(uint8_t i = 0; i < 16; i++) {
+    if(self->nextNodes[i]) {
+      trn_DeleteNodes(self->nextNodes[i]);
+      self->nextNodes[i] = ((void *)0);
+    }
+  }
+  if(self->buffer) {
+    free(self->buffer);
+  }
+  trh_FreeNode(self);
+}
+uint8_t trn_RemoveNode_t(PTrieNode self, void* key, uint32_t keySize, uint32_t position) {
+  if(position >= (keySize << 1)) {
+    if(self->buffer) {
+      free(self->buffer);
+      self->buffer = ((void *)0);
+      return 1;
+    }
+    return 0;
+  }
+  uint8_t currentValue;
+  if(position & 1) {
+    currentValue = (((uint8_t *)key)[(position >> 1)] & 15);
+  }
+  else {
+    currentValue = (((uint8_t *)key)[(position >> 1)] >> 4);
+  }
+  PTrieNode node = self->nextNodes[currentValue];
+  uint8_t deleted = 0;
+  if(node) {
+    deleted = trn_RemoveNode_t(node, key, keySize, position + 1);
+    node->count--;
+    if(!node->count) {
+      self->nextNodes[currentValue] = ((void *)0);
+      trh_FreeNode(node);
+    }
+  }
+  return deleted;
+}
+void trh_Buffer_AddToIndex(PTrieHash self, uint32_t id, void* buffer, uint32_t bufferSize) {
+  trh_Add(self, &id, sizeof(uint32_t), buffer, bufferSize);
+}
+void trh_Buffer_AddToIndex64(PTrieHash self, uint64_t id, void* buffer, uint32_t bufferSize) {
+  trh_Add(self, &id, sizeof(uint64_t), buffer, bufferSize);
+}
+void* trh_Buffer_GetFromIndex(PTrieHash self, uint32_t id) {
+  return trh_GetBuffer(self, &id, sizeof(uint32_t));
+}
+void* trh_Buffer_GetFromIndex64(PTrieHash self, uint64_t id) {
+  return trh_GetBuffer(self, &id, sizeof(uint64_t));
+}
+void trh_Buffer_RemoveAtIndex(PTrieHash self, uint32_t id) {
+  trh_RemoveNode(self, &id, sizeof(uint32_t));
+}
+void trh_Buffer_RemoveAtIndex64(PTrieHash self, uint64_t id) {
+  trh_RemoveNode(self, &id, sizeof(uint64_t));
+}
+void* trn_GetBuffer_t(PTrieNode self, void* key, uint32_t keySize, uint32_t position) {
+  if(position >= (keySize << 1)) {
+    return self->buffer;
+  }
+  uint8_t currentValue;
+  if(position & 1) {
+    currentValue = (((uint8_t *)key)[(position >> 1)] & 15);
+  }
+  else {
+    currentValue = (((uint8_t *)key)[(position >> 1)] >> 4);
+  }
+  PTrieNode node = self->nextNodes[currentValue];
+  if(node) {
+    return trn_GetBuffer_t(node, key, keySize, position + 1);
+  }
+  return ((void *)0);
+}
+void trh_GetValues_t(PTrieNode self, Vector values) {
+  if(!self) {
+    return ;
+  }
+  if(self->buffer) {
+    vct_Push(values, self->buffer);
+  }
+  PTrieNode *nextNodes = self->nextNodes;
+  for(size_t i = 0; i < 16; i++) {
+    if(nextNodes[i]) {
+      trh_GetValues_t(nextNodes[i], values);
+    }
+  }
+}
+Vector trh_GetValues(PTrieHash self, size_t valueSize) {
+  Vector response = vct_Init(valueSize);
+  trh_GetValues_t(self->parentNode, response);
+  return response;
+}
+void trh_Key_Push(Vector currentKey, uint8_t value, size_t position) {
+  if(!(position & 1)) {
+    value <<= 4;
+    vct_Push(currentKey, &value);
+    return ;
+  }
+  uint8_t *last = (uint8_t *)vct_Last(currentKey);
+  if(!last) {
+    return ;
+  }
+  (*last) += value;
+}
+static inline void trh_Key_Pop(Vector currentKey, size_t position) {
+  if(!(position & 1)) {
+    vct_Pop(currentKey);
+  }
+  else {
+    uint8_t *last = (uint8_t *)vct_Last(currentKey);
+    if(!last) {
+      return ;
+    }
+    (*last) &= 0xF0;
+  }
+}
+void trh_GetKeys_t(PTrieNode self, Vector keys, Vector currentKey, size_t position) {
+  if(!self) {
+    return ;
+  }
+  if(self->buffer) {
+    Key key;
+    key.keySize = currentKey->size;
+    key.key = malloc(key.keySize);
+    memcpy(key.key, currentKey->buffer, key.keySize);
+    vct_Push(keys, &key);
+  }
+  PTrieNode *nextNodes = self->nextNodes;
+  for(uint8_t i = 0; i < 16; i++) {
+    if(nextNodes[i]) {
+      trh_Key_Push(currentKey, i, position);
+      trh_GetKeys_t(nextNodes[i], keys, currentKey, position + 1);
+      trh_Key_Pop(currentKey, position);
+    }
+  }
+}
+Vector trh_GetKeys(PTrieHash self) {
+  Vector response = vct_Init(sizeof(Key));
+  Vector currentKey = vct_Init(sizeof(uint8_t));
+  trh_GetKeys_t(self->parentNode, response, currentKey, 0);
+  vct_Delete(currentKey);
+  return response;
+}
+void trh_FreeKeys(Vector keys) {
+  Key *buffer = (Key *)keys->buffer;
+  for(size_t i = 0, c = keys->size; i < c; i++) {
+    free(buffer[i].key);
+  }
+  vct_Delete(keys);
+}
+void* trh_GetBuffer(PTrieHash self, void* key, uint32_t keySize) {
+  return trn_GetBuffer_t(self->parentNode, key, keySize, 0);
+}
+void trh_RemoveNode(PTrieHash self, void* key, uint32_t keySize) {
+  if(trn_RemoveNode_t(self->parentNode, key, keySize, 0)) {
+    self->count--;
+  }
+}
+uint8_t trn_AddValues(PTrieNode self, void* key, uint32_t keySize, void* value, uint32_t valueSize, uint32_t position) {
+  if(position >= (keySize << 1)) {
+    void* lastBuffer = self->buffer;
+    self->buffer = malloc(valueSize);
+    memcpy(self->buffer, value, valueSize);
+    if(lastBuffer) {
+      free(lastBuffer);
+      return 0;
+    }
+    return 1;
+  }
+  uint8_t currentValue;
+  if(position & 1) {
+    currentValue = (((uint8_t *)key)[(position >> 1)] & 15);
+  }
+  else {
+    currentValue = (((uint8_t *)key)[(position >> 1)] >> 4);
+  }
+  PTrieNode node = self->nextNodes[currentValue];
+  if(!node) {
+    node = trn_Create();
+    self->nextNodes[currentValue] = node;
+  }
+  node->count++;
+  return trn_AddValues(node, key, keySize, value, valueSize, position + 1);
+}
+void trh_Integer32_Insert(PTrieHash self, uint32_t key, uint32_t value) {
+  trh_Add(self, &key, sizeof(uint32_t), &value, sizeof(uint32_t));
+}
+void* trh_Integer32_Get(PTrieHash self, uint32_t key) {
+  return trh_GetBuffer(self, &key, sizeof(uint32_t));
+}
+void trh_Integer32_RemoveElement(PTrieHash self, uint32_t key) {
+  trh_RemoveNode(self, &key, sizeof(uint32_t));
+}
+void trh_Delete(PTrieHash self) {
+  trn_DeleteNodes(self->parentNode);
+  free(self);
+}
+Vector vct_Init(size_t size) {
+  Vector self = (Vector)malloc(sizeof(struct Vector_t));
+  self->buffer = malloc(size);
+  self->size = 0;
+  self->capacity = 1;
+  self->objSize = size;
+  return self;
+}
+Vector vct_InitWithCapacity(size_t size, size_t count) {
+  Vector self = malloc(sizeof(struct Vector_t));
+  self->buffer = malloc(size * count);
+  self->size = 0;
+  self->capacity = count;
+  self->objSize = size;
+  return self;
+}
+Vector vct_InitWithSize(size_t objSize, size_t count) {
+  Vector self = malloc(sizeof(struct Vector_t));
+  self->buffer = malloc(objSize * count);
+  self->size = count;
+  self->capacity = count;
+  self->objSize = objSize;
+  return self;
+}
+void copyData(Vector self, void *buffer) {
+  memcpy(self->buffer + (self->size * self->objSize), buffer, self->objSize);
+  self->size++;
+}
+void vct_Push(Vector self, void *buffer) {
+  if(self->size >= self->capacity) {
+    self->capacity <<= 1;
+    self->buffer = realloc(self->buffer, self->capacity * self->objSize);
+  }
+  copyData(self, buffer);
+}
+void vct_RemoveElement(Vector self, size_t index) {
+  ((void) sizeof ((self->size != 0) ? 1 : 0), __extension__ ({ if (self->size != 0) ; else __assert_fail ("self->size != 0", "bin/svv.c", 2672, __extension__ __PRETTY_FUNCTION__); }));
+  if(index >= self->size) {
+    return ;
+  }
+  char *payloadBuffer = self->buffer;
+  for(ssize_t i = index, c = (ssize_t)self->size - 1; i < c; i++) {
+    memcpy(payloadBuffer + i * self->objSize, payloadBuffer + (i + 1) * self->objSize, self->objSize);
+  }
+  self->size--;
+}
+void vct_Delete(Vector self) {
+  free(self->buffer);
+  free(self);
+}
+void vct_DeleteWOBuffer(Vector self) {
+  free(self);
+}
+char *vct_Last(Vector self) {
+  if(!self->size) {
+    return ((void *)0);
+  }
+  return self->buffer + (self->size - 1) * self->objSize;
+}
+void vct_Pop(Vector self) {
+  if(!self->size) {
+    return ;
+  }
+  self->size--;
+}
+Vector vct_RemoveElements(Vector payload, Vector indexes) {
+  Vector indexesCount = vct_InitWithSize(sizeof(uint8_t), payload->size);
+  memset(indexesCount->buffer, 0, sizeof(uint8_t) * payload->size);
+  size_t *indexesBuffer = indexes->buffer;
+  uint8_t *aparitionCount = indexesCount->buffer;
+  for(size_t i = 0, c = indexes->size; i < c; i++) {
+    if(indexesBuffer[i] < payload->size) {
+      aparitionCount[indexesBuffer[i]] = 1;
+    }
+  }
+  Vector payloadWithMissingElements = vct_Init(payload->objSize);
+  for(size_t i = 0, c = payload->size; i < c; i++) {
+    if(!aparitionCount[i]) {
+      vct_Push(payloadWithMissingElements, payload->buffer + i * payload->objSize);
+    }
+  }
+  vct_Delete(indexesCount);
+  return payloadWithMissingElements;
+}
+void vct_RemoveElementsWithReplacing(Vector *self, Vector indexes) {
+  Vector deleted = vct_RemoveElements(*self, indexes);
+  vct_Delete(*self);
+  *self = deleted;
+}
+int64_t vct_Find(Vector payload, void *element) {
+  void *startingPointer = payload->buffer;
+  size_t objSize = payload->objSize;
+  for(size_t i = 0, c = payload->size; i < c; i++) {
+    if(!memcmp(startingPointer + i * objSize, element, objSize)) {
+      return i;
+    }
+  }
+  return -1;
+}
+void vct_Clear(Vector self) {
+  self->size = 0;
+}
+        
+typedef struct SHAstate_st {
+    unsigned int h0, h1, h2, h3, h4;
+    unsigned int Nl, Nh;
+    unsigned int data[16];
+    unsigned int num;
+} SHA_CTX;
+__attribute__((deprecated("Since OpenSSL " "3.0"))) int SHA1_Init(SHA_CTX *c);
+__attribute__((deprecated("Since OpenSSL " "3.0"))) int SHA1_Update(SHA_CTX *c, const void *data, size_t len);
+__attribute__((deprecated("Since OpenSSL " "3.0"))) int SHA1_Final(unsigned char *md, SHA_CTX *c);
+__attribute__((deprecated("Since OpenSSL " "3.0"))) void SHA1_Transform(SHA_CTX *c, const unsigned char *data);
+unsigned char *SHA1(const unsigned char *d, size_t n, unsigned char *md);
+typedef struct SHA256state_st {
+    unsigned int h[8];
+    unsigned int Nl, Nh;
+    unsigned int data[16];
+    unsigned int num, md_len;
+} SHA256_CTX;
+__attribute__((deprecated("Since OpenSSL " "3.0"))) int SHA224_Init(SHA256_CTX *c);
+__attribute__((deprecated("Since OpenSSL " "3.0"))) int SHA224_Update(SHA256_CTX *c,
+                                        const void *data, size_t len);
+__attribute__((deprecated("Since OpenSSL " "3.0"))) int SHA224_Final(unsigned char *md, SHA256_CTX *c);
+__attribute__((deprecated("Since OpenSSL " "3.0"))) int SHA256_Init(SHA256_CTX *c);
+__attribute__((deprecated("Since OpenSSL " "3.0"))) int SHA256_Update(SHA256_CTX *c,
+                                        const void *data, size_t len);
+__attribute__((deprecated("Since OpenSSL " "3.0"))) int SHA256_Final(unsigned char *md, SHA256_CTX *c);
+__attribute__((deprecated("Since OpenSSL " "3.0"))) void SHA256_Transform(SHA256_CTX *c,
+                                            const unsigned char *data);
+unsigned char *SHA224(const unsigned char *d, size_t n, unsigned char *md);
+unsigned char *SHA256(const unsigned char *d, size_t n, unsigned char *md);
+typedef struct SHA512state_st {
+    unsigned long long h[8];
+    unsigned long long Nl, Nh;
+    union {
+        unsigned long long d[16];
+        unsigned char p[(16*8)];
+    } u;
+    unsigned int num, md_len;
+} SHA512_CTX;
+__attribute__((deprecated("Since OpenSSL " "3.0"))) int SHA384_Init(SHA512_CTX *c);
+__attribute__((deprecated("Since OpenSSL " "3.0"))) int SHA384_Update(SHA512_CTX *c,
+                                        const void *data, size_t len);
+__attribute__((deprecated("Since OpenSSL " "3.0"))) int SHA384_Final(unsigned char *md, SHA512_CTX *c);
+__attribute__((deprecated("Since OpenSSL " "3.0"))) int SHA512_Init(SHA512_CTX *c);
+__attribute__((deprecated("Since OpenSSL " "3.0"))) int SHA512_Update(SHA512_CTX *c,
+                                        const void *data, size_t len);
+__attribute__((deprecated("Since OpenSSL " "3.0"))) int SHA512_Final(unsigned char *md, SHA512_CTX *c);
+__attribute__((deprecated("Since OpenSSL " "3.0"))) void SHA512_Transform(SHA512_CTX *c,
+                                            const unsigned char *data);
+unsigned char *SHA384(const unsigned char *d, size_t n, unsigned char *md);
+unsigned char *SHA512(const unsigned char *d, size_t n, unsigned char *md);
        
 char *wbs_ToWebSocket(WebSocketObject self);
 Vector wbs_FromWebSocket(char *msg, size_t bufferSize);
