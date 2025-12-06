@@ -541,6 +541,30 @@ JsonElement json_Parser_Get_Number(TokenParser tck, PTokenParser next) {
   return response;
 }
 
+static inline TokenParser json_Parser_Open_SquareBracket(TokenParser token) {
+  json_Parser_RemoveEmptySpace(&token);
+  token = json_Parser_Token_IgnoreErrors(token, "[", sizeof("[") - 1);
+  return token;
+}
+
+static inline TokenParser json_Parser_Close_SquareBracket(TokenParser token) {
+  json_Parser_RemoveEmptySpace(&token);
+  token = json_Parser_Token_IgnoreErrors(token, "]", sizeof("]") - 1);
+  return token;
+}
+
+static inline TokenParser json_Parser_Open_CurlyBracket(TokenParser token) {
+  json_Parser_RemoveEmptySpace(&token);
+  token = json_Parser_Token_IgnoreErrors(token, "{", sizeof("{") - 1);
+  return token;
+}
+
+static inline TokenParser json_Parser_Close_CurlyBracket(TokenParser token) {
+  json_Parser_RemoveEmptySpace(&token);
+  token = json_Parser_Token_IgnoreErrors(token, "}", sizeof("}") - 1);
+  return token;
+}
+
 JsonElement json_Parser_Get_Array(TokenParser tck, PTokenParser next) {
   TokenParser nextTck = json_Parser_Array(tck);
   if(json_Parser_IsInvalid(nextTck)) {
@@ -558,7 +582,7 @@ JsonElement json_Parser_Get_Array(TokenParser tck, PTokenParser next) {
     json_Parser_Get_Map,
     json_Parser_Get_Array
   };
-  tck = json_Parser_Token_IgnoreErrors(tck, "[", sizeof("[") - 1);
+  tck = json_Parser_Open_SquareBracket(tck);
   TokenParser cpyTck = tck;
   while(1) {
     for(size_t i = 0; i < sizeof(methods) / sizeof(void *); i++) {
@@ -576,13 +600,19 @@ JsonElement json_Parser_Get_Array(TokenParser tck, PTokenParser next) {
     }
     cpyTck = comma;
   }
-  cpyTck = json_Parser_Token_IgnoreErrors(cpyTck, "]", sizeof("]") - 1);
+  cpyTck = json_Parser_Close_SquareBracket(cpyTck);
   if(next) {
     next->startToken = nextTck.startToken;
     next->endToken = cpyTck.endToken;
     next->endingBuffer = tck.endingBuffer;
   }
   return response;
+}
+
+void json_Parser_Print(JsonElement self) {
+  HttpString strResponse = json_Element_ToString(self);
+  printf("%.*s\n", (uint32_t)strResponse.sz, strResponse.buffer);
+  free(strResponse.buffer);
 }
 
 JsonElement json_Parser_Get_Map(TokenParser tck, PTokenParser next) {
@@ -603,7 +633,7 @@ JsonElement json_Parser_Get_Map(TokenParser tck, PTokenParser next) {
     json_Parser_Get_Map,
     json_Parser_Get_Array
   };
-  tck = json_Parser_Token_IgnoreErrors(tck, "{", sizeof("{") - 1);
+  tck = json_Parser_Open_CurlyBracket(tck);
   TokenParser cpyTck = tck;
   while(1) {
     JsonElement key = json_Parser_Get_String(cpyTck, &cpyTck);
@@ -624,7 +654,7 @@ JsonElement json_Parser_Get_Map(TokenParser tck, PTokenParser next) {
     }
     cpyTck = comma;
   }
-  cpyTck = json_Parser_Token_IgnoreErrors(cpyTck, "}", sizeof("}") - 1);
+  cpyTck = json_Parser_Close_CurlyBracket(cpyTck);
   if(next) {
     next->startToken = nextTck.startToken;
     next->endToken = cpyTck.endToken;

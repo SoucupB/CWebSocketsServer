@@ -549,14 +549,16 @@ static void test_string_parse_map_data_recursive(void **state) {
 }
 
 static void test_string_parse_array_data(void **state) {
-  char *arr = "[1, 2, 4, \"dadf\",  32.44 , [1, 4]]";
-  JsonElement parseData = json_Parser_Get_Map((TokenParser) {
+  char *arr = "[1, 2, 4, \"dadf\",  32, [1, 4 ]  ]";
+  JsonElement parseData = json_Parser_Get_Array((TokenParser) {
     .endToken = arr,
     .endingBuffer = arr + strlen(arr)
   }, NULL);
   assert_int_not_equal(parseData.type, JSON_INVALID);
+  assert_int_equal(((Vector)parseData.value)->size, 6);
+  json_Parser_Print(parseData);
   HttpString strResponse = json_Element_ToString(parseData);
-  char *expected = "[1,2,4,\"dadf\",32.44,[1,4]]";
+  char *expected = "[1,2,4,\"dadf\",32,[1,4]]";
   assert_int_equal(strResponse.sz, strlen(expected));
   assert_memory_equal(strResponse.buffer, expected, strResponse.sz);
   free(strResponse.buffer);
