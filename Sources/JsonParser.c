@@ -565,6 +565,14 @@ static inline TokenParser json_Parser_Close_CurlyBracket(TokenParser token) {
   return token;
 }
 
+static void *parserGetMethods[] = {
+  json_Parser_Get_String,
+  json_Parser_Get_Number,
+  json_Parser_Get_Integer,
+  json_Parser_Get_Map,
+  json_Parser_Get_Array
+};
+
 JsonElement json_Parser_Get_Array(TokenParser tck, PTokenParser next) {
   TokenParser nextTck = json_Parser_Array(tck);
   if(json_Parser_IsInvalid(nextTck)) {
@@ -575,18 +583,11 @@ JsonElement json_Parser_Get_Array(TokenParser tck, PTokenParser next) {
     .type = JSON_ARRAY,
     .value = rspArray
   };
-  void *methods[] = {
-    json_Parser_Get_String,
-    json_Parser_Get_Number,
-    json_Parser_Get_Integer,
-    json_Parser_Get_Map,
-    json_Parser_Get_Array
-  };
   tck = json_Parser_Open_SquareBracket(tck);
   TokenParser cpyTck = tck;
   while(1) {
-    for(size_t i = 0; i < sizeof(methods) / sizeof(void *); i++) {
-      JsonElement (*tokenMethod)(TokenParser, PTokenParser) = (JsonElement (*)(TokenParser, PTokenParser)) (((size_t *)methods)[i]);
+    for(size_t i = 0; i < sizeof(parserGetMethods) / sizeof(void *); i++) {
+      JsonElement (*tokenMethod)(TokenParser, PTokenParser) = (JsonElement (*)(TokenParser, PTokenParser)) (((size_t *)parserGetMethods)[i]);
       JsonElement currentElement = tokenMethod(cpyTck, &cpyTck);
       if(json_Parser_Get_IsInvalid(currentElement)) {
         continue;
@@ -626,20 +627,13 @@ JsonElement json_Parser_Get_Map(TokenParser tck, PTokenParser next) {
     .type = JSON_JSON,
     .value = jsn
   };
-  void *methods[] = {
-    json_Parser_Get_String,
-    json_Parser_Get_Number,
-    json_Parser_Get_Integer,
-    json_Parser_Get_Map,
-    json_Parser_Get_Array
-  };
   tck = json_Parser_Open_CurlyBracket(tck);
   TokenParser cpyTck = tck;
   while(1) {
     JsonElement key = json_Parser_Get_String(cpyTck, &cpyTck);
     cpyTck = json_Parser_Token_IgnoreErrors(cpyTck, ":", sizeof(":") - 1);
-    for(size_t i = 0; i < sizeof(methods) / sizeof(void *); i++) {
-      JsonElement (*tokenMethod)(TokenParser, PTokenParser) = (JsonElement (*)(TokenParser, PTokenParser)) (((size_t *)methods)[i]);
+    for(size_t i = 0; i < sizeof(parserGetMethods) / sizeof(void *); i++) {
+      JsonElement (*tokenMethod)(TokenParser, PTokenParser) = (JsonElement (*)(TokenParser, PTokenParser)) (((size_t *)parserGetMethods)[i]);
       JsonElement currentElement = tokenMethod(cpyTck, &cpyTck);
       if(json_Parser_Get_IsInvalid(currentElement)) {
         continue;
