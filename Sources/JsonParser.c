@@ -20,13 +20,15 @@ typedef struct TokenParser_t {
 
 typedef TokenParser *PTokenParser;
 
-TokenParser json_Parser_Map(TokenParser tck);
 JsonElement json_Parser_Get_Array(TokenParser tck, PTokenParser next);
 JsonElement json_Parser_Get_Map(TokenParser tck, PTokenParser next);
+JsonElement json_Parser_Get_Null(TokenParser tck, PTokenParser next);
+JsonElement json_Parser_Get_Boolean(TokenParser tck, PTokenParser next);
 
 TokenParser json_Parser_Array(TokenParser tck);
 TokenParser json_Parser_Null(TokenParser tck);
 TokenParser json_Parser_Boolean(TokenParser tck);
+TokenParser json_Parser_Map(TokenParser tck);
 
 PJsonObject json_Create() {
   PJsonObject self = malloc(sizeof(JsonObject));
@@ -420,6 +422,8 @@ static inline TokenParser json_Parser_Splitter(TokenParser tck) {
 }
 
 static void *parserMethods[] = {
+  (void *)json_Parser_Null,
+  (void *)json_Parser_Boolean,
   (void *)json_Parser_String,
   (void *)json_Parser_Number,
   (void *)json_Parser_Integer,
@@ -609,6 +613,8 @@ static inline TokenParser json_Parser_Close_Splitter(TokenParser token) {
 }
 
 static void *parserGetMethods[] = {
+  json_Parser_Get_Boolean,
+  json_Parser_Get_Null,
   json_Parser_Get_String,
   json_Parser_Get_Number,
   json_Parser_Get_Integer,
