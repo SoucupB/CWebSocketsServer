@@ -23,6 +23,7 @@ typedef TokenParser *PTokenParser;
 TokenParser json_Parser_Map(TokenParser tck);
 JsonElement json_Parser_Get_Array(TokenParser tck, PTokenParser next);
 JsonElement json_Parser_Get_Map(TokenParser tck, PTokenParser next);
+TokenParser json_Parser_Array(TokenParser tck);
 
 PJsonObject json_Create() {
   PJsonObject self = malloc(sizeof(JsonObject));
@@ -376,6 +377,14 @@ static inline TokenParser json_Parser_Splitter(TokenParser tck) {
   return tck;
 }
 
+static void *parserMethods[] = {
+  (void *)json_Parser_String,
+  (void *)json_Parser_Number,
+  (void *)json_Parser_Integer,
+  (void *)json_Parser_Map,
+  (void *)json_Parser_Array
+};
+
 TokenParser json_Parser_Array(TokenParser tck) {
   json_Parser_RemoveEmptySpace(&tck);
   TokenParser cpyTck = tck;
@@ -384,18 +393,11 @@ TokenParser json_Parser_Array(TokenParser tck) {
   if(json_Parser_IsInvalid(tck)) {
     return tck;
   }
-  void *methods[] = {
-    (void *)json_Parser_String,
-    (void *)json_Parser_Number,
-    (void *)json_Parser_Integer,
-    (void *)json_Parser_Map,
-    (void *)json_Parser_Array
-  };
   TokenParser ncpy = tck;
   while(ncpy.endToken < ncpy.endingBuffer) {
     uint8_t validToken = 0;
-    for(size_t i = 0; i < sizeof(methods) / sizeof(void *); i++) {
-      TokenParser (*tokenMethod)(TokenParser) = (TokenParser (*)(TokenParser)) (((size_t *)methods)[i]);
+    for(size_t i = 0; i < sizeof(parserMethods) / sizeof(void *); i++) {
+      TokenParser (*tokenMethod)(TokenParser) = (TokenParser (*)(TokenParser)) (((size_t *)parserMethods)[i]);
       TokenParser next = tokenMethod(ncpy);
       if(json_Parser_IsInvalid(next)) {
         continue;
@@ -431,13 +433,6 @@ TokenParser json_Parser_Map(TokenParser tck) {
   if(json_Parser_IsInvalid(tck)) {
     return tck;
   }
-  void *methods[] = {
-    (void *)json_Parser_String,
-    (void *)json_Parser_Number,
-    (void *)json_Parser_Integer,
-    (void *)json_Parser_Map,
-    (void *)json_Parser_Array
-  };
   TokenParser ncpy = tck;
   while(ncpy.endToken < ncpy.endingBuffer) {
     uint8_t validToken = 0;
@@ -449,8 +444,8 @@ TokenParser json_Parser_Map(TokenParser tck) {
     if(json_Parser_IsInvalid(ncpy)) {
       return json_Parse_Invalid();
     }
-    for(size_t i = 0; i < sizeof(methods) / sizeof(void *); i++) {
-      TokenParser (*tokenMethod)(TokenParser) = (TokenParser (*)(TokenParser)) (((size_t *)methods)[i]);
+    for(size_t i = 0; i < sizeof(parserMethods) / sizeof(void *); i++) {
+      TokenParser (*tokenMethod)(TokenParser) = (TokenParser (*)(TokenParser)) (((size_t *)parserMethods)[i]);
       TokenParser next = tokenMethod(ncpy);
       if(json_Parser_IsInvalid(next)) {
         continue;
