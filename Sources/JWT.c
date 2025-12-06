@@ -73,6 +73,7 @@ HttpString jwt_Encode_t(JsonElement payload, HttpString secret, uint64_t iam, ui
   char *bff = response->buffer;
   size_t sz = response->size;
   vct_DeleteWOBuffer(response);
+  free(payloadString.buffer);
   return (HttpString){
     .buffer = bff,
     .sz = sz

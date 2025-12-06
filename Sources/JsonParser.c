@@ -363,9 +363,11 @@ JsonElement json_Integer_Create(int64_t val) {
 }
 
 JsonElement json_Map_Create() {
+  PJsonObject json = json_Create();
+  json->selfContained = 1;
   return (JsonElement) {
     .type = JSON_JSON,
-    .value = json_Create()
+    .value = json
   };
 }
 
