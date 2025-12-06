@@ -240,6 +240,7 @@ typedef enum {
   JSON_INTEGER,
   JSON_NUMBER,
   JSON_STRING,
+  JSON_BOOLEAN,
   JSON_JSON,
   JSON_ARRAY
 } JsonType;

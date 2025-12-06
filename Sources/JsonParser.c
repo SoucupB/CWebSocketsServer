@@ -116,6 +116,14 @@ void json_PushLeafValue(Vector str, JsonElement element) {
       json_PushString(str, "null", sizeof("null") - 1);
       break;
     }
+    case JSON_BOOLEAN: {
+      if(element.value > NULL) {
+        json_PushString(str, "true", sizeof("true") - 1);
+        return ;
+      }
+      json_PushString(str, "false", sizeof("false") - 1);
+      break;
+    }
     case JSON_JSON: {
       json_ToString_t(element.value, str);
       break;
@@ -250,7 +258,9 @@ void json_RemoveSelfContainedData(PJsonObject self) {
 void json_Parser_RemoveEmptySpace(PTokenParser tck) {
   size_t sz = json_Parser_CurrentSize(tck);
   size_t startingIndex = 0;
-  while(startingIndex < sz && tck->endToken[startingIndex] == ' ') {
+  while(startingIndex < sz && (tck->endToken[startingIndex] == ' ' 
+      || tck->endToken[startingIndex] == '\n' 
+      || tck->endToken[startingIndex] == '\t')) {
     startingIndex++;
   }
   tck->endToken += startingIndex;

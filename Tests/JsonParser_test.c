@@ -565,7 +565,7 @@ static void test_string_parse_array_data(void **state) {
 }
 
 static void test_string_parse_complex_composite_array_data(void **state) {
-  char *arr = "[1, 2, 4 , \"dadf\"  ,  32, [1, 4, {\"azada\"  :  33, \"zzz\": [11, 3344, 2] } ]  ]";
+  char *arr = "[1, 2, 4 ,\n \"dadf\"\n\n  ,  32, \n\n[1,\n 4, {\n\"azada\"  :  33, \n\"zzz\": \n[11, 3344, 2]\n } ]\n\n  ]";
   JsonElement parseData = json_Parser_Get_Array((TokenParser) {
     .endToken = arr,
     .endingBuffer = arr + strlen(arr)
