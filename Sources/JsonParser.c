@@ -344,6 +344,51 @@ TokenParser json_Parser_Null(TokenParser tck) {
   return tck;
 }
 
+void json_Map_Add(JsonElement map, char *key, JsonElement element) {
+  assert(map.type == JSON_JSON);
+  HttpString str = {
+    .buffer = key,
+    .sz = strlen(key)
+  };
+  json_Add(map.value, &str, element);
+}
+
+JsonElement json_Integer_Create(int64_t val) {
+  JsonElement element = {
+    .type = JSON_INTEGER,
+    .value = malloc(sizeof(int64_t))
+  };
+  *(int64_t *)element.value = val;
+  return element;
+}
+
+JsonElement json_Map_Create() {
+  return (JsonElement) {
+    .type = JSON_JSON,
+    .value = json_Create()
+  };
+}
+
+JsonElement json_String_Create(char *string) {
+  PHttpString str = malloc(sizeof(HttpString));
+  str->buffer = string;
+  str->sz = strlen(string);
+
+  return (JsonElement) {
+    .type = JSON_STRING,
+    .value = str
+  };
+}
+
+JsonElement json_Number_Create(float val) {
+  JsonElement element = {
+    .type = JSON_NUMBER,
+    .value = malloc(sizeof(float))
+  };
+  *(float *)element.value = val;
+  return element;
+}
+
 TokenParser json_Parser_Boolean(TokenParser tck) {
   json_Parser_RemoveFillers(&tck);
   TokenParser srt = json_Parser_Token(tck, "true", sizeof("true") - 1);
