@@ -507,11 +507,43 @@ static void test_string_parse_map_data(void **state) {
     .endToken = arr,
     .endingBuffer = arr + strlen(arr)
   }, NULL);
-  // HttpString crst = json_ToString((PJsonObject)parseData.value);
-  // printf("BA %.*s\n", crst.sz, crst.buffer);
   assert_int_not_equal(parseData.type, JSON_INVALID);
-  // assert_ptr_not_equal(parseData.value, NULL);
-  // assert_float_equal(*(float *)parseData.value, -9932.532f, EPSILON);
+  HttpString strResponse = json_Element_ToString(parseData);
+  char *expected = "{\"aada\":3}";
+  assert_int_equal(strResponse.sz, strlen(expected));
+  assert_memory_equal(strResponse.buffer, expected, strResponse.sz);
+  // printf("%.*s\n", strResponse.sz, strResponse.buffer);
+  free(strResponse.buffer);
+  json_DeleteElement(parseData);
+}
+
+static void test_string_parse_map_data_composite(void **state) {
+  char *arr = "{\"aada\": 3, \"daff\": \"113\"}";
+  JsonElement parseData = json_Parser_Get_Map((TokenParser) {
+    .endToken = arr,
+    .endingBuffer = arr + strlen(arr)
+  }, NULL);
+  assert_int_not_equal(parseData.type, JSON_INVALID);
+  HttpString strResponse = json_Element_ToString(parseData);
+  char *expected = "{\"aada\":3,\"daff\":\"113\"}";
+  assert_int_equal(strResponse.sz, strlen(expected));
+  assert_memory_equal(strResponse.buffer, expected, strResponse.sz);
+  free(strResponse.buffer);
+  json_DeleteElement(parseData);
+}
+
+static void test_string_parse_map_data_recursive(void **state) {
+  char *arr = "{\"aada\": 3, \"daff\": \"113\", \"some_other_key\":{\"a\": 5}}";
+  JsonElement parseData = json_Parser_Get_Map((TokenParser) {
+    .endToken = arr,
+    .endingBuffer = arr + strlen(arr)
+  }, NULL);
+  assert_int_not_equal(parseData.type, JSON_INVALID);
+  HttpString strResponse = json_Element_ToString(parseData);
+  char *expected = "{\"aada\":3,\"daff\":\"113\",\"some_other_key\":{\"a\":5}}";
+  assert_int_equal(strResponse.sz, strlen(expected));
+  assert_memory_equal(strResponse.buffer, expected, strResponse.sz);
+  free(strResponse.buffer);
   json_DeleteElement(parseData);
 }
 
@@ -559,6 +591,8 @@ int main() {
     cmocka_unit_test_prestate(test_string_parse_array_invalid, NULL),
     cmocka_unit_test_prestate(test_string_parse_array_with_map, NULL),
     cmocka_unit_test_prestate(test_string_parse_map_data, NULL),
+    cmocka_unit_test_prestate(test_string_parse_map_data_composite, NULL),
+    cmocka_unit_test_prestate(test_string_parse_map_data_recursive, NULL),
   };
   const uint32_t value = cmocka_run_group_tests(tests, NULL, NULL);
   return value;

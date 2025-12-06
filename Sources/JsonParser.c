@@ -183,6 +183,17 @@ HttpString json_ToString(PJsonObject self) {
   return response;
 }
 
+HttpString json_Element_ToString(JsonElement self) {
+  Vector responseString = vct_Init(sizeof(char));
+  json_PushLeafValue(responseString, self);
+  HttpString response = {
+    .buffer = responseString->buffer,
+    .sz = responseString->size
+  };
+  vct_DeleteWOBuffer(responseString);
+  return response;
+} 
+
 void json_DeleteElement(JsonElement element) {
   switch (element.type)
   {
