@@ -26,6 +26,7 @@ JsonElement json_Parser_Get_Map(TokenParser tck, PTokenParser next);
 
 TokenParser json_Parser_Array(TokenParser tck);
 TokenParser json_Parser_Null(TokenParser tck);
+TokenParser json_Parser_Boolean(TokenParser tck);
 
 PJsonObject json_Create() {
   PJsonObject self = malloc(sizeof(JsonObject));
@@ -654,6 +655,35 @@ void json_Parser_Print(JsonElement self) {
   HttpString strResponse = json_Element_ToString(self);
   printf("%.*s\n", (uint32_t)strResponse.sz, strResponse.buffer);
   free(strResponse.buffer);
+}
+
+JsonElement json_Parser_Get_Null(TokenParser tck, PTokenParser next) {
+  TokenParser nextTck = json_Parser_Null(tck);
+  if(json_Parser_IsInvalid(nextTck)) {
+    return json_Element_Invalid();
+  }
+  JsonElement response = {
+    .type = JSON_NULL
+  };
+  if(next) {
+    *next = nextTck;
+  }
+  return response;
+}
+
+JsonElement json_Parser_Get_Boolean(TokenParser tck, PTokenParser next) {
+  TokenParser nextTck = json_Parser_Boolean(tck);
+  if(json_Parser_IsInvalid(nextTck)) {
+    return json_Element_Invalid();
+  }
+  JsonElement response = {
+    .type = JSON_BOOLEAN,
+    .value = (void *)(size_t)(memcmp(nextTck.startToken, "true", sizeof("true") - 1) == 0)
+  };
+  if(next) {
+    *next = nextTck;
+  }
+  return response;
 }
 
 JsonElement json_Parser_Get_Map(TokenParser tck, PTokenParser next) {
