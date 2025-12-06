@@ -233,3 +233,28 @@ typedef struct HttpResponse_t {
 } HttpResponse;
 
 typedef HttpResponse *PHttpResponse;
+
+typedef enum {
+  JSON_INVALID,
+  JSON_NULL,
+  JSON_INTEGER,
+  JSON_NUMBER,
+  JSON_STRING,
+  JSON_BOOLEAN,
+  JSON_JSON,
+  JSON_ARRAY
+} JsonType;
+
+typedef struct JsonElement_t {
+  void *value;
+  JsonType type;
+} JsonElement;
+
+typedef JsonElement *PJsonElement;
+
+typedef struct JsonObject_t {
+  PTrieHash hsh;
+  uint8_t selfContained;
+} JsonObject;
+
+typedef JsonObject *PJsonObject;
