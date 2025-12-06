@@ -13,4 +13,4 @@ void http_Response_SetBody(PHttpResponse self, PHttpString buffer);
 void http_Response_Delete(PHttpResponse self);
 HttpString http_Response_ToString(PHttpResponse self);
 PHttpResponse http_Response_Empty();
-void http_Response_Set(PHttpResponse self, char *key, size_t keySize, char *value, size_t valueSize) ;
+void http_Response_Set(PHttpResponse self, char *key, size_t keySize, char *value, size_t valueSize);
