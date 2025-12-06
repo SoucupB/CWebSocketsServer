@@ -732,7 +732,23 @@ JsonElement json_Parser_Get_Map(TokenParser tck, PTokenParser next) {
   return response;
 }
 
-JsonElement json_Parse(PHttpString buffer, char *nextBuffer) {
+JsonElement json_Parse(PHttpString buffer, char **nextBuffer) {
+  TokenParser tck = (TokenParser) {
+    .startToken = buffer->buffer,
+    .endToken = buffer->buffer,
+    .endingBuffer = buffer->buffer + buffer->sz
+  };
+  for(size_t i = 0; i < sizeof(parserGetMethods) / sizeof(void *); i++) {
+    JsonElement (*tokenMethod)(TokenParser, PTokenParser) = (JsonElement (*)(TokenParser, PTokenParser)) (((size_t *)parserGetMethods)[i]);
+    JsonElement currentElement = tokenMethod(tck, &tck);
+    if(json_Parser_Get_IsInvalid(currentElement)) {
+      continue;
+    }
+    if(nextBuffer) {
+      *nextBuffer = tck.endToken;
+    }
+    return currentElement;
+  }
   return (JsonElement) {
     .type = JSON_INVALID
   };
