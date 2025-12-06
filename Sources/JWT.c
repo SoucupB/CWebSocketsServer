@@ -150,6 +150,10 @@ uint8_t jwt_IsSigned(HttpString str, HttpString secret) {
     }
     sz++;
   }
+  size_t sigSize = str.sz - sz;
+  if(pnt != 2 || sigSize <= 30) {
+    return 0;
+  }
   const size_t csz = jwt_Base64_Size(32);
   uint8_t hmacResult[csz + 2];
   size_t newB64Size;
@@ -157,7 +161,7 @@ uint8_t jwt_IsSigned(HttpString str, HttpString secret) {
     .buffer = buffer,
     .sz = sz - 1
   }, secret, hmacResult, &newB64Size);
-  if(newB64Size != (str.sz - sz)) {
+  if(newB64Size != sigSize) {
     return 0;
   }
   return !memcmp(buffer + sz, hmacResult, newB64Size);

@@ -6727,6 +6727,9 @@ uint8_t jwt_IsSigned(HttpString str, HttpString secret) {
     }
     sz++;
   }
+  if(pnt != 2) {
+    return 0;
+  }
   const size_t csz = jwt_Base64_Size(32);
   uint8_t hmacResult[csz + 2];
   size_t newB64Size;
@@ -8509,7 +8512,7 @@ void sock_PushCloseConnMethod(PSocketServer self, Connection conn, size_t index)
   tf_ExecuteAfter(self->timeServer.timeServer, timeFragment, self->timeServer.timeout);
 }
 void sock_SetMaxConnections(PSocketServer self, int32_t maxActiveConnections) {
-  ((void) sizeof ((maxActiveConnections < 1024) ? 1 : 0), __extension__ ({ if (maxActiveConnections < 1024) ; else __assert_fail ("maxActiveConnections < MAX_CONNECTIONS_PER_SERVER", "bin/svv.c", 1963, __extension__ __PRETTY_FUNCTION__); }));
+  ((void) sizeof ((maxActiveConnections < 1024) ? 1 : 0), __extension__ ({ if (maxActiveConnections < 1024) ; else __assert_fail ("maxActiveConnections < MAX_CONNECTIONS_PER_SERVER", "bin/svv.c", 1966, __extension__ __PRETTY_FUNCTION__); }));
   self->maxActiveConnections = maxActiveConnections;
 }
 void sock_Write_Push(PSocketServer self, DataFragment *dt) {
@@ -9162,7 +9165,7 @@ void vct_Push(Vector self, void *buffer) {
   copyData(self, buffer);
 }
 void vct_RemoveElement(Vector self, size_t index) {
-  ((void) sizeof ((self->size != 0) ? 1 : 0), __extension__ ({ if (self->size != 0) ; else __assert_fail ("self->size != 0", "bin/svv.c", 2672, __extension__ __PRETTY_FUNCTION__); }));
+  ((void) sizeof ((self->size != 0) ? 1 : 0), __extension__ ({ if (self->size != 0) ; else __assert_fail ("self->size != 0", "bin/svv.c", 2675, __extension__ __PRETTY_FUNCTION__); }));
   if(index >= self->size) {
     return ;
   }
