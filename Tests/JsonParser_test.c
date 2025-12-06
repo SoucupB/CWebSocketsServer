@@ -646,7 +646,7 @@ static void test_string_parse_null_invalid_empty(void **state) {
 }
 
 static void test_string_parse_boolean_true(void **state) {
-  char *arr = "true";
+  char *arr = "\n\t true";
   JsonElement parseData = json_Parser_Get_Boolean((TokenParser) {
     .endToken = arr,
     .endingBuffer = arr + strlen(arr)
@@ -656,7 +656,7 @@ static void test_string_parse_boolean_true(void **state) {
 }
 
 static void test_string_parse_boolean_false(void **state) {
-  char *arr = "false";
+  char *arr = "\n\nfalse";
   JsonElement parseData = json_Parser_Get_Boolean((TokenParser) {
     .endToken = arr,
     .endingBuffer = arr + strlen(arr)
@@ -666,7 +666,7 @@ static void test_string_parse_boolean_false(void **state) {
 }
 
 static void test_string_parse_boolean_invalid(void **state) {
-  char *arr = "fase";
+  char *arr = "  \n\tfase";
   JsonElement parseData = json_Parser_Get_Boolean((TokenParser) {
     .endToken = arr,
     .endingBuffer = arr + strlen(arr)
@@ -675,14 +675,12 @@ static void test_string_parse_boolean_invalid(void **state) {
 }
 
 static void test_string_parse_array_get_index(void **state) {
-  char *arr = "[1, \t255333, \n\n4, 324.335, \"dadf\",  32, [1, 4, {\"azada\":  33, \"zzz\": [11, 3344, 2] } ], null, null, false]";
+  char *arr = "[1, \t255333, \n\n4, 324.335, \"dadf\",  32, [1, 4, {\"azada\":  33, \"zzz\": [11, 3344, 2] } ], null, null, false, true]";
   JsonElement parseData = json_Parse((HttpString) {
     .buffer = arr,
     .sz = strlen(arr)
   }, NULL);
-  json_Parser_Print(parseData);
-  return ;
-  assert_int_equal(json_Array_Size(parseData), 10);
+  assert_int_equal(json_Array_Size(parseData), 11);
   assert_true(json_Array_At(parseData, 6).type == JSON_ARRAY);
   assert_true(json_Array_At(parseData, 1).type == JSON_INTEGER);
   assert_int_equal(json_Integer_Get(json_Array_At(parseData, 1)), 255333);
@@ -692,6 +690,8 @@ static void test_string_parse_array_get_index(void **state) {
   assert_true(json_Map_GetString(json_Array_At(json_Array_At(parseData, 6), 2), "zzz").type == JSON_ARRAY);
   assert_true(json_Map_GetString(json_Array_At(json_Array_At(parseData, 6), 2), "zzzs").type == JSON_INVALID);
   assert_true(json_Array_At(parseData, 7).type == JSON_NULL);
+  assert_true(json_Array_At(parseData, 9).type == JSON_BOOLEAN);
+  assert_true(json_Array_At(parseData, 10).type == JSON_BOOLEAN);
   json_DeleteElement(parseData);
 }
 

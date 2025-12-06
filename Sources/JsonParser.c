@@ -346,16 +346,14 @@ TokenParser json_Parser_Null(TokenParser tck) {
 
 TokenParser json_Parser_Boolean(TokenParser tck) {
   json_Parser_RemoveFillers(&tck);
-  TokenParser cpyTck = tck;
-  cpyTck.startToken = tck.endToken;
   TokenParser srt = json_Parser_Token(tck, "true", sizeof("true") - 1);
   if(!json_Parser_IsInvalid(srt)) {
-    tck.startToken = cpyTck.startToken;
+    tck = srt;
     return tck;
   }
   srt = json_Parser_Token(tck, "false", sizeof("false") - 1);
   if(!json_Parser_IsInvalid(srt)) {
-    tck.startToken = cpyTck.startToken;
+    tck = srt;
     return tck;
   }
   return json_Parse_Invalid();
