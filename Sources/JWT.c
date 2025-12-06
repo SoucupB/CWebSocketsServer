@@ -54,12 +54,12 @@ void jwt_AddSignature(Vector str, HttpString secret) {
   }
 }
 
-HttpString jwt_Encode_t(JsonElement payload, HttpString secret, uint64_t iam, uint64_t expirationMS) {
+HttpString jwt_Encode_t(JsonElement payload, HttpString secret, uint64_t iam, uint64_t expirationInMS) {
   Vector response = vct_Init(sizeof(char));
   jwt_Add_Header(response);
   jwt_Add_Char(response, '.');
   json_Map_Add(payload, "iat", json_Integer_Create((int64_t)iam));
-  json_Map_Add(payload, "exp", json_Integer_Create((int64_t)expirationMS));
+  json_Map_Add(payload, "exp", json_Integer_Create((int64_t)expirationInMS + iam));
   HttpString payloadString = json_Element_ToString(payload);
   size_t payloadBase64Size = jwt_Base64_Size(payloadString.sz);
   uint8_t payloadBase64[payloadBase64Size + 1];
@@ -79,8 +79,8 @@ HttpString jwt_Encode_t(JsonElement payload, HttpString secret, uint64_t iam, ui
   };
 }
 
-HttpString jwt_Encode(JsonElement payload, HttpString secret, uint64_t expirationMS) {
-  return jwt_Encode_t(payload, secret, tf_CurrentTimeMS(), expirationMS);
+HttpString jwt_Encode(JsonElement payload, HttpString secret, uint64_t expirationInMS) {
+  return jwt_Encode_t(payload, secret, tf_CurrentTimeMS(), expirationInMS);
 }
 
 static inline void jwt_EncodeElement(JsonElement payload, uint8_t *code, size_t *sz) {

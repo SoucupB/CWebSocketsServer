@@ -16,6 +16,7 @@
 
 void jwt_HMAC(HttpString key, HttpString secret, uint8_t *hmacResult, size_t *currentSize);
 HttpString jwt_Encode_t(JsonElement payload, HttpString secret, uint64_t iam, uint64_t expirationMS);
+void jwt_PrintHMAC(uint8_t *hmacCode, size_t sz);
 
 static void test_jwt_hmac_create(void **state) {
   HttpString key = {
@@ -41,8 +42,8 @@ static void test_jwt_create_field(void **state) {
     .sz = sizeof("some_key_data") - 1
   };
   uint64_t cTime = 32324255525LL;
-  HttpString crm = jwt_Encode_t(mapToSend, secret, cTime, cTime);
-  char *jwt = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjMyMzI0MjU1NTI1LCJpYXQiOjMyMzI0MjU1NTI1LCJzb21lX2ZpZWxkIjozMTMxNH0.Dkc_NeEmf2cHLRsSXz8I4rF8sgPm77Aq0xF1fj5osuM";
+  HttpString crm = jwt_Encode_t(mapToSend, secret, cTime, 324LL);
+  char *jwt = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjMyMzI0MjU1ODQ5LCJpYXQiOjMyMzI0MjU1NTI1LCJzb21lX2ZpZWxkIjozMTMxNH0.7zOdXbes1bt_8gnBpACpntvUQoVifLj6WsijL8DvrLI";
   assert_memory_equal(jwt, crm.buffer, strlen(jwt));
   json_DeleteElement(mapToSend);
   free(crm.buffer);
