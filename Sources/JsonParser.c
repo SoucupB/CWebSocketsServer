@@ -66,6 +66,12 @@ static inline uint8_t json_Parser_Get_IsInvalid(JsonElement tck) {
   return tck.type == JSON_INVALID;
 }
 
+static inline JsonElement json_Parser_Get_Invalid() {
+  return (JsonElement) {
+    .type = JSON_INVALID
+  };
+}
+
 static inline TokenParser json_Parse_Invalid() {
   return (TokenParser) {
     .startToken = NULL,
@@ -749,7 +755,27 @@ JsonElement json_Parse(PHttpString buffer, char **nextBuffer) {
     }
     return currentElement;
   }
-  return (JsonElement) {
-    .type = JSON_INVALID
-  };
+  return json_Parser_Get_Invalid();
+}
+
+JsonElement json_Map_Get(JsonElement jsonMap, HttpString str) {
+  if(jsonMap.type != JSON_JSON) {
+    return json_Parser_Get_Invalid();
+  }
+  JsonElement *element = trh_GetBuffer(((PJsonObject)jsonMap.value)->hsh, str.buffer, str.sz);
+  if(!element) {
+    return json_Parser_Get_Invalid();
+  }
+  return *element;
+}
+
+JsonElement json_Array_At(JsonElement arr, size_t index) {
+  if(arr.type != JSON_JSON) {
+    return json_Parser_Get_Invalid();
+  }
+  Vector vct = arr.value;
+  if(index >= vct->size) {
+    return json_Parser_Get_Invalid();
+  }
+  return ((JsonElement *)vct->buffer)[index];
 }
