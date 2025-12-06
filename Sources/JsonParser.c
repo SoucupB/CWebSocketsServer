@@ -364,7 +364,7 @@ TokenParser json_Parser_Comma(TokenParser tck) {
   return tck;
 }
 
-TokenParser json_Parser_Splitter(TokenParser tck) {
+static inline TokenParser json_Parser_Splitter(TokenParser tck) {
   json_Parser_RemoveEmptySpace(&tck);
   TokenParser cpyTck = tck;
   cpyTck.startToken = tck.endToken;
@@ -565,6 +565,12 @@ static inline TokenParser json_Parser_Close_CurlyBracket(TokenParser token) {
   return token;
 }
 
+static inline TokenParser json_Parser_Close_Splitter(TokenParser token) {
+  json_Parser_RemoveEmptySpace(&token);
+  token = json_Parser_Token_IgnoreErrors(token, ":", sizeof(":") - 1);
+  return token;
+}
+
 static void *parserGetMethods[] = {
   json_Parser_Get_String,
   json_Parser_Get_Number,
@@ -631,7 +637,7 @@ JsonElement json_Parser_Get_Map(TokenParser tck, PTokenParser next) {
   TokenParser cpyTck = tck;
   while(1) {
     JsonElement key = json_Parser_Get_String(cpyTck, &cpyTck);
-    cpyTck = json_Parser_Token_IgnoreErrors(cpyTck, ":", sizeof(":") - 1);
+    cpyTck = json_Parser_Close_Splitter(cpyTck);
     for(size_t i = 0; i < sizeof(parserGetMethods) / sizeof(void *); i++) {
       JsonElement (*tokenMethod)(TokenParser, PTokenParser) = (JsonElement (*)(TokenParser, PTokenParser)) (((size_t *)parserGetMethods)[i]);
       JsonElement currentElement = tokenMethod(cpyTck, &cpyTck);
