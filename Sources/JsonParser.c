@@ -135,6 +135,10 @@ void json_PushLeafValue(Vector str, JsonElement element) {
       json_PushString(str, "false", sizeof("false") - 1);
       break;
     }
+    case JSON_INVALID: {
+      json_PushString(str, "INVALID_JSON_ELEMENT", sizeof("INVALID_JSON_ELEMENT") - 1);
+      break;
+    }
     case JSON_JSON: {
       json_ToString_t(element.value, str);
       break;

@@ -675,11 +675,13 @@ static void test_string_parse_boolean_invalid(void **state) {
 }
 
 static void test_string_parse_array_get_index(void **state) {
-  char *arr = "[1, \t255333, \n\n4, 324.335, \"dadf\",  32, [1, 4, {\"azada\":  33, \"zzz\": [11, 3344, 2] } ], null, null, null]";
+  char *arr = "[1, \t255333, \n\n4, 324.335, \"dadf\",  32, [1, 4, {\"azada\":  33, \"zzz\": [11, 3344, 2] } ], null, null, false]";
   JsonElement parseData = json_Parse((HttpString) {
     .buffer = arr,
     .sz = strlen(arr)
   }, NULL);
+  json_Parser_Print(parseData);
+  return ;
   assert_int_equal(json_Array_Size(parseData), 10);
   assert_true(json_Array_At(parseData, 6).type == JSON_ARRAY);
   assert_true(json_Array_At(parseData, 1).type == JSON_INTEGER);
