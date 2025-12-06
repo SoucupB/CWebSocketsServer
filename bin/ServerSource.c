@@ -2385,9 +2385,15 @@ void json_Delete(PJsonObject self);
 void json_Add(PJsonObject self, PHttpString key, JsonElement element);
 HttpString json_ToString(PJsonObject self);
 void json_RemoveSelfContainedData(PJsonObject self);
-JsonElement json_Parse(PHttpString buffer, char *nextBuffer);
+JsonElement json_Parse(HttpString buffer, char **nextBuffer);
 HttpString json_Element_ToString(JsonElement self);
 void json_Parser_Print(JsonElement self);
+JsonElement json_Map_Get(JsonElement jsonMap, HttpString str);
+JsonElement json_Array_At(JsonElement arr, size_t index);
+size_t json_Array_Size(JsonElement arr);
+int64_t json_Integer_Get(JsonElement arr);
+float json_Number_Get(JsonElement arr);
+JsonElement json_Map_GetString(JsonElement jsonMap, const char *key);
        
 Vector vct_Init(size_t size);
 Vector vct_InitWithCapacity(size_t size, size_t count);
@@ -2414,11 +2420,14 @@ typedef struct TokenParser_t {
   char *endingBuffer;
 } TokenParser;
 typedef TokenParser *PTokenParser;
-TokenParser json_Parser_Map(TokenParser tck);
 JsonElement json_Parser_Get_Array(TokenParser tck, PTokenParser next);
 JsonElement json_Parser_Get_Map(TokenParser tck, PTokenParser next);
+JsonElement json_Parser_Get_Null(TokenParser tck, PTokenParser next);
+JsonElement json_Parser_Get_Boolean(TokenParser tck, PTokenParser next);
 TokenParser json_Parser_Array(TokenParser tck);
 TokenParser json_Parser_Null(TokenParser tck);
+TokenParser json_Parser_Boolean(TokenParser tck);
+TokenParser json_Parser_Map(TokenParser tck);
 PJsonObject json_Create() {
   PJsonObject self = malloc(sizeof(JsonObject));
   self->hsh = trh_Create();
@@ -2426,7 +2435,7 @@ PJsonObject json_Create() {
   return self;
 }
 void json_Add(PJsonObject self, PHttpString key, JsonElement element) {
-  ((void) sizeof ((self->hsh) ? 1 : 0), __extension__ ({ if (self->hsh) ; else __assert_fail ("self->hsh", "bin/svv.c", 906, __extension__ __PRETTY_FUNCTION__); }));
+  ((void) sizeof ((self->hsh) ? 1 : 0), __extension__ ({ if (self->hsh) ; else __assert_fail ("self->hsh", "bin/svv.c", 909, __extension__ __PRETTY_FUNCTION__); }));
   trh_Add(self->hsh, key->buffer, key->sz, &element, sizeof(JsonElement));
 }
 void json_Delete(PJsonObject self) {
@@ -2447,6 +2456,11 @@ static inline uint8_t json_Parser_IsInvalid(TokenParser tck) {
 }
 static inline uint8_t json_Parser_Get_IsInvalid(JsonElement tck) {
   return tck.type == JSON_INVALID;
+}
+static inline JsonElement json_Parser_Get_Invalid() {
+  return (JsonElement) {
+    .type = JSON_INVALID
+  };
 }
 static inline TokenParser json_Parse_Invalid() {
   return (TokenParser) {
@@ -2505,22 +2519,26 @@ void json_PushLeafValue(Vector str, JsonElement element) {
       json_PushString(str, "false", sizeof("false") - 1);
       break;
     }
+    case JSON_INVALID: {
+      json_PushString(str, "INVALID_JSON_ELEMENT", sizeof("INVALID_JSON_ELEMENT") - 1);
+      break;
+    }
     case JSON_JSON: {
       json_ToString_t(element.value, str);
       break;
     }
     case JSON_INTEGER: {
-      ((void) sizeof ((element.value) ? 1 : 0), __extension__ ({ if (element.value) ; else __assert_fail ("element.value", "bin/svv.c", 1002, __extension__ __PRETTY_FUNCTION__); }));
+      ((void) sizeof ((element.value) ? 1 : 0), __extension__ ({ if (element.value) ; else __assert_fail ("element.value", "bin/svv.c", 1015, __extension__ __PRETTY_FUNCTION__); }));
       json_Element_PushInteger(str, *(int64_t *)element.value);
       break;
     }
     case JSON_NUMBER: {
-      ((void) sizeof ((element.value) ? 1 : 0), __extension__ ({ if (element.value) ; else __assert_fail ("element.value", "bin/svv.c", 1007, __extension__ __PRETTY_FUNCTION__); }));
+      ((void) sizeof ((element.value) ? 1 : 0), __extension__ ({ if (element.value) ; else __assert_fail ("element.value", "bin/svv.c", 1020, __extension__ __PRETTY_FUNCTION__); }));
       json_Element_PushFloat(str, *(float *)element.value);
       break;
     }
     case JSON_STRING: {
-      ((void) sizeof ((element.value) ? 1 : 0), __extension__ ({ if (element.value) ; else __assert_fail ("element.value", "bin/svv.c", 1012, __extension__ __PRETTY_FUNCTION__); }));
+      ((void) sizeof ((element.value) ? 1 : 0), __extension__ ({ if (element.value) ; else __assert_fail ("element.value", "bin/svv.c", 1025, __extension__ __PRETTY_FUNCTION__); }));
       json_Element_PushString(str, element.value);
       break;
     }
@@ -2690,11 +2708,25 @@ TokenParser json_Parser_Null(TokenParser tck) {
   TokenParser cpyTck = tck;
   cpyTck.startToken = tck.endToken;
   tck = json_Parser_Token(tck, "null", sizeof("null") - 1);
-  if(!json_Parser_IsInvalid(tck)) {
+  if(json_Parser_IsInvalid(tck)) {
     return json_Parse_Invalid();
   }
   tck.startToken = cpyTck.startToken;
   return tck;
+}
+TokenParser json_Parser_Boolean(TokenParser tck) {
+  json_Parser_RemoveFillers(&tck);
+  TokenParser srt = json_Parser_Token(tck, "true", sizeof("true") - 1);
+  if(!json_Parser_IsInvalid(srt)) {
+    tck = srt;
+    return tck;
+  }
+  srt = json_Parser_Token(tck, "false", sizeof("false") - 1);
+  if(!json_Parser_IsInvalid(srt)) {
+    tck = srt;
+    return tck;
+  }
+  return json_Parse_Invalid();
 }
 TokenParser json_Parser_Integer(TokenParser tck) {
   json_Parser_RemoveFillers(&tck);
@@ -2763,6 +2795,8 @@ static inline TokenParser json_Parser_Splitter(TokenParser tck) {
   return tck;
 }
 static void *parserMethods[] = {
+  (void *)json_Parser_Null,
+  (void *)json_Parser_Boolean,
   (void *)json_Parser_String,
   (void *)json_Parser_Number,
   (void *)json_Parser_Integer,
@@ -2941,6 +2975,8 @@ static inline TokenParser json_Parser_Close_Splitter(TokenParser token) {
   return token;
 }
 static void *parserGetMethods[] = {
+  json_Parser_Get_Null,
+  json_Parser_Get_Boolean,
   json_Parser_Get_String,
   json_Parser_Get_Number,
   json_Parser_Get_Integer,
@@ -2986,6 +3022,35 @@ void json_Parser_Print(JsonElement self) {
   printf("%.*s\n", (uint32_t)strResponse.sz, strResponse.buffer);
   free(strResponse.buffer);
 }
+JsonElement json_Parser_Get_Null(TokenParser tck, PTokenParser next) {
+  TokenParser nextTck = json_Parser_Null(tck);
+  if(json_Parser_IsInvalid(nextTck)) {
+    return json_Element_Invalid();
+  }
+  JsonElement response = {
+    .type = JSON_NULL
+  };
+  if(next) {
+    *next = nextTck;
+  }
+  return response;
+}
+JsonElement json_Parser_Get_Boolean(TokenParser tck, PTokenParser next) {
+  TokenParser nextTck = json_Parser_Boolean(tck);
+  if(json_Parser_IsInvalid(nextTck)) {
+    return json_Element_Invalid();
+  }
+  json_Parser_RemoveFillers(&tck);
+  size_t validTrue = (size_t)json_Parser_IsInvalid(json_Parser_Token(tck, "false", sizeof("false") - 1));
+  JsonElement response = {
+    .type = JSON_BOOLEAN,
+    .value = (void *)validTrue
+  };
+  if(next) {
+    *next = nextTck;
+  }
+  return response;
+}
 JsonElement json_Parser_Get_Map(TokenParser tck, PTokenParser next) {
   TokenParser nextTck = json_Parser_Map(tck);
   if(json_Parser_IsInvalid(nextTck)) {
@@ -3024,10 +3089,62 @@ JsonElement json_Parser_Get_Map(TokenParser tck, PTokenParser next) {
   }
   return response;
 }
-JsonElement json_Parse(PHttpString buffer, char *nextBuffer) {
-  return (JsonElement) {
-    .type = JSON_INVALID
+JsonElement json_Parse(HttpString buffer, char **nextBuffer) {
+  TokenParser tck = (TokenParser) {
+    .startToken = buffer.buffer,
+    .endToken = buffer.buffer,
+    .endingBuffer = buffer.buffer + buffer.sz
   };
+  for(size_t i = 0; i < sizeof(parserGetMethods) / sizeof(void *); i++) {
+    JsonElement (*tokenMethod)(TokenParser, PTokenParser) = (JsonElement (*)(TokenParser, PTokenParser)) (((size_t *)parserGetMethods)[i]);
+    JsonElement currentElement = tokenMethod(tck, &tck);
+    if(json_Parser_Get_IsInvalid(currentElement)) {
+      continue;
+    }
+    if(nextBuffer) {
+      *nextBuffer = tck.endToken;
+    }
+    return currentElement;
+  }
+  return json_Parser_Get_Invalid();
+}
+JsonElement json_Map_Get(JsonElement jsonMap, HttpString str) {
+  if(jsonMap.type != JSON_JSON) {
+    return json_Parser_Get_Invalid();
+  }
+  JsonElement *element = trh_GetBuffer(((PJsonObject)jsonMap.value)->hsh, str.buffer, str.sz);
+  if(!element) {
+    return json_Parser_Get_Invalid();
+  }
+  return *element;
+}
+JsonElement json_Map_GetString(JsonElement jsonMap, const char *key) {
+  return json_Map_Get(jsonMap, (HttpString) {
+    .buffer = (char *)key,
+    .sz = strlen(key)
+  });
+}
+JsonElement json_Array_At(JsonElement arr, size_t index) {
+  if(arr.type != JSON_ARRAY) {
+    return json_Parser_Get_Invalid();
+  }
+  Vector vct = arr.value;
+  if(index >= vct->size) {
+    return json_Parser_Get_Invalid();
+  }
+  return ((JsonElement *)vct->buffer)[index];
+}
+size_t json_Array_Size(JsonElement arr) {
+  ((void) sizeof ((arr.type == JSON_ARRAY) ? 1 : 0), __extension__ ({ if (arr.type == JSON_ARRAY) ; else __assert_fail ("arr.type == JSON_ARRAY", "bin/svv.c", 1662, __extension__ __PRETTY_FUNCTION__); }));
+  return ((Vector)arr.value)->size;
+}
+int64_t json_Integer_Get(JsonElement arr) {
+  ((void) sizeof ((arr.type == JSON_INTEGER) ? 1 : 0), __extension__ ({ if (arr.type == JSON_INTEGER) ; else __assert_fail ("arr.type == JSON_INTEGER", "bin/svv.c", 1667, __extension__ __PRETTY_FUNCTION__); }));
+  return *((int64_t *)arr.value);
+}
+float json_Number_Get(JsonElement arr) {
+  ((void) sizeof ((arr.type == JSON_NUMBER) ? 1 : 0), __extension__ ({ if (arr.type == JSON_NUMBER) ; else __assert_fail ("arr.type == JSON_NUMBER", "bin/svv.c", 1672, __extension__ __PRETTY_FUNCTION__); }));
+  return *((float *)arr.value);
 }
 
 struct iovec
@@ -4803,7 +4920,7 @@ void sock_PushCloseConnMethod(PSocketServer self, Connection conn, size_t index)
   tf_ExecuteAfter(self->timeServer.timeServer, timeFragment, self->timeServer.timeout);
 }
 void sock_SetMaxConnections(PSocketServer self, int32_t maxActiveConnections) {
-  ((void) sizeof ((maxActiveConnections < 1024) ? 1 : 0), __extension__ ({ if (maxActiveConnections < 1024) ; else __assert_fail ("maxActiveConnections < MAX_CONNECTIONS_PER_SERVER", "bin/svv.c", 1627, __extension__ __PRETTY_FUNCTION__); }));
+  ((void) sizeof ((maxActiveConnections < 1024) ? 1 : 0), __extension__ ({ if (maxActiveConnections < 1024) ; else __assert_fail ("maxActiveConnections < MAX_CONNECTIONS_PER_SERVER", "bin/svv.c", 1748, __extension__ __PRETTY_FUNCTION__); }));
   self->maxActiveConnections = maxActiveConnections;
 }
 void sock_Write_Push(PSocketServer self, DataFragment *dt) {
@@ -5456,7 +5573,7 @@ void vct_Push(Vector self, void *buffer) {
   copyData(self, buffer);
 }
 void vct_RemoveElement(Vector self, size_t index) {
-  ((void) sizeof ((self->size != 0) ? 1 : 0), __extension__ ({ if (self->size != 0) ; else __assert_fail ("self->size != 0", "bin/svv.c", 2336, __extension__ __PRETTY_FUNCTION__); }));
+  ((void) sizeof ((self->size != 0) ? 1 : 0), __extension__ ({ if (self->size != 0) ; else __assert_fail ("self->size != 0", "bin/svv.c", 2457, __extension__ __PRETTY_FUNCTION__); }));
   if(index >= self->size) {
     return ;
   }
