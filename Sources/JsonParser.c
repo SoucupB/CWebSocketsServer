@@ -769,8 +769,15 @@ JsonElement json_Map_Get(JsonElement jsonMap, HttpString str) {
   return *element;
 }
 
+JsonElement json_Map_GetString(JsonElement jsonMap, const char *key) {
+  return json_Map_Get(jsonMap, (HttpString) {
+    .buffer = (char *)key,
+    .sz = strlen(key)
+  });
+}
+
 JsonElement json_Array_At(JsonElement arr, size_t index) {
-  if(arr.type != JSON_JSON) {
+  if(arr.type != JSON_ARRAY) {
     return json_Parser_Get_Invalid();
   }
   Vector vct = arr.value;
@@ -778,4 +785,19 @@ JsonElement json_Array_At(JsonElement arr, size_t index) {
     return json_Parser_Get_Invalid();
   }
   return ((JsonElement *)vct->buffer)[index];
+}
+
+size_t json_Array_Size(JsonElement arr) {
+  assert(arr.type == JSON_ARRAY);
+  return ((Vector)arr.value)->size;
+}
+
+int64_t json_Integer_Get(JsonElement arr) {
+  assert(arr.type == JSON_INTEGER);
+  return *((int64_t *)arr.value);
+}
+
+float json_Number_Get(JsonElement arr) {
+  assert(arr.type == JSON_NUMBER);
+  return *((float *)arr.value);
 }

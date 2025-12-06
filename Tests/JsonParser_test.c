@@ -674,6 +674,24 @@ static void test_string_parse_boolean_invalid(void **state) {
   assert_int_equal(parseData.type, JSON_INVALID);
 }
 
+static void test_string_parse_array_get_index(void **state) {
+  char *arr = "[1, \t255333, \n\n4, 324.335, \"dadf\",  32, [1, 4, {\"azada\":  33, \"zzz\": [11, 3344, 2] } ], null  ]";
+  JsonElement parseData = json_Parser_Get_Array((TokenParser) {
+    .endToken = arr,
+    .endingBuffer = arr + strlen(arr)
+  }, NULL);
+  assert_int_equal(json_Array_Size(parseData), 8);
+  assert_true(json_Array_At(parseData, 6).type == JSON_ARRAY);
+  assert_true(json_Array_At(parseData, 1).type == JSON_INTEGER);
+  assert_int_equal(json_Integer_Get(json_Array_At(parseData, 1)), 255333);
+  assert_float_equal(json_Number_Get(json_Array_At(parseData, 3)), 324.335, EPSILON);
+  assert_int_equal(json_Integer_Get(json_Array_At(json_Array_At(parseData, 6), 1)), 4);
+  assert_int_equal(json_Integer_Get(json_Map_GetString(json_Array_At(json_Array_At(parseData, 6), 2), "azada")), 33);
+  assert_true(json_Map_GetString(json_Array_At(json_Array_At(parseData, 6), 2), "zzz").type == JSON_ARRAY);
+  assert_true(json_Map_GetString(json_Array_At(json_Array_At(parseData, 6), 2), "zzzs").type == JSON_INVALID);
+  json_DeleteElement(parseData);
+}
+
 int main() {
   const struct CMUnitTest tests[] = {
     cmocka_unit_test_prestate(test_string_parse_simple_element, NULL),
@@ -732,6 +750,7 @@ int main() {
     cmocka_unit_test_prestate(test_string_parse_boolean_true, NULL),
     cmocka_unit_test_prestate(test_string_parse_boolean_false, NULL),
     cmocka_unit_test_prestate(test_string_parse_boolean_invalid, NULL),
+    cmocka_unit_test_prestate(test_string_parse_array_get_index, NULL),
   };
   const uint32_t value = cmocka_run_group_tests(tests, NULL, NULL);
   return value;
