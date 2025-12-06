@@ -336,13 +336,13 @@ TokenParser json_Parser_Boolean(TokenParser tck) {
   json_Parser_RemoveFillers(&tck);
   TokenParser cpyTck = tck;
   cpyTck.startToken = tck.endToken;
-  tck = json_Parser_Token(tck, "true", sizeof("true") - 1);
-  if(!json_Parser_IsInvalid(tck)) {
+  TokenParser srt = json_Parser_Token(tck, "true", sizeof("true") - 1);
+  if(!json_Parser_IsInvalid(srt)) {
     tck.startToken = cpyTck.startToken;
     return tck;
   }
-  tck = json_Parser_Token(tck, "false", sizeof("false") - 1);
-  if(!json_Parser_IsInvalid(tck)) {
+  srt = json_Parser_Token(tck, "false", sizeof("false") - 1);
+  if(!json_Parser_IsInvalid(srt)) {
     tck.startToken = cpyTck.startToken;
     return tck;
   }
@@ -676,9 +676,10 @@ JsonElement json_Parser_Get_Boolean(TokenParser tck, PTokenParser next) {
   if(json_Parser_IsInvalid(nextTck)) {
     return json_Element_Invalid();
   }
+  size_t validFalse = (size_t)json_Parser_IsInvalid(json_Parser_Token(tck, "false", sizeof("false") - 1));
   JsonElement response = {
     .type = JSON_BOOLEAN,
-    .value = (void *)(size_t)(memcmp(nextTck.startToken, "true", sizeof("true") - 1) == 0)
+    .value = (void *)validFalse
   };
   if(next) {
     *next = nextTck;

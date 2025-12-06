@@ -120,6 +120,8 @@ JsonElement json_Parser_Get_Integer(TokenParser tck, PTokenParser next);
 JsonElement json_Parser_Get_Number(TokenParser tck, PTokenParser next);
 JsonElement json_Parser_Get_Map(TokenParser tck, PTokenParser next);
 JsonElement json_Parser_Get_Array(TokenParser tck, PTokenParser next);
+JsonElement json_Parser_Get_Null(TokenParser tck, PTokenParser next);
+JsonElement json_Parser_Get_Boolean(TokenParser tck, PTokenParser next);
 
 void json_DeleteElement(JsonElement element);
 
@@ -607,6 +609,71 @@ static void test_string_parse_complex_composite_array_data_invalid_missing_curly
   assert_int_equal(parseData.type, JSON_INVALID);
 }
 
+static void test_string_parse_null(void **state) {
+  char *arr = "null";
+  JsonElement parseData = json_Parser_Get_Null((TokenParser) {
+    .endToken = arr,
+    .endingBuffer = arr + strlen(arr)
+  }, NULL);
+  assert_int_equal(parseData.type, JSON_NULL);
+}
+
+static void test_string_parse_null_with_spaces(void **state) {
+  char *arr = "\n\n  null";
+  JsonElement parseData = json_Parser_Get_Null((TokenParser) {
+    .endToken = arr,
+    .endingBuffer = arr + strlen(arr)
+  }, NULL);
+  assert_int_equal(parseData.type, JSON_NULL);
+}
+
+static void test_string_parse_null_invalid(void **state) {
+  char *arr = "nul";
+  JsonElement parseData = json_Parser_Get_Null((TokenParser) {
+    .endToken = arr,
+    .endingBuffer = arr + strlen(arr)
+  }, NULL);
+  assert_int_equal(parseData.type, JSON_INVALID);
+}
+
+static void test_string_parse_null_invalid_empty(void **state) {
+  char *arr = "";
+  JsonElement parseData = json_Parser_Get_Null((TokenParser) {
+    .endToken = arr,
+    .endingBuffer = arr + strlen(arr)
+  }, NULL);
+  assert_int_equal(parseData.type, JSON_INVALID);
+}
+
+static void test_string_parse_boolean_true(void **state) {
+  char *arr = "true";
+  JsonElement parseData = json_Parser_Get_Boolean((TokenParser) {
+    .endToken = arr,
+    .endingBuffer = arr + strlen(arr)
+  }, NULL);
+  assert_int_equal(parseData.type, JSON_BOOLEAN);
+  assert_int_equal(parseData.value, (void *)1);
+}
+
+static void test_string_parse_boolean_false(void **state) {
+  char *arr = "false";
+  JsonElement parseData = json_Parser_Get_Boolean((TokenParser) {
+    .endToken = arr,
+    .endingBuffer = arr + strlen(arr)
+  }, NULL);
+  assert_int_equal(parseData.type, JSON_BOOLEAN);
+  assert_int_equal(parseData.value, (void *)0);
+}
+
+static void test_string_parse_boolean_invalid(void **state) {
+  char *arr = "fase";
+  JsonElement parseData = json_Parser_Get_Boolean((TokenParser) {
+    .endToken = arr,
+    .endingBuffer = arr + strlen(arr)
+  }, NULL);
+  assert_int_equal(parseData.type, JSON_INVALID);
+}
+
 int main() {
   const struct CMUnitTest tests[] = {
     cmocka_unit_test_prestate(test_string_parse_simple_element, NULL),
@@ -658,6 +725,13 @@ int main() {
     cmocka_unit_test_prestate(test_string_parse_complex_composite_array_data_invalid_comma, NULL),
     cmocka_unit_test_prestate(test_string_parse_complex_composite_array_data_invalid_missing_square_bracket, NULL),
     cmocka_unit_test_prestate(test_string_parse_complex_composite_array_data_invalid_missing_curly_bracket, NULL),
+    cmocka_unit_test_prestate(test_string_parse_null, NULL),
+    cmocka_unit_test_prestate(test_string_parse_null_with_spaces, NULL),
+    cmocka_unit_test_prestate(test_string_parse_null_invalid, NULL),
+    cmocka_unit_test_prestate(test_string_parse_null_invalid_empty, NULL),
+    cmocka_unit_test_prestate(test_string_parse_boolean_true, NULL),
+    cmocka_unit_test_prestate(test_string_parse_boolean_false, NULL),
+    cmocka_unit_test_prestate(test_string_parse_boolean_invalid, NULL),
   };
   const uint32_t value = cmocka_run_group_tests(tests, NULL, NULL);
   return value;
