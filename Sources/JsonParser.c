@@ -619,8 +619,8 @@ static inline TokenParser json_Parser_Close_Splitter(TokenParser token) {
 }
 
 static void *parserGetMethods[] = {
-  json_Parser_Get_Boolean,
   json_Parser_Get_Null,
+  json_Parser_Get_Boolean,
   json_Parser_Get_String,
   json_Parser_Get_Number,
   json_Parser_Get_Integer,
@@ -688,10 +688,11 @@ JsonElement json_Parser_Get_Boolean(TokenParser tck, PTokenParser next) {
   if(json_Parser_IsInvalid(nextTck)) {
     return json_Element_Invalid();
   }
-  size_t validFalse = (size_t)json_Parser_IsInvalid(json_Parser_Token(tck, "false", sizeof("false") - 1));
+  json_Parser_RemoveFillers(&tck);
+  size_t validTrue = (size_t)json_Parser_IsInvalid(json_Parser_Token(tck, "false", sizeof("false") - 1));
   JsonElement response = {
     .type = JSON_BOOLEAN,
-    .value = (void *)validFalse
+    .value = (void *)validTrue
   };
   if(next) {
     *next = nextTck;
@@ -738,11 +739,11 @@ JsonElement json_Parser_Get_Map(TokenParser tck, PTokenParser next) {
   return response;
 }
 
-JsonElement json_Parse(PHttpString buffer, char **nextBuffer) {
+JsonElement json_Parse(HttpString buffer, char **nextBuffer) {
   TokenParser tck = (TokenParser) {
-    .startToken = buffer->buffer,
-    .endToken = buffer->buffer,
-    .endingBuffer = buffer->buffer + buffer->sz
+    .startToken = buffer.buffer,
+    .endToken = buffer.buffer,
+    .endingBuffer = buffer.buffer + buffer.sz
   };
   for(size_t i = 0; i < sizeof(parserGetMethods) / sizeof(void *); i++) {
     JsonElement (*tokenMethod)(TokenParser, PTokenParser) = (JsonElement (*)(TokenParser, PTokenParser)) (((size_t *)parserGetMethods)[i]);

@@ -675,12 +675,12 @@ static void test_string_parse_boolean_invalid(void **state) {
 }
 
 static void test_string_parse_array_get_index(void **state) {
-  char *arr = "[1, \t255333, \n\n4, 324.335, \"dadf\",  32, [1, 4, {\"azada\":  33, \"zzz\": [11, 3344, 2] } ], null  ]";
-  JsonElement parseData = json_Parser_Get_Array((TokenParser) {
-    .endToken = arr,
-    .endingBuffer = arr + strlen(arr)
+  char *arr = "[1, \t255333, \n\n4, 324.335, \"dadf\",  32, [1, 4, {\"azada\":  33, \"zzz\": [11, 3344, 2] } ], null, null, null]";
+  JsonElement parseData = json_Parse((HttpString) {
+    .buffer = arr,
+    .sz = strlen(arr)
   }, NULL);
-  assert_int_equal(json_Array_Size(parseData), 8);
+  assert_int_equal(json_Array_Size(parseData), 10);
   assert_true(json_Array_At(parseData, 6).type == JSON_ARRAY);
   assert_true(json_Array_At(parseData, 1).type == JSON_INTEGER);
   assert_int_equal(json_Integer_Get(json_Array_At(parseData, 1)), 255333);
@@ -689,6 +689,7 @@ static void test_string_parse_array_get_index(void **state) {
   assert_int_equal(json_Integer_Get(json_Map_GetString(json_Array_At(json_Array_At(parseData, 6), 2), "azada")), 33);
   assert_true(json_Map_GetString(json_Array_At(json_Array_At(parseData, 6), 2), "zzz").type == JSON_ARRAY);
   assert_true(json_Map_GetString(json_Array_At(json_Array_At(parseData, 6), 2), "zzzs").type == JSON_INVALID);
+  assert_true(json_Array_At(parseData, 7).type == JSON_NULL);
   json_DeleteElement(parseData);
 }
 
