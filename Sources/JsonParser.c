@@ -255,7 +255,7 @@ void json_RemoveSelfContainedData(PJsonObject self) {
   vct_Delete(values);
 }
 
-void json_Parser_RemoveEmptySpace(PTokenParser tck) {
+void json_Parser_RemoveFillers(PTokenParser tck) {
   size_t sz = json_Parser_CurrentSize(tck);
   size_t startingIndex = 0;
   while(startingIndex < sz && (tck->endToken[startingIndex] == ' ' 
@@ -291,7 +291,7 @@ uint8_t json_Parser_IsCharValid(char val) {
 }
 
 TokenParser json_Parser_String(TokenParser tck) {
-  json_Parser_RemoveEmptySpace(&tck);
+  json_Parser_RemoveFillers(&tck);
   TokenParser cpyTck = tck;
   cpyTck.startToken = tck.endToken;
   tck = json_Parser_Token(tck, "\"", sizeof("\"") - 1);
@@ -318,7 +318,7 @@ TokenParser json_Parser_String(TokenParser tck) {
 }
 
 TokenParser json_Parser_Integer(TokenParser tck) {
-  json_Parser_RemoveEmptySpace(&tck);
+  json_Parser_RemoveFillers(&tck);
   TokenParser cpyTck = tck;
   cpyTck.startToken = tck.endToken;
   tck = json_Parser_Token_IgnoreErrors(tck, "-", sizeof("-") - 1);
@@ -335,7 +335,7 @@ TokenParser json_Parser_Integer(TokenParser tck) {
 }
 
 TokenParser json_Parser_Number(TokenParser tck) {
-  json_Parser_RemoveEmptySpace(&tck);
+  json_Parser_RemoveFillers(&tck);
   TokenParser cpyTck = tck;
   cpyTck.startToken = tck.endToken;
   tck = json_Parser_Token_IgnoreErrors(tck, "-", sizeof("-") - 1);
@@ -364,7 +364,7 @@ TokenParser json_Parser_Number(TokenParser tck) {
 }
 
 TokenParser json_Parser_Comma(TokenParser tck) {
-  json_Parser_RemoveEmptySpace(&tck);
+  json_Parser_RemoveFillers(&tck);
   TokenParser cpyTck = tck;
   cpyTck.startToken = tck.endToken;
   tck = json_Parser_Token(tck, ",", sizeof(",") - 1);
@@ -376,7 +376,7 @@ TokenParser json_Parser_Comma(TokenParser tck) {
 }
 
 static inline TokenParser json_Parser_Splitter(TokenParser tck) {
-  json_Parser_RemoveEmptySpace(&tck);
+  json_Parser_RemoveFillers(&tck);
   TokenParser cpyTck = tck;
   cpyTck.startToken = tck.endToken;
   tck = json_Parser_Token(tck, ":", sizeof(":") - 1);
@@ -396,7 +396,7 @@ static void *parserMethods[] = {
 };
 
 TokenParser json_Parser_Array(TokenParser tck) {
-  json_Parser_RemoveEmptySpace(&tck);
+  json_Parser_RemoveFillers(&tck);
   TokenParser cpyTck = tck;
   cpyTck.startToken = tck.endToken;
   tck = json_Parser_Token(tck, "[", sizeof("[") - 1);
@@ -426,7 +426,7 @@ TokenParser json_Parser_Array(TokenParser tck) {
     ncpy = comma;
   }
   tck.endToken = ncpy.endToken;
-  json_Parser_RemoveEmptySpace(&tck);
+  json_Parser_RemoveFillers(&tck);
   tck = json_Parser_Token(tck, "]", sizeof("]") - 1);
   if(json_Parser_IsInvalid(tck)) {
     return tck;
@@ -436,7 +436,7 @@ TokenParser json_Parser_Array(TokenParser tck) {
 }
 
 TokenParser json_Parser_Map(TokenParser tck) {
-  json_Parser_RemoveEmptySpace(&tck);
+  json_Parser_RemoveFillers(&tck);
   TokenParser cpyTck = tck;
   cpyTck.startToken = tck.endToken;
   tck = json_Parser_Token(tck, "{", sizeof("{") - 1);
@@ -474,7 +474,7 @@ TokenParser json_Parser_Map(TokenParser tck) {
     ncpy = comma;
   }
   tck.endToken = ncpy.endToken;
-  json_Parser_RemoveEmptySpace(&tck);
+  json_Parser_RemoveFillers(&tck);
   tck = json_Parser_Token(tck, "}", sizeof("}") - 1);
   if(json_Parser_IsInvalid(tck)) {
     return tck;
@@ -547,31 +547,31 @@ JsonElement json_Parser_Get_Number(TokenParser tck, PTokenParser next) {
 }
 
 static inline TokenParser json_Parser_Open_SquareBracket(TokenParser token) {
-  json_Parser_RemoveEmptySpace(&token);
+  json_Parser_RemoveFillers(&token);
   token = json_Parser_Token_IgnoreErrors(token, "[", sizeof("[") - 1);
   return token;
 }
 
 static inline TokenParser json_Parser_Close_SquareBracket(TokenParser token) {
-  json_Parser_RemoveEmptySpace(&token);
+  json_Parser_RemoveFillers(&token);
   token = json_Parser_Token_IgnoreErrors(token, "]", sizeof("]") - 1);
   return token;
 }
 
 static inline TokenParser json_Parser_Open_CurlyBracket(TokenParser token) {
-  json_Parser_RemoveEmptySpace(&token);
+  json_Parser_RemoveFillers(&token);
   token = json_Parser_Token_IgnoreErrors(token, "{", sizeof("{") - 1);
   return token;
 }
 
 static inline TokenParser json_Parser_Close_CurlyBracket(TokenParser token) {
-  json_Parser_RemoveEmptySpace(&token);
+  json_Parser_RemoveFillers(&token);
   token = json_Parser_Token_IgnoreErrors(token, "}", sizeof("}") - 1);
   return token;
 }
 
 static inline TokenParser json_Parser_Close_Splitter(TokenParser token) {
-  json_Parser_RemoveEmptySpace(&token);
+  json_Parser_RemoveFillers(&token);
   token = json_Parser_Token_IgnoreErrors(token, ":", sizeof(":") - 1);
   return token;
 }
