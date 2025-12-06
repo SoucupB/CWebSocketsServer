@@ -23,7 +23,9 @@ typedef TokenParser *PTokenParser;
 TokenParser json_Parser_Map(TokenParser tck);
 JsonElement json_Parser_Get_Array(TokenParser tck, PTokenParser next);
 JsonElement json_Parser_Get_Map(TokenParser tck, PTokenParser next);
+
 TokenParser json_Parser_Array(TokenParser tck);
+TokenParser json_Parser_Null(TokenParser tck);
 
 PJsonObject json_Create() {
   PJsonObject self = malloc(sizeof(JsonObject));
@@ -315,6 +317,35 @@ TokenParser json_Parser_String(TokenParser tck) {
   tck = json_Parser_Token(tck, "\"", sizeof("\"") - 1);
   tck.startToken = cpyTck.startToken;
   return tck;
+}
+
+TokenParser json_Parser_Null(TokenParser tck) {
+  json_Parser_RemoveFillers(&tck);
+  TokenParser cpyTck = tck;
+  cpyTck.startToken = tck.endToken;
+  tck = json_Parser_Token(tck, "null", sizeof("null") - 1);
+  if(json_Parser_IsInvalid(tck)) {
+    return json_Parse_Invalid();
+  }
+  tck.startToken = cpyTck.startToken;
+  return tck;
+}
+
+TokenParser json_Parser_Boolean(TokenParser tck) {
+  json_Parser_RemoveFillers(&tck);
+  TokenParser cpyTck = tck;
+  cpyTck.startToken = tck.endToken;
+  tck = json_Parser_Token(tck, "true", sizeof("true") - 1);
+  if(!json_Parser_IsInvalid(tck)) {
+    tck.startToken = cpyTck.startToken;
+    return tck;
+  }
+  tck = json_Parser_Token(tck, "false", sizeof("false") - 1);
+  if(!json_Parser_IsInvalid(tck)) {
+    tck.startToken = cpyTck.startToken;
+    return tck;
+  }
+  return json_Parse_Invalid();
 }
 
 TokenParser json_Parser_Integer(TokenParser tck) {
