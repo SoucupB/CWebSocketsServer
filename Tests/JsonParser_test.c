@@ -119,6 +119,7 @@ JsonElement json_Parser_Get_String(TokenParser tck, PTokenParser next);
 JsonElement json_Parser_Get_Integer(TokenParser tck, PTokenParser next);
 JsonElement json_Parser_Get_Number(TokenParser tck, PTokenParser next);
 JsonElement json_Parser_Get_Map(TokenParser tck, PTokenParser next);
+JsonElement json_Parser_Get_Array(TokenParser tck, PTokenParser next);
 
 void json_DeleteElement(JsonElement element);
 
@@ -547,6 +548,21 @@ static void test_string_parse_map_data_recursive(void **state) {
   json_DeleteElement(parseData);
 }
 
+static void test_string_parse_array_data(void **state) {
+  char *arr = "[1, 2, 4, \"dadf\",  32.44 , [1, 4]]";
+  JsonElement parseData = json_Parser_Get_Map((TokenParser) {
+    .endToken = arr,
+    .endingBuffer = arr + strlen(arr)
+  }, NULL);
+  assert_int_not_equal(parseData.type, JSON_INVALID);
+  HttpString strResponse = json_Element_ToString(parseData);
+  char *expected = "[1,2,4,\"dadf\",32.44,[1,4]]";
+  assert_int_equal(strResponse.sz, strlen(expected));
+  assert_memory_equal(strResponse.buffer, expected, strResponse.sz);
+  free(strResponse.buffer);
+  json_DeleteElement(parseData);
+}
+
 int main() {
   const struct CMUnitTest tests[] = {
     cmocka_unit_test_prestate(test_string_parse_simple_element, NULL),
@@ -593,6 +609,7 @@ int main() {
     cmocka_unit_test_prestate(test_string_parse_map_data, NULL),
     cmocka_unit_test_prestate(test_string_parse_map_data_composite, NULL),
     cmocka_unit_test_prestate(test_string_parse_map_data_recursive, NULL),
+    cmocka_unit_test_prestate(test_string_parse_array_data, NULL),
   };
   const uint32_t value = cmocka_run_group_tests(tests, NULL, NULL);
   return value;

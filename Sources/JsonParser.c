@@ -21,6 +21,8 @@ typedef struct TokenParser_t {
 typedef TokenParser *PTokenParser;
 
 TokenParser json_Parser_Map(TokenParser tck);
+JsonElement json_Parser_Get_Array(TokenParser tck, PTokenParser next);
+JsonElement json_Parser_Get_Map(TokenParser tck, PTokenParser next);
 
 PJsonObject json_Create() {
   PJsonObject self = malloc(sizeof(JsonObject));
@@ -539,6 +541,50 @@ JsonElement json_Parser_Get_Number(TokenParser tck, PTokenParser next) {
   return response;
 }
 
+JsonElement json_Parser_Get_Array(TokenParser tck, PTokenParser next) {
+  TokenParser nextTck = json_Parser_Array(tck);
+  if(json_Parser_IsInvalid(nextTck)) {
+    return json_Element_Invalid();
+  }
+  Vector rspArray = vct_Init(sizeof(JsonElement));
+  JsonElement response = {
+    .type = JSON_ARRAY,
+    .value = rspArray
+  };
+  void *methods[] = {
+    json_Parser_Get_String,
+    json_Parser_Get_Number,
+    json_Parser_Get_Integer,
+    json_Parser_Get_Map,
+    json_Parser_Get_Array
+  };
+  tck = json_Parser_Token_IgnoreErrors(tck, "[", sizeof("[") - 1);
+  TokenParser cpyTck = tck;
+  while(1) {
+    for(size_t i = 0; i < sizeof(methods) / sizeof(void *); i++) {
+      JsonElement (*tokenMethod)(TokenParser, PTokenParser) = (JsonElement (*)(TokenParser, PTokenParser)) (((size_t *)methods)[i]);
+      JsonElement currentElement = tokenMethod(cpyTck, &cpyTck);
+      if(json_Parser_Get_IsInvalid(currentElement)) {
+        continue;
+      }
+      vct_Push(rspArray, &currentElement);
+      break;
+    }
+    TokenParser comma = json_Parser_Comma(cpyTck);
+    if(json_Parser_IsInvalid(comma)) {
+      break;
+    }
+    cpyTck = comma;
+  }
+  cpyTck = json_Parser_Token_IgnoreErrors(cpyTck, "]", sizeof("]") - 1);
+  if(next) {
+    next->startToken = nextTck.startToken;
+    next->endToken = cpyTck.endToken;
+    next->endingBuffer = tck.endingBuffer;
+  }
+  return response;
+}
+
 JsonElement json_Parser_Get_Map(TokenParser tck, PTokenParser next) {
   TokenParser nextTck = json_Parser_Map(tck);
   if(json_Parser_IsInvalid(nextTck)) {
@@ -554,7 +600,8 @@ JsonElement json_Parser_Get_Map(TokenParser tck, PTokenParser next) {
     json_Parser_Get_String,
     json_Parser_Get_Number,
     json_Parser_Get_Integer,
-    json_Parser_Get_Map
+    json_Parser_Get_Map,
+    json_Parser_Get_Array
   };
   tck = json_Parser_Token_IgnoreErrors(tck, "{", sizeof("{") - 1);
   TokenParser cpyTck = tck;
