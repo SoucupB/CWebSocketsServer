@@ -3197,6 +3197,7 @@ float json_Number_Get(JsonElement arr) {
 HttpString jwt_Encode(JsonElement payload, HttpString secret, uint64_t expirationInMS);
 size_t jwt_Base64_Size_Public(size_t sz);
 uint8_t jwt_IsSigned(HttpString str, HttpString secret);
+uint8_t jwt_IsValid(HttpString str, HttpString secret);
         
         
         
@@ -6596,573 +6597,9 @@ void tf_Delete(PTimeServer self);
 void tf_ExecuteAfter(PTimeServer self, TimeMethod currentMethod, uint64_t afterMS);
 void tf_ExecuteLoop(PTimeServer self, TimeMethod currentMethod, uint64_t afterMS);
 uint64_t tf_CurrentTimeMS();
-static inline char *jwt_CreateHeader();
-static inline void jwt_ToBase64UrlEncoded(HttpString str, uint8_t *response, size_t *finalSize);
-static inline size_t jwt_Base64_Size(size_t sz);
-static inline void jwt_EncodeElement(JsonElement payload, uint8_t *code, size_t *sz);
-void jwt_HMAC(HttpString key, HttpString secret, uint8_t *hmacResult, size_t *currentSize);
-void jwt_PrintHMAC(uint8_t *hmacCode, size_t sz);
-static inline void jwt_Add_String(Vector strDrt, HttpString str) {
-  for(size_t i = 0, c = str.sz; i < c; i++) {
-    vct_Push(strDrt, &str.buffer[i]);
-  }
-}
-static inline void jwt_Add_Char(Vector strDrt, char chr) {
-  vct_Push(strDrt, &chr);
-}
-static inline void jwt_Add_Header(Vector strDrt) {
-  char *header = jwt_CreateHeader();
-  size_t sz = strlen(header);
-  size_t headerBase64Size = jwt_Base64_Size(sz);
-  size_t newB64Size;
-  uint8_t headerBase64[headerBase64Size + 2];
-  jwt_ToBase64UrlEncoded((HttpString) {
-    .buffer = header,
-    .sz = sz
-  }, headerBase64, &newB64Size);
-  jwt_Add_String(strDrt, (HttpString) {
-    .buffer = (char *)headerBase64,
-    .sz = newB64Size
-  });
-}
-void jwt_AddSignature(Vector str, HttpString secret) {
-  HttpString newStr = {
-    .buffer = str->buffer,
-    .sz = str->size
-  };
-  const size_t csz = jwt_Base64_Size(32);
-  uint8_t hmacResult[csz + 2];
-  size_t newB64Size;
-  jwt_HMAC(newStr, secret, hmacResult, &newB64Size);
-  jwt_Add_Char(str, '.');
-  for(size_t i = 0; i < newB64Size; i++) {
-    vct_Push(str, &hmacResult[i]);
-  }
-}
-HttpString jwt_Encode_t(JsonElement payload, HttpString secret, uint64_t iam, uint64_t expirationInMS) {
-  Vector response = vct_Init(sizeof(char));
-  jwt_Add_Header(response);
-  jwt_Add_Char(response, '.');
-  json_Map_Add(payload, "iat", json_Integer_Create((int64_t)iam));
-  json_Map_Add(payload, "exp", json_Integer_Create((int64_t)expirationInMS + iam));
-  HttpString payloadString = json_Element_ToString(payload);
-  size_t payloadBase64Size = jwt_Base64_Size(payloadString.sz);
-  uint8_t payloadBase64[payloadBase64Size + 1];
-  size_t cB64Sz;
-  jwt_EncodeElement(payload, payloadBase64, &cB64Sz);
-  jwt_Add_String(response, (HttpString) {
-    .buffer = (char *)payloadBase64,
-    .sz = cB64Sz
-  });
-  jwt_AddSignature(response, secret);
-  char *bff = response->buffer;
-  size_t sz = response->size;
-  vct_DeleteWOBuffer(response);
-  free(payloadString.buffer);
-  return (HttpString){
-    .buffer = bff,
-    .sz = sz
-  };
-}
-HttpString jwt_Encode(JsonElement payload, HttpString secret, uint64_t expirationInMS) {
-  return jwt_Encode_t(payload, secret, tf_CurrentTimeMS(), expirationInMS);
-}
-static inline void jwt_EncodeElement(JsonElement payload, uint8_t *code, size_t *sz) {
-  HttpString payloadString = json_Element_ToString(payload);
-  jwt_ToBase64UrlEncoded(payloadString, code, sz);
-  free(payloadString.buffer);
-}
-void jwt_HMAC(HttpString key, HttpString secret, uint8_t *hmacResult, size_t *currentSize) {
-  unsigned int hmac_length = 0;
-  uint8_t hmalRes[50];
-  HMAC(
-    EVP_sha256(),
-    (uint8_t *)secret.buffer, secret.sz,
-    (uint8_t *)key.buffer, key.sz,
-    hmalRes, &hmac_length
-  );
-  jwt_ToBase64UrlEncoded((HttpString) {
-    .buffer = (char *)hmalRes,
-    .sz = 32
-  }, hmacResult, currentSize);
-}
-void jwt_PrintHMAC(uint8_t *hmacCode, size_t sz) {
-  printf("HMAC-SHA256: ");
-  for (unsigned int i = 0; i < sz; i++)
-    printf("%c", hmacCode[i]);
-  printf("\n");
-}
-static inline size_t jwt_Base64_Size(size_t sz) {
-  return 4 * ((sz + 2) / 3);
-}
-size_t jwt_Base64_Size_Public(size_t sz) {
-  return jwt_Base64_Size(sz);
-}
-static inline void jwt_ToBase64UrlEncoded(HttpString str, uint8_t *response, size_t *finalSize) {
-  const size_t cSize = jwt_Base64_Size(str.sz);
-  EVP_EncodeBlock(response, (uint8_t *)str.buffer, str.sz);
-  for(size_t i = 0; i < cSize; i++) {
-    if (response[i] == '+') {
-      response[i] = '-';
-    }
-    else if (response[i] == '/') {
-      response[i] = '_';
-    }
-  }
-  if(!finalSize) {
-    return ;
-  }
-  *finalSize = cSize;
-  while(*finalSize > 0 && response[(*finalSize) - 1] == '=') {
-    (*finalSize)--;
-  }
-}
-uint8_t jwt_IsSigned(HttpString str, HttpString secret) {
-  char *buffer = str.buffer;
-  size_t sz = 0;
-  int8_t pnt = 0;
-  while(sz < str.sz && pnt < 2) {
-    if(buffer[sz] == '.') {
-      pnt++;
-    }
-    sz++;
-  }
-  size_t sigSize = str.sz - sz;
-  if(pnt != 2 || sigSize <= 30) {
-    return 0;
-  }
-  const size_t csz = jwt_Base64_Size(32);
-  uint8_t hmacResult[csz + 2];
-  size_t newB64Size;
-  jwt_HMAC((HttpString) {
-    .buffer = buffer,
-    .sz = sz - 1
-  }, secret, hmacResult, &newB64Size);
-  if(newB64Size != sigSize) {
-    return 0;
-  }
-  return !memcmp(buffer + sz, hmacResult, newB64Size);
-}
-static inline char *jwt_CreateHeader() {
-  return "{\"alg\":\"HS256\",\"typ\":\"JWT\"}";
-}
-
-struct iovec
-  {
-    void *iov_base;
-    size_t iov_len;
-  };
-typedef __socklen_t socklen_t;
-enum __socket_type
-{
-  SOCK_STREAM = 1,
-  SOCK_DGRAM = 2,
-  SOCK_RAW = 3,
-  SOCK_RDM = 4,
-  SOCK_SEQPACKET = 5,
-  SOCK_DCCP = 6,
-  SOCK_PACKET = 10,
-  SOCK_CLOEXEC = 02000000,
-  SOCK_NONBLOCK = 00004000
-};
-typedef unsigned short int sa_family_t;
-struct sockaddr
-  {
-    sa_family_t sa_family;
-    char sa_data[14];
-  };
-struct sockaddr_storage
-  {
-    sa_family_t ss_family;
-    char __ss_padding[(128 - (sizeof (unsigned short int)) - sizeof (unsigned long int))];
-    unsigned long int __ss_align;
-  };
-enum
-  {
-    MSG_OOB = 0x01,
-    MSG_PEEK = 0x02,
-    MSG_DONTROUTE = 0x04,
-    MSG_CTRUNC = 0x08,
-    MSG_PROXY = 0x10,
-    MSG_TRUNC = 0x20,
-    MSG_DONTWAIT = 0x40,
-    MSG_EOR = 0x80,
-    MSG_WAITALL = 0x100,
-    MSG_FIN = 0x200,
-    MSG_SYN = 0x400,
-    MSG_CONFIRM = 0x800,
-    MSG_RST = 0x1000,
-    MSG_ERRQUEUE = 0x2000,
-    MSG_NOSIGNAL = 0x4000,
-    MSG_MORE = 0x8000,
-    MSG_WAITFORONE = 0x10000,
-    MSG_BATCH = 0x40000,
-    MSG_ZEROCOPY = 0x4000000,
-    MSG_FASTOPEN = 0x20000000,
-    MSG_CMSG_CLOEXEC = 0x40000000
-  };
-struct msghdr
-  {
-    void *msg_name;
-    socklen_t msg_namelen;
-    struct iovec *msg_iov;
-    size_t msg_iovlen;
-    void *msg_control;
-    size_t msg_controllen;
-    int msg_flags;
-  };
-struct cmsghdr
-  {
-    size_t cmsg_len;
-    int cmsg_level;
-    int cmsg_type;
-    __extension__ unsigned char __cmsg_data [];
-  };
-extern struct cmsghdr *__cmsg_nxthdr (struct msghdr *__mhdr,
-          struct cmsghdr *__cmsg) __attribute__ ((__nothrow__ , __leaf__));
-extern __inline __attribute__ ((__gnu_inline__)) struct cmsghdr *
-__attribute__ ((__nothrow__ , __leaf__)) __cmsg_nxthdr (struct msghdr *__mhdr, struct cmsghdr *__cmsg)
-{
-  if ((size_t) __cmsg->cmsg_len < sizeof (struct cmsghdr))
-    return (struct cmsghdr *) 0;
-  __cmsg = (struct cmsghdr *) ((unsigned char *) __cmsg
-          + (((__cmsg->cmsg_len) + sizeof (size_t) - 1) & (size_t) ~(sizeof (size_t) - 1)));
-  if ((unsigned char *) (__cmsg + 1) > ((unsigned char *) __mhdr->msg_control
-     + __mhdr->msg_controllen)
-      || ((unsigned char *) __cmsg + (((__cmsg->cmsg_len) + sizeof (size_t) - 1) & (size_t) ~(sizeof (size_t) - 1))
-   > ((unsigned char *) __mhdr->msg_control + __mhdr->msg_controllen)))
-    return (struct cmsghdr *) 0;
-  return __cmsg;
-}
-enum
-  {
-    SCM_RIGHTS = 0x01
-  };
-typedef struct {
- unsigned long fds_bits[1024 / (8 * sizeof(long))];
-} __kernel_fd_set;
-typedef void (*__kernel_sighandler_t)(int);
-typedef int __kernel_key_t;
-typedef int __kernel_mqd_t;
-typedef unsigned short __kernel_old_uid_t;
-typedef unsigned short __kernel_old_gid_t;
-typedef unsigned long __kernel_old_dev_t;
-typedef long __kernel_long_t;
-typedef unsigned long __kernel_ulong_t;
-typedef __kernel_ulong_t __kernel_ino_t;
-typedef unsigned int __kernel_mode_t;
-typedef int __kernel_pid_t;
-typedef int __kernel_ipc_pid_t;
-typedef unsigned int __kernel_uid_t;
-typedef unsigned int __kernel_gid_t;
-typedef __kernel_long_t __kernel_suseconds_t;
-typedef int __kernel_daddr_t;
-typedef unsigned int __kernel_uid32_t;
-typedef unsigned int __kernel_gid32_t;
-typedef __kernel_ulong_t __kernel_size_t;
-typedef __kernel_long_t __kernel_ssize_t;
-typedef __kernel_long_t __kernel_ptrdiff_t;
-typedef struct {
- int val[2];
-} __kernel_fsid_t;
-typedef __kernel_long_t __kernel_off_t;
-typedef long long __kernel_loff_t;
-typedef __kernel_long_t __kernel_old_time_t;
-typedef __kernel_long_t __kernel_time_t;
-typedef long long __kernel_time64_t;
-typedef __kernel_long_t __kernel_clock_t;
-typedef int __kernel_timer_t;
-typedef int __kernel_clockid_t;
-typedef char * __kernel_caddr_t;
-typedef unsigned short __kernel_uid16_t;
-typedef unsigned short __kernel_gid16_t;
-struct linger
-  {
-    int l_onoff;
-    int l_linger;
-  };
-struct osockaddr
-{
-  unsigned short int sa_family;
-  unsigned char sa_data[14];
-};
-enum
-{
-  SHUT_RD = 0,
-  SHUT_WR,
-  SHUT_RDWR
-};
-extern int socket (int __domain, int __type, int __protocol) __attribute__ ((__nothrow__ , __leaf__));
-extern int socketpair (int __domain, int __type, int __protocol,
-         int __fds[2]) __attribute__ ((__nothrow__ , __leaf__));
-extern int bind (int __fd, const struct sockaddr * __addr, socklen_t __len)
-     __attribute__ ((__nothrow__ , __leaf__));
-extern int getsockname (int __fd, struct sockaddr *__restrict __addr,
-   socklen_t *__restrict __len) __attribute__ ((__nothrow__ , __leaf__));
-extern int connect (int __fd, const struct sockaddr * __addr, socklen_t __len);
-extern int getpeername (int __fd, struct sockaddr *__restrict __addr,
-   socklen_t *__restrict __len) __attribute__ ((__nothrow__ , __leaf__));
-extern ssize_t send (int __fd, const void *__buf, size_t __n, int __flags);
-extern ssize_t recv (int __fd, void *__buf, size_t __n, int __flags);
-extern ssize_t sendto (int __fd, const void *__buf, size_t __n,
-         int __flags, const struct sockaddr * __addr,
-         socklen_t __addr_len);
-extern ssize_t recvfrom (int __fd, void *__restrict __buf, size_t __n,
-    int __flags, struct sockaddr *__restrict __addr,
-    socklen_t *__restrict __addr_len);
-extern ssize_t sendmsg (int __fd, const struct msghdr *__message,
-   int __flags);
-extern ssize_t recvmsg (int __fd, struct msghdr *__message, int __flags);
-extern int getsockopt (int __fd, int __level, int __optname,
-         void *__restrict __optval,
-         socklen_t *__restrict __optlen) __attribute__ ((__nothrow__ , __leaf__));
-extern int setsockopt (int __fd, int __level, int __optname,
-         const void *__optval, socklen_t __optlen) __attribute__ ((__nothrow__ , __leaf__));
-extern int listen (int __fd, int __n) __attribute__ ((__nothrow__ , __leaf__));
-extern int accept (int __fd, struct sockaddr *__restrict __addr,
-     socklen_t *__restrict __addr_len);
-extern int shutdown (int __fd, int __how) __attribute__ ((__nothrow__ , __leaf__));
-extern int sockatmark (int __fd) __attribute__ ((__nothrow__ , __leaf__));
-extern int isfdtype (int __fd, int __fdtype) __attribute__ ((__nothrow__ , __leaf__));
-extern ssize_t __recv_chk (int __fd, void *__buf, size_t __n, size_t __buflen,
-      int __flags);
-extern ssize_t __recv_alias (int __fd, void *__buf, size_t __n, int __flags) __asm__ ("" "recv");
-extern ssize_t __recv_chk_warn (int __fd, void *__buf, size_t __n, size_t __buflen, int __flags) __asm__ ("" "__recv_chk")
-     __attribute__((__warning__ ("recv called with bigger length than size of destination " "buffer")));
-extern __inline __attribute__ ((__always_inline__)) __attribute__ ((__gnu_inline__)) __attribute__ ((__artificial__)) ssize_t
-recv (int __fd, void *__buf, size_t __n, int __flags)
-{
-  size_t sz = __builtin_object_size (__buf, 0);
-  if ((((__typeof (__n)) 0 < (__typeof (__n)) -1 || (__builtin_constant_p (__n) && (__n) > 0)) && __builtin_constant_p ((((long unsigned int) (__n)) <= (sz) / (sizeof (char)))) && (((long unsigned int) (__n)) <= (sz) / (sizeof (char)))))
-    return __recv_alias (__fd, __buf, __n, __flags);
-  if ((((__typeof (__n)) 0 < (__typeof (__n)) -1 || (__builtin_constant_p (__n) && (__n) > 0)) && __builtin_constant_p ((((long unsigned int) (__n)) <= (sz) / (sizeof (char)))) && !(((long unsigned int) (__n)) <= (sz) / (sizeof (char)))))
-    return __recv_chk_warn (__fd, __buf, __n, sz, __flags);
-  return __recv_chk (__fd, __buf, __n, sz, __flags);
-}
-extern ssize_t __recvfrom_chk (int __fd, void *__restrict __buf, size_t __n,
-          size_t __buflen, int __flags,
-          struct sockaddr *__restrict __addr,
-          socklen_t *__restrict __addr_len);
-extern ssize_t __recvfrom_alias (int __fd, void *__restrict __buf, size_t __n, int __flags, struct sockaddr *__restrict __addr, socklen_t *__restrict __addr_len) __asm__ ("" "recvfrom");
-extern ssize_t __recvfrom_chk_warn (int __fd, void *__restrict __buf, size_t __n, size_t __buflen, int __flags, struct sockaddr *__restrict __addr, socklen_t *__restrict __addr_len) __asm__ ("" "__recvfrom_chk")
-     __attribute__((__warning__ ("recvfrom called with bigger length than size of " "destination buffer")));
-extern __inline __attribute__ ((__always_inline__)) __attribute__ ((__gnu_inline__)) __attribute__ ((__artificial__)) ssize_t
-recvfrom (int __fd, void *__restrict __buf, size_t __n, int __flags,
-   struct sockaddr *__restrict __addr, socklen_t *__restrict __addr_len)
-{
-  size_t sz = __builtin_object_size (__buf, 0);
-  if ((((__typeof (__n)) 0 < (__typeof (__n)) -1 || (__builtin_constant_p (__n) && (__n) > 0)) && __builtin_constant_p ((((long unsigned int) (__n)) <= (sz) / (sizeof (char)))) && (((long unsigned int) (__n)) <= (sz) / (sizeof (char)))))
-    return __recvfrom_alias (__fd, __buf, __n, __flags, __addr, __addr_len);
-  if ((((__typeof (__n)) 0 < (__typeof (__n)) -1 || (__builtin_constant_p (__n) && (__n) > 0)) && __builtin_constant_p ((((long unsigned int) (__n)) <= (sz) / (sizeof (char)))) && !(((long unsigned int) (__n)) <= (sz) / (sizeof (char)))))
-    return __recvfrom_chk_warn (__fd, __buf, __n, sz, __flags, __addr,
-    __addr_len);
-  return __recvfrom_chk (__fd, __buf, __n, sz, __flags, __addr, __addr_len);
-}
-
-
-typedef uint32_t in_addr_t;
-struct in_addr
-  {
-    in_addr_t s_addr;
-  };
-struct ip_opts
-  {
-    struct in_addr ip_dst;
-    char ip_opts[40];
-  };
-struct ip_mreqn
-  {
-    struct in_addr imr_multiaddr;
-    struct in_addr imr_address;
-    int imr_ifindex;
-  };
-struct in_pktinfo
-  {
-    int ipi_ifindex;
-    struct in_addr ipi_spec_dst;
-    struct in_addr ipi_addr;
-  };
-enum
-  {
-    IPPROTO_IP = 0,
-    IPPROTO_ICMP = 1,
-    IPPROTO_IGMP = 2,
-    IPPROTO_IPIP = 4,
-    IPPROTO_TCP = 6,
-    IPPROTO_EGP = 8,
-    IPPROTO_PUP = 12,
-    IPPROTO_UDP = 17,
-    IPPROTO_IDP = 22,
-    IPPROTO_TP = 29,
-    IPPROTO_DCCP = 33,
-    IPPROTO_IPV6 = 41,
-    IPPROTO_RSVP = 46,
-    IPPROTO_GRE = 47,
-    IPPROTO_ESP = 50,
-    IPPROTO_AH = 51,
-    IPPROTO_MTP = 92,
-    IPPROTO_BEETPH = 94,
-    IPPROTO_ENCAP = 98,
-    IPPROTO_PIM = 103,
-    IPPROTO_COMP = 108,
-    IPPROTO_SCTP = 132,
-    IPPROTO_UDPLITE = 136,
-    IPPROTO_MPLS = 137,
-    IPPROTO_ETHERNET = 143,
-    IPPROTO_RAW = 255,
-    IPPROTO_MPTCP = 262,
-    IPPROTO_MAX
-  };
-enum
-  {
-    IPPROTO_HOPOPTS = 0,
-    IPPROTO_ROUTING = 43,
-    IPPROTO_FRAGMENT = 44,
-    IPPROTO_ICMPV6 = 58,
-    IPPROTO_NONE = 59,
-    IPPROTO_DSTOPTS = 60,
-    IPPROTO_MH = 135
-  };
-typedef uint16_t in_port_t;
-enum
-  {
-    IPPORT_ECHO = 7,
-    IPPORT_DISCARD = 9,
-    IPPORT_SYSTAT = 11,
-    IPPORT_DAYTIME = 13,
-    IPPORT_NETSTAT = 15,
-    IPPORT_FTP = 21,
-    IPPORT_TELNET = 23,
-    IPPORT_SMTP = 25,
-    IPPORT_TIMESERVER = 37,
-    IPPORT_NAMESERVER = 42,
-    IPPORT_WHOIS = 43,
-    IPPORT_MTP = 57,
-    IPPORT_TFTP = 69,
-    IPPORT_RJE = 77,
-    IPPORT_FINGER = 79,
-    IPPORT_TTYLINK = 87,
-    IPPORT_SUPDUP = 95,
-    IPPORT_EXECSERVER = 512,
-    IPPORT_LOGINSERVER = 513,
-    IPPORT_CMDSERVER = 514,
-    IPPORT_EFSSERVER = 520,
-    IPPORT_BIFFUDP = 512,
-    IPPORT_WHOSERVER = 513,
-    IPPORT_ROUTESERVER = 520,
-    IPPORT_RESERVED = 1024,
-    IPPORT_USERRESERVED = 5000
-  };
-struct in6_addr
-  {
-    union
-      {
- uint8_t __u6_addr8[16];
- uint16_t __u6_addr16[8];
- uint32_t __u6_addr32[4];
-      } __in6_u;
-  };
-extern const struct in6_addr in6addr_any;
-extern const struct in6_addr in6addr_loopback;
-struct sockaddr_in
-  {
-    sa_family_t sin_family;
-    in_port_t sin_port;
-    struct in_addr sin_addr;
-    unsigned char sin_zero[sizeof (struct sockaddr)
-      - (sizeof (unsigned short int))
-      - sizeof (in_port_t)
-      - sizeof (struct in_addr)];
-  };
-struct sockaddr_in6
-  {
-    sa_family_t sin6_family;
-    in_port_t sin6_port;
-    uint32_t sin6_flowinfo;
-    struct in6_addr sin6_addr;
-    uint32_t sin6_scope_id;
-  };
-struct ip_mreq
-  {
-    struct in_addr imr_multiaddr;
-    struct in_addr imr_interface;
-  };
-struct ip_mreq_source
-  {
-    struct in_addr imr_multiaddr;
-    struct in_addr imr_interface;
-    struct in_addr imr_sourceaddr;
-  };
-struct ipv6_mreq
-  {
-    struct in6_addr ipv6mr_multiaddr;
-    unsigned int ipv6mr_interface;
-  };
-struct group_req
-  {
-    uint32_t gr_interface;
-    struct sockaddr_storage gr_group;
-  };
-struct group_source_req
-  {
-    uint32_t gsr_interface;
-    struct sockaddr_storage gsr_group;
-    struct sockaddr_storage gsr_source;
-  };
-struct ip_msfilter
-  {
-    struct in_addr imsf_multiaddr;
-    struct in_addr imsf_interface;
-    uint32_t imsf_fmode;
-    uint32_t imsf_numsrc;
-    struct in_addr imsf_slist[1];
-  };
-struct group_filter
-  {
-    uint32_t gf_interface;
-    struct sockaddr_storage gf_group;
-    uint32_t gf_fmode;
-    uint32_t gf_numsrc;
-    struct sockaddr_storage gf_slist[1];
-};
-extern uint32_t ntohl (uint32_t __netlong) __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__const__));
-extern uint16_t ntohs (uint16_t __netshort)
-     __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__const__));
-extern uint32_t htonl (uint32_t __hostlong)
-     __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__const__));
-extern uint16_t htons (uint16_t __hostshort)
-     __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__const__));
-extern int bindresvport (int __sockfd, struct sockaddr_in *__sock_in) __attribute__ ((__nothrow__ , __leaf__));
-extern int bindresvport6 (int __sockfd, struct sockaddr_in6 *__sock_in)
-     __attribute__ ((__nothrow__ , __leaf__));
-
-
-extern in_addr_t inet_addr (const char *__cp) __attribute__ ((__nothrow__ , __leaf__));
-extern in_addr_t inet_lnaof (struct in_addr __in) __attribute__ ((__nothrow__ , __leaf__));
-extern struct in_addr inet_makeaddr (in_addr_t __net, in_addr_t __host)
-     __attribute__ ((__nothrow__ , __leaf__));
-extern in_addr_t inet_netof (struct in_addr __in) __attribute__ ((__nothrow__ , __leaf__));
-extern in_addr_t inet_network (const char *__cp) __attribute__ ((__nothrow__ , __leaf__));
-extern char *inet_ntoa (struct in_addr __in) __attribute__ ((__nothrow__ , __leaf__));
-extern int inet_pton (int __af, const char *__restrict __cp,
-        void *__restrict __buf) __attribute__ ((__nothrow__ , __leaf__));
-extern const char *inet_ntop (int __af, const void *__restrict __cp,
-         char *__restrict __buf, socklen_t __len)
-     __attribute__ ((__nothrow__ , __leaf__));
-extern int inet_aton (const char *__cp, struct in_addr *__inp) __attribute__ ((__nothrow__ , __leaf__));
-extern char *inet_neta (in_addr_t __net, char *__buf, size_t __len) __attribute__ ((__nothrow__ , __leaf__))
-  __attribute__ ((__deprecated__ ("Use inet_ntop instead")));
-extern char *inet_net_ntop (int __af, const void *__cp, int __bits,
-       char *__buf, size_t __len) __attribute__ ((__nothrow__ , __leaf__));
-extern int inet_net_pton (int __af, const char *__cp,
-     void *__buf, size_t __len) __attribute__ ((__nothrow__ , __leaf__));
-extern unsigned int inet_nsap_addr (const char *__cp,
-        unsigned char *__buf, int __len) __attribute__ ((__nothrow__ , __leaf__));
-extern char *inet_nsap_ntoa (int __len, const unsigned char *__cp,
-        char *__buf) __attribute__ ((__nothrow__ , __leaf__));
-
 
 typedef __useconds_t useconds_t;
+typedef __socklen_t socklen_t;
 extern int access (const char *__name, int __type) __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__nonnull__ (1)));
 extern int faccessat (int __fd, const char *__file, int __type, int __flag)
      __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__nonnull__ (2))) __attribute__ ((__warn_unused_result__));
@@ -7785,6 +7222,753 @@ __attribute__ ((__nothrow__ , __leaf__)) getdomainname (char *__buf, size_t __bu
 {
   return ((((__typeof (__buflen)) 0 < (__typeof (__buflen)) -1 || (__builtin_constant_p (__buflen) && (__buflen) > 0)) && __builtin_constant_p ((((long unsigned int) (__buflen)) <= (__builtin_object_size (__buf, 2 > 1)) / (sizeof (char)))) && (((long unsigned int) (__buflen)) <= (__builtin_object_size (__buf, 2 > 1)) / (sizeof (char)))) ? __getdomainname_alias (__buf, __buflen) : ((((__typeof (__buflen)) 0 < (__typeof (__buflen)) -1 || (__builtin_constant_p (__buflen) && (__buflen) > 0)) && __builtin_constant_p ((((long unsigned int) (__buflen)) <= (__builtin_object_size (__buf, 2 > 1)) / (sizeof (char)))) && !(((long unsigned int) (__buflen)) <= (__builtin_object_size (__buf, 2 > 1)) / (sizeof (char)))) ? __getdomainname_chk_warn (__buf, __buflen, __builtin_object_size (__buf, 2 > 1)) : __getdomainname_chk (__buf, __buflen, __builtin_object_size (__buf, 2 > 1))));
 }
+
+static inline char *jwt_CreateHeader();
+void jwt_ToBase64UrlEncoded(HttpString str, uint8_t *response, size_t *finalSize);
+static inline size_t jwt_Base64_Size(size_t sz);
+static inline void jwt_EncodeElement(JsonElement payload, uint8_t *code, size_t *sz);
+void jwt_HMAC(HttpString key, HttpString secret, uint8_t *hmacResult, size_t *currentSize);
+void jwt_PrintHMAC(uint8_t *hmacCode, size_t sz);
+void jwt_DecodeBase64(HttpString str, uint8_t *response, size_t *responseSz);
+void jwt_FromBase64URLEncodedToNormal(HttpString str, uint8_t *response, size_t *sz);
+static inline uint8_t jwt_CharValid(char chr);
+uint8_t jwt_IsJWTCorrectlyFormatted(HttpString str);
+static inline void jwt_Add_String(Vector strDrt, HttpString str) {
+  for(size_t i = 0, c = str.sz; i < c; i++) {
+    vct_Push(strDrt, &str.buffer[i]);
+  }
+}
+static inline void jwt_Add_Char(Vector strDrt, char chr) {
+  vct_Push(strDrt, &chr);
+}
+static inline void jwt_Add_Header(Vector strDrt) {
+  char *header = jwt_CreateHeader();
+  size_t sz = strlen(header);
+  size_t headerBase64Size = jwt_Base64_Size(sz);
+  size_t newB64Size;
+  uint8_t headerBase64[headerBase64Size + 2];
+  jwt_ToBase64UrlEncoded((HttpString) {
+    .buffer = header,
+    .sz = sz
+  }, headerBase64, &newB64Size);
+  jwt_Add_String(strDrt, (HttpString) {
+    .buffer = (char *)headerBase64,
+    .sz = newB64Size
+  });
+}
+void jwt_AddSignature(Vector str, HttpString secret) {
+  HttpString newStr = {
+    .buffer = str->buffer,
+    .sz = str->size
+  };
+  const size_t csz = jwt_Base64_Size(32);
+  uint8_t hmacResult[csz + 2];
+  size_t newB64Size;
+  jwt_HMAC(newStr, secret, hmacResult, &newB64Size);
+  jwt_Add_Char(str, '.');
+  for(size_t i = 0; i < newB64Size; i++) {
+    vct_Push(str, &hmacResult[i]);
+  }
+}
+HttpString jwt_Encode_t(JsonElement payload, HttpString secret, uint64_t iam, uint64_t expirationInMS) {
+  Vector response = vct_Init(sizeof(char));
+  jwt_Add_Header(response);
+  jwt_Add_Char(response, '.');
+  json_Map_Add(payload, "iat", json_Integer_Create((int64_t)iam));
+  json_Map_Add(payload, "exp", json_Integer_Create((int64_t)expirationInMS + iam));
+  HttpString payloadString = json_Element_ToString(payload);
+  size_t payloadBase64Size = jwt_Base64_Size(payloadString.sz);
+  uint8_t payloadBase64[payloadBase64Size + 1];
+  size_t cB64Sz;
+  jwt_EncodeElement(payload, payloadBase64, &cB64Sz);
+  jwt_Add_String(response, (HttpString) {
+    .buffer = (char *)payloadBase64,
+    .sz = cB64Sz
+  });
+  jwt_AddSignature(response, secret);
+  char *bff = response->buffer;
+  size_t sz = response->size;
+  vct_DeleteWOBuffer(response);
+  free(payloadString.buffer);
+  return (HttpString){
+    .buffer = bff,
+    .sz = sz
+  };
+}
+void jwt_FromBase64URLEncodedToNormal(HttpString str, uint8_t *response, size_t *sz) {
+  size_t paddingNeeded = (4 - (str.sz % 4)) % 4;
+  size_t z = 0;
+  for(size_t i = 0, c = str.sz; i < c; i++) {
+    switch (str.buffer[i])
+    {
+      case '-': {
+        response[i] = '+';
+        break;
+      }
+      case '_': {
+        response[i] = '/';
+        break;
+      }
+      default: {
+        response[i] = str.buffer[i];
+        break;
+      }
+    }
+    z++;
+  }
+  for(size_t p = 0; p < paddingNeeded; p++) {
+    response[z++] = '=';
+  }
+  *sz = z;
+}
+void jwt_DecodeBase64(HttpString str, uint8_t *response, size_t *responseSz) {
+  BIO *bio, *b64;
+  b64 = BIO_new(BIO_f_base64());
+  BIO_set_flags(b64, 0x100);
+  bio = BIO_new_mem_buf((void*)str.buffer, str.sz);
+  bio = BIO_push(b64, bio);
+  ssize_t currentResponseSize = BIO_read(bio, response, str.sz);
+  BIO_free_all(bio);
+  if(currentResponseSize <= 0) {
+    *responseSz = 0;
+    return ;
+  }
+  *responseSz = (size_t)currentResponseSize;
+}
+uint8_t jwt_DecodeURLEncodedBase64(HttpString str, uint8_t *response, size_t *responseSz) {
+  uint8_t decoded[str.sz + 5];
+  size_t sz;
+  jwt_FromBase64URLEncodedToNormal(str, decoded, &sz);
+  jwt_DecodeBase64((HttpString) {
+    .buffer = (char *)decoded,
+    .sz = sz
+  }, response, responseSz);
+  return *responseSz != 0;
+}
+size_t jwt_ExtractStringChecker(HttpString str) {
+  size_t sz = 0;
+  while(sz < str.sz && str.buffer[sz] != '.') {
+    sz++;
+  }
+  return sz;
+}
+uint8_t jwt_IsHeaderValid(HttpString str) {
+  size_t headerSize = jwt_ExtractStringChecker(str);
+  size_t headerDecodedSize;
+  uint8_t headerResponse[str.sz + 1];
+  jwt_DecodeURLEncodedBase64((HttpString) {
+    .buffer = (char *)str.buffer,
+    .sz = headerSize
+  }, headerResponse, &headerDecodedSize);
+  if(!headerDecodedSize) {
+    return 0;
+  }
+  JsonElement headerJson = json_Parse((HttpString) {
+    .buffer = (char *)headerResponse,
+    .sz = headerDecodedSize
+  }, ((void *)0));
+  if(headerJson.type != JSON_JSON) {
+    json_DeleteElement(headerJson);
+    return 0;
+  }
+  JsonElement encryptionType = json_Map_GetString(headerJson, "alg");
+  if(encryptionType.type != JSON_STRING) {
+    json_DeleteElement(headerJson);
+    return 0;
+  }
+  char *acceptedAlgorithm = "HS256";
+  size_t acceptedAlgorithmSize = strlen(acceptedAlgorithm);
+  PHttpString algoString = (PHttpString)encryptionType.value;
+  if(algoString->sz != acceptedAlgorithmSize) {
+    json_DeleteElement(headerJson);
+    return 0;
+  }
+  if(memcmp(acceptedAlgorithm, algoString->buffer, acceptedAlgorithmSize)) {
+    json_DeleteElement(headerJson);
+    return 0;
+  }
+  json_DeleteElement(headerJson);
+  return 1;
+}
+uint8_t jwt_Payload_AreTokensValid(JsonElement payload) {
+  JsonElement exp = json_Map_GetString(payload, "exp");
+  if(exp.type == JSON_INVALID) {
+    return 1;
+  }
+  if(exp.type != JSON_INTEGER) {
+    return 0;
+  }
+  int64_t expDate = json_Integer_Get(exp);
+  if(expDate <= tf_CurrentTimeMS()) {
+    return 0;
+  }
+  return 1;
+}
+static inline uint8_t jwt_CharValid(char chr) {
+  return (chr >= '0' && chr <= '9') ||
+         (chr >= 'A' && chr <= 'Z') ||
+         (chr >= 'a' && chr <= 'z') ||
+          chr == '_' || chr == '-';
+}
+uint8_t jwt_IsJWTCorrectlyFormatted(HttpString str) {
+  if(str.sz >= 1024 * 1024 * 10) {
+    return 0;
+  }
+  int8_t pnt = 0;
+  size_t index = 0;
+  int8_t checker = 0;
+  while(index < str.sz) {
+    if(jwt_CharValid(str.buffer[index])) {
+      checker = 1;
+    } else if(str.buffer[index] == '.') {
+      if(!checker) {
+        return 0;
+      }
+      checker = 0;
+      pnt++;
+    } else {
+      return 0;
+    }
+    index++;
+  }
+  return pnt == 2 && checker;
+}
+uint8_t jwt_IsPayloadValid(HttpString str) {
+  size_t headerSize = jwt_ExtractStringChecker(str);
+  HttpString payloadString = {
+    .buffer = headerSize + str.buffer + 1,
+    .sz = str.sz - headerSize
+  };
+  ssize_t cSz = payloadString.sz;
+  while(cSz >= 0 && payloadString.buffer[cSz] != '.') {
+    cSz--;
+  }
+  payloadString.sz = cSz;
+  size_t payloadDecodedSize;
+  uint8_t payloadResponse[payloadString.sz + 1];
+  jwt_DecodeURLEncodedBase64(payloadString, payloadResponse, &payloadDecodedSize);
+  if(!payloadDecodedSize) {
+    return 0;
+  }
+  JsonElement payloadJson = json_Parse((HttpString) {
+    .buffer = (char *)payloadResponse,
+    .sz = payloadDecodedSize
+  }, ((void *)0));
+  if(payloadJson.type != JSON_JSON) {
+    json_DeleteElement(payloadJson);
+    return 0;
+  }
+  if(!jwt_Payload_AreTokensValid(payloadJson)) {
+    json_DeleteElement(payloadJson);
+    return 0;
+  }
+  json_DeleteElement(payloadJson);
+  return 1;
+}
+uint8_t jwt_IsValid(HttpString str, HttpString secret) {
+  if(!jwt_IsJWTCorrectlyFormatted(str)) {
+    return 0;
+  }
+  if(!jwt_IsHeaderValid(str) || !jwt_IsPayloadValid(str)) {
+    return 0;
+  }
+  return jwt_IsSigned(str, secret);
+}
+HttpString jwt_Encode(JsonElement payload, HttpString secret, uint64_t expirationInMS) {
+  return jwt_Encode_t(payload, secret, tf_CurrentTimeMS(), expirationInMS);
+}
+static inline void jwt_EncodeElement(JsonElement payload, uint8_t *code, size_t *sz) {
+  HttpString payloadString = json_Element_ToString(payload);
+  jwt_ToBase64UrlEncoded(payloadString, code, sz);
+  free(payloadString.buffer);
+}
+void jwt_HMAC(HttpString key, HttpString secret, uint8_t *hmacResult, size_t *currentSize) {
+  unsigned int hmac_length = 0;
+  uint8_t hmalRes[50];
+  HMAC(
+    EVP_sha256(),
+    (uint8_t *)secret.buffer, secret.sz,
+    (uint8_t *)key.buffer, key.sz,
+    hmalRes, &hmac_length
+  );
+  jwt_ToBase64UrlEncoded((HttpString) {
+    .buffer = (char *)hmalRes,
+    .sz = 32
+  }, hmacResult, currentSize);
+}
+void jwt_PrintHMAC(uint8_t *hmacCode, size_t sz) {
+  printf("HMAC-SHA256: ");
+  for (unsigned int i = 0; i < sz; i++)
+    printf("%c", hmacCode[i]);
+  printf("\n");
+}
+static inline size_t jwt_Base64_Size(size_t sz) {
+  return 4 * ((sz + 2) / 3);
+}
+size_t jwt_Base64_Size_Public(size_t sz) {
+  return jwt_Base64_Size(sz);
+}
+void jwt_ToBase64UrlEncoded(HttpString str, uint8_t *response, size_t *finalSize) {
+  const size_t cSize = jwt_Base64_Size(str.sz);
+  EVP_EncodeBlock(response, (uint8_t *)str.buffer, str.sz);
+  for(size_t i = 0; i < cSize; i++) {
+    if (response[i] == '+') {
+      response[i] = '-';
+    }
+    else if (response[i] == '/') {
+      response[i] = '_';
+    }
+  }
+  if(!finalSize) {
+    return ;
+  }
+  *finalSize = cSize;
+  while(*finalSize > 0 && response[(*finalSize) - 1] == '=') {
+    (*finalSize)--;
+  }
+}
+uint8_t jwt_IsSigned(HttpString str, HttpString secret) {
+  char *buffer = str.buffer;
+  size_t sz = 0;
+  int8_t pnt = 0;
+  while(sz < str.sz && pnt < 2) {
+    if(buffer[sz] == '.') {
+      pnt++;
+    }
+    sz++;
+  }
+  size_t sigSize = str.sz - sz;
+  if(pnt != 2 || sigSize <= 30) {
+    return 0;
+  }
+  const size_t csz = jwt_Base64_Size(32);
+  uint8_t hmacResult[csz + 2];
+  size_t newB64Size;
+  jwt_HMAC((HttpString) {
+    .buffer = buffer,
+    .sz = sz - 1
+  }, secret, hmacResult, &newB64Size);
+  if(newB64Size != sigSize) {
+    return 0;
+  }
+  return !memcmp(buffer + sz, hmacResult, newB64Size);
+}
+static inline char *jwt_CreateHeader() {
+  return "{\"alg\":\"HS256\",\"typ\":\"JWT\"}";
+}
+
+struct iovec
+  {
+    void *iov_base;
+    size_t iov_len;
+  };
+enum __socket_type
+{
+  SOCK_STREAM = 1,
+  SOCK_DGRAM = 2,
+  SOCK_RAW = 3,
+  SOCK_RDM = 4,
+  SOCK_SEQPACKET = 5,
+  SOCK_DCCP = 6,
+  SOCK_PACKET = 10,
+  SOCK_CLOEXEC = 02000000,
+  SOCK_NONBLOCK = 00004000
+};
+typedef unsigned short int sa_family_t;
+struct sockaddr
+  {
+    sa_family_t sa_family;
+    char sa_data[14];
+  };
+struct sockaddr_storage
+  {
+    sa_family_t ss_family;
+    char __ss_padding[(128 - (sizeof (unsigned short int)) - sizeof (unsigned long int))];
+    unsigned long int __ss_align;
+  };
+enum
+  {
+    MSG_OOB = 0x01,
+    MSG_PEEK = 0x02,
+    MSG_DONTROUTE = 0x04,
+    MSG_CTRUNC = 0x08,
+    MSG_PROXY = 0x10,
+    MSG_TRUNC = 0x20,
+    MSG_DONTWAIT = 0x40,
+    MSG_EOR = 0x80,
+    MSG_WAITALL = 0x100,
+    MSG_FIN = 0x200,
+    MSG_SYN = 0x400,
+    MSG_CONFIRM = 0x800,
+    MSG_RST = 0x1000,
+    MSG_ERRQUEUE = 0x2000,
+    MSG_NOSIGNAL = 0x4000,
+    MSG_MORE = 0x8000,
+    MSG_WAITFORONE = 0x10000,
+    MSG_BATCH = 0x40000,
+    MSG_ZEROCOPY = 0x4000000,
+    MSG_FASTOPEN = 0x20000000,
+    MSG_CMSG_CLOEXEC = 0x40000000
+  };
+struct msghdr
+  {
+    void *msg_name;
+    socklen_t msg_namelen;
+    struct iovec *msg_iov;
+    size_t msg_iovlen;
+    void *msg_control;
+    size_t msg_controllen;
+    int msg_flags;
+  };
+struct cmsghdr
+  {
+    size_t cmsg_len;
+    int cmsg_level;
+    int cmsg_type;
+    __extension__ unsigned char __cmsg_data [];
+  };
+extern struct cmsghdr *__cmsg_nxthdr (struct msghdr *__mhdr,
+          struct cmsghdr *__cmsg) __attribute__ ((__nothrow__ , __leaf__));
+extern __inline __attribute__ ((__gnu_inline__)) struct cmsghdr *
+__attribute__ ((__nothrow__ , __leaf__)) __cmsg_nxthdr (struct msghdr *__mhdr, struct cmsghdr *__cmsg)
+{
+  if ((size_t) __cmsg->cmsg_len < sizeof (struct cmsghdr))
+    return (struct cmsghdr *) 0;
+  __cmsg = (struct cmsghdr *) ((unsigned char *) __cmsg
+          + (((__cmsg->cmsg_len) + sizeof (size_t) - 1) & (size_t) ~(sizeof (size_t) - 1)));
+  if ((unsigned char *) (__cmsg + 1) > ((unsigned char *) __mhdr->msg_control
+     + __mhdr->msg_controllen)
+      || ((unsigned char *) __cmsg + (((__cmsg->cmsg_len) + sizeof (size_t) - 1) & (size_t) ~(sizeof (size_t) - 1))
+   > ((unsigned char *) __mhdr->msg_control + __mhdr->msg_controllen)))
+    return (struct cmsghdr *) 0;
+  return __cmsg;
+}
+enum
+  {
+    SCM_RIGHTS = 0x01
+  };
+typedef struct {
+ unsigned long fds_bits[1024 / (8 * sizeof(long))];
+} __kernel_fd_set;
+typedef void (*__kernel_sighandler_t)(int);
+typedef int __kernel_key_t;
+typedef int __kernel_mqd_t;
+typedef unsigned short __kernel_old_uid_t;
+typedef unsigned short __kernel_old_gid_t;
+typedef unsigned long __kernel_old_dev_t;
+typedef long __kernel_long_t;
+typedef unsigned long __kernel_ulong_t;
+typedef __kernel_ulong_t __kernel_ino_t;
+typedef unsigned int __kernel_mode_t;
+typedef int __kernel_pid_t;
+typedef int __kernel_ipc_pid_t;
+typedef unsigned int __kernel_uid_t;
+typedef unsigned int __kernel_gid_t;
+typedef __kernel_long_t __kernel_suseconds_t;
+typedef int __kernel_daddr_t;
+typedef unsigned int __kernel_uid32_t;
+typedef unsigned int __kernel_gid32_t;
+typedef __kernel_ulong_t __kernel_size_t;
+typedef __kernel_long_t __kernel_ssize_t;
+typedef __kernel_long_t __kernel_ptrdiff_t;
+typedef struct {
+ int val[2];
+} __kernel_fsid_t;
+typedef __kernel_long_t __kernel_off_t;
+typedef long long __kernel_loff_t;
+typedef __kernel_long_t __kernel_old_time_t;
+typedef __kernel_long_t __kernel_time_t;
+typedef long long __kernel_time64_t;
+typedef __kernel_long_t __kernel_clock_t;
+typedef int __kernel_timer_t;
+typedef int __kernel_clockid_t;
+typedef char * __kernel_caddr_t;
+typedef unsigned short __kernel_uid16_t;
+typedef unsigned short __kernel_gid16_t;
+struct linger
+  {
+    int l_onoff;
+    int l_linger;
+  };
+struct osockaddr
+{
+  unsigned short int sa_family;
+  unsigned char sa_data[14];
+};
+enum
+{
+  SHUT_RD = 0,
+  SHUT_WR,
+  SHUT_RDWR
+};
+extern int socket (int __domain, int __type, int __protocol) __attribute__ ((__nothrow__ , __leaf__));
+extern int socketpair (int __domain, int __type, int __protocol,
+         int __fds[2]) __attribute__ ((__nothrow__ , __leaf__));
+extern int bind (int __fd, const struct sockaddr * __addr, socklen_t __len)
+     __attribute__ ((__nothrow__ , __leaf__));
+extern int getsockname (int __fd, struct sockaddr *__restrict __addr,
+   socklen_t *__restrict __len) __attribute__ ((__nothrow__ , __leaf__));
+extern int connect (int __fd, const struct sockaddr * __addr, socklen_t __len);
+extern int getpeername (int __fd, struct sockaddr *__restrict __addr,
+   socklen_t *__restrict __len) __attribute__ ((__nothrow__ , __leaf__));
+extern ssize_t send (int __fd, const void *__buf, size_t __n, int __flags);
+extern ssize_t recv (int __fd, void *__buf, size_t __n, int __flags);
+extern ssize_t sendto (int __fd, const void *__buf, size_t __n,
+         int __flags, const struct sockaddr * __addr,
+         socklen_t __addr_len);
+extern ssize_t recvfrom (int __fd, void *__restrict __buf, size_t __n,
+    int __flags, struct sockaddr *__restrict __addr,
+    socklen_t *__restrict __addr_len);
+extern ssize_t sendmsg (int __fd, const struct msghdr *__message,
+   int __flags);
+extern ssize_t recvmsg (int __fd, struct msghdr *__message, int __flags);
+extern int getsockopt (int __fd, int __level, int __optname,
+         void *__restrict __optval,
+         socklen_t *__restrict __optlen) __attribute__ ((__nothrow__ , __leaf__));
+extern int setsockopt (int __fd, int __level, int __optname,
+         const void *__optval, socklen_t __optlen) __attribute__ ((__nothrow__ , __leaf__));
+extern int listen (int __fd, int __n) __attribute__ ((__nothrow__ , __leaf__));
+extern int accept (int __fd, struct sockaddr *__restrict __addr,
+     socklen_t *__restrict __addr_len);
+extern int shutdown (int __fd, int __how) __attribute__ ((__nothrow__ , __leaf__));
+extern int sockatmark (int __fd) __attribute__ ((__nothrow__ , __leaf__));
+extern int isfdtype (int __fd, int __fdtype) __attribute__ ((__nothrow__ , __leaf__));
+extern ssize_t __recv_chk (int __fd, void *__buf, size_t __n, size_t __buflen,
+      int __flags);
+extern ssize_t __recv_alias (int __fd, void *__buf, size_t __n, int __flags) __asm__ ("" "recv");
+extern ssize_t __recv_chk_warn (int __fd, void *__buf, size_t __n, size_t __buflen, int __flags) __asm__ ("" "__recv_chk")
+     __attribute__((__warning__ ("recv called with bigger length than size of destination " "buffer")));
+extern __inline __attribute__ ((__always_inline__)) __attribute__ ((__gnu_inline__)) __attribute__ ((__artificial__)) ssize_t
+recv (int __fd, void *__buf, size_t __n, int __flags)
+{
+  size_t sz = __builtin_object_size (__buf, 0);
+  if ((((__typeof (__n)) 0 < (__typeof (__n)) -1 || (__builtin_constant_p (__n) && (__n) > 0)) && __builtin_constant_p ((((long unsigned int) (__n)) <= (sz) / (sizeof (char)))) && (((long unsigned int) (__n)) <= (sz) / (sizeof (char)))))
+    return __recv_alias (__fd, __buf, __n, __flags);
+  if ((((__typeof (__n)) 0 < (__typeof (__n)) -1 || (__builtin_constant_p (__n) && (__n) > 0)) && __builtin_constant_p ((((long unsigned int) (__n)) <= (sz) / (sizeof (char)))) && !(((long unsigned int) (__n)) <= (sz) / (sizeof (char)))))
+    return __recv_chk_warn (__fd, __buf, __n, sz, __flags);
+  return __recv_chk (__fd, __buf, __n, sz, __flags);
+}
+extern ssize_t __recvfrom_chk (int __fd, void *__restrict __buf, size_t __n,
+          size_t __buflen, int __flags,
+          struct sockaddr *__restrict __addr,
+          socklen_t *__restrict __addr_len);
+extern ssize_t __recvfrom_alias (int __fd, void *__restrict __buf, size_t __n, int __flags, struct sockaddr *__restrict __addr, socklen_t *__restrict __addr_len) __asm__ ("" "recvfrom");
+extern ssize_t __recvfrom_chk_warn (int __fd, void *__restrict __buf, size_t __n, size_t __buflen, int __flags, struct sockaddr *__restrict __addr, socklen_t *__restrict __addr_len) __asm__ ("" "__recvfrom_chk")
+     __attribute__((__warning__ ("recvfrom called with bigger length than size of " "destination buffer")));
+extern __inline __attribute__ ((__always_inline__)) __attribute__ ((__gnu_inline__)) __attribute__ ((__artificial__)) ssize_t
+recvfrom (int __fd, void *__restrict __buf, size_t __n, int __flags,
+   struct sockaddr *__restrict __addr, socklen_t *__restrict __addr_len)
+{
+  size_t sz = __builtin_object_size (__buf, 0);
+  if ((((__typeof (__n)) 0 < (__typeof (__n)) -1 || (__builtin_constant_p (__n) && (__n) > 0)) && __builtin_constant_p ((((long unsigned int) (__n)) <= (sz) / (sizeof (char)))) && (((long unsigned int) (__n)) <= (sz) / (sizeof (char)))))
+    return __recvfrom_alias (__fd, __buf, __n, __flags, __addr, __addr_len);
+  if ((((__typeof (__n)) 0 < (__typeof (__n)) -1 || (__builtin_constant_p (__n) && (__n) > 0)) && __builtin_constant_p ((((long unsigned int) (__n)) <= (sz) / (sizeof (char)))) && !(((long unsigned int) (__n)) <= (sz) / (sizeof (char)))))
+    return __recvfrom_chk_warn (__fd, __buf, __n, sz, __flags, __addr,
+    __addr_len);
+  return __recvfrom_chk (__fd, __buf, __n, sz, __flags, __addr, __addr_len);
+}
+
+
+typedef uint32_t in_addr_t;
+struct in_addr
+  {
+    in_addr_t s_addr;
+  };
+struct ip_opts
+  {
+    struct in_addr ip_dst;
+    char ip_opts[40];
+  };
+struct ip_mreqn
+  {
+    struct in_addr imr_multiaddr;
+    struct in_addr imr_address;
+    int imr_ifindex;
+  };
+struct in_pktinfo
+  {
+    int ipi_ifindex;
+    struct in_addr ipi_spec_dst;
+    struct in_addr ipi_addr;
+  };
+enum
+  {
+    IPPROTO_IP = 0,
+    IPPROTO_ICMP = 1,
+    IPPROTO_IGMP = 2,
+    IPPROTO_IPIP = 4,
+    IPPROTO_TCP = 6,
+    IPPROTO_EGP = 8,
+    IPPROTO_PUP = 12,
+    IPPROTO_UDP = 17,
+    IPPROTO_IDP = 22,
+    IPPROTO_TP = 29,
+    IPPROTO_DCCP = 33,
+    IPPROTO_IPV6 = 41,
+    IPPROTO_RSVP = 46,
+    IPPROTO_GRE = 47,
+    IPPROTO_ESP = 50,
+    IPPROTO_AH = 51,
+    IPPROTO_MTP = 92,
+    IPPROTO_BEETPH = 94,
+    IPPROTO_ENCAP = 98,
+    IPPROTO_PIM = 103,
+    IPPROTO_COMP = 108,
+    IPPROTO_SCTP = 132,
+    IPPROTO_UDPLITE = 136,
+    IPPROTO_MPLS = 137,
+    IPPROTO_ETHERNET = 143,
+    IPPROTO_RAW = 255,
+    IPPROTO_MPTCP = 262,
+    IPPROTO_MAX
+  };
+enum
+  {
+    IPPROTO_HOPOPTS = 0,
+    IPPROTO_ROUTING = 43,
+    IPPROTO_FRAGMENT = 44,
+    IPPROTO_ICMPV6 = 58,
+    IPPROTO_NONE = 59,
+    IPPROTO_DSTOPTS = 60,
+    IPPROTO_MH = 135
+  };
+typedef uint16_t in_port_t;
+enum
+  {
+    IPPORT_ECHO = 7,
+    IPPORT_DISCARD = 9,
+    IPPORT_SYSTAT = 11,
+    IPPORT_DAYTIME = 13,
+    IPPORT_NETSTAT = 15,
+    IPPORT_FTP = 21,
+    IPPORT_TELNET = 23,
+    IPPORT_SMTP = 25,
+    IPPORT_TIMESERVER = 37,
+    IPPORT_NAMESERVER = 42,
+    IPPORT_WHOIS = 43,
+    IPPORT_MTP = 57,
+    IPPORT_TFTP = 69,
+    IPPORT_RJE = 77,
+    IPPORT_FINGER = 79,
+    IPPORT_TTYLINK = 87,
+    IPPORT_SUPDUP = 95,
+    IPPORT_EXECSERVER = 512,
+    IPPORT_LOGINSERVER = 513,
+    IPPORT_CMDSERVER = 514,
+    IPPORT_EFSSERVER = 520,
+    IPPORT_BIFFUDP = 512,
+    IPPORT_WHOSERVER = 513,
+    IPPORT_ROUTESERVER = 520,
+    IPPORT_RESERVED = 1024,
+    IPPORT_USERRESERVED = 5000
+  };
+struct in6_addr
+  {
+    union
+      {
+ uint8_t __u6_addr8[16];
+ uint16_t __u6_addr16[8];
+ uint32_t __u6_addr32[4];
+      } __in6_u;
+  };
+extern const struct in6_addr in6addr_any;
+extern const struct in6_addr in6addr_loopback;
+struct sockaddr_in
+  {
+    sa_family_t sin_family;
+    in_port_t sin_port;
+    struct in_addr sin_addr;
+    unsigned char sin_zero[sizeof (struct sockaddr)
+      - (sizeof (unsigned short int))
+      - sizeof (in_port_t)
+      - sizeof (struct in_addr)];
+  };
+struct sockaddr_in6
+  {
+    sa_family_t sin6_family;
+    in_port_t sin6_port;
+    uint32_t sin6_flowinfo;
+    struct in6_addr sin6_addr;
+    uint32_t sin6_scope_id;
+  };
+struct ip_mreq
+  {
+    struct in_addr imr_multiaddr;
+    struct in_addr imr_interface;
+  };
+struct ip_mreq_source
+  {
+    struct in_addr imr_multiaddr;
+    struct in_addr imr_interface;
+    struct in_addr imr_sourceaddr;
+  };
+struct ipv6_mreq
+  {
+    struct in6_addr ipv6mr_multiaddr;
+    unsigned int ipv6mr_interface;
+  };
+struct group_req
+  {
+    uint32_t gr_interface;
+    struct sockaddr_storage gr_group;
+  };
+struct group_source_req
+  {
+    uint32_t gsr_interface;
+    struct sockaddr_storage gsr_group;
+    struct sockaddr_storage gsr_source;
+  };
+struct ip_msfilter
+  {
+    struct in_addr imsf_multiaddr;
+    struct in_addr imsf_interface;
+    uint32_t imsf_fmode;
+    uint32_t imsf_numsrc;
+    struct in_addr imsf_slist[1];
+  };
+struct group_filter
+  {
+    uint32_t gf_interface;
+    struct sockaddr_storage gf_group;
+    uint32_t gf_fmode;
+    uint32_t gf_numsrc;
+    struct sockaddr_storage gf_slist[1];
+};
+extern uint32_t ntohl (uint32_t __netlong) __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__const__));
+extern uint16_t ntohs (uint16_t __netshort)
+     __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__const__));
+extern uint32_t htonl (uint32_t __hostlong)
+     __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__const__));
+extern uint16_t htons (uint16_t __hostshort)
+     __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__const__));
+extern int bindresvport (int __sockfd, struct sockaddr_in *__sock_in) __attribute__ ((__nothrow__ , __leaf__));
+extern int bindresvport6 (int __sockfd, struct sockaddr_in6 *__sock_in)
+     __attribute__ ((__nothrow__ , __leaf__));
+
+
+extern in_addr_t inet_addr (const char *__cp) __attribute__ ((__nothrow__ , __leaf__));
+extern in_addr_t inet_lnaof (struct in_addr __in) __attribute__ ((__nothrow__ , __leaf__));
+extern struct in_addr inet_makeaddr (in_addr_t __net, in_addr_t __host)
+     __attribute__ ((__nothrow__ , __leaf__));
+extern in_addr_t inet_netof (struct in_addr __in) __attribute__ ((__nothrow__ , __leaf__));
+extern in_addr_t inet_network (const char *__cp) __attribute__ ((__nothrow__ , __leaf__));
+extern char *inet_ntoa (struct in_addr __in) __attribute__ ((__nothrow__ , __leaf__));
+extern int inet_pton (int __af, const char *__restrict __cp,
+        void *__restrict __buf) __attribute__ ((__nothrow__ , __leaf__));
+extern const char *inet_ntop (int __af, const void *__restrict __cp,
+         char *__restrict __buf, socklen_t __len)
+     __attribute__ ((__nothrow__ , __leaf__));
+extern int inet_aton (const char *__cp, struct in_addr *__inp) __attribute__ ((__nothrow__ , __leaf__));
+extern char *inet_neta (in_addr_t __net, char *__buf, size_t __len) __attribute__ ((__nothrow__ , __leaf__))
+  __attribute__ ((__deprecated__ ("Use inet_ntop instead")));
+extern char *inet_net_ntop (int __af, const void *__cp, int __bits,
+       char *__buf, size_t __len) __attribute__ ((__nothrow__ , __leaf__));
+extern int inet_net_pton (int __af, const char *__cp,
+     void *__buf, size_t __len) __attribute__ ((__nothrow__ , __leaf__));
+extern unsigned int inet_nsap_addr (const char *__cp,
+        unsigned char *__buf, int __len) __attribute__ ((__nothrow__ , __leaf__));
+extern char *inet_nsap_ntoa (int __len, const unsigned char *__cp,
+        char *__buf) __attribute__ ((__nothrow__ , __leaf__));
 
 
 typedef __sig_atomic_t sig_atomic_t;
@@ -8513,7 +8697,7 @@ void sock_PushCloseConnMethod(PSocketServer self, Connection conn, size_t index)
   tf_ExecuteAfter(self->timeServer.timeServer, timeFragment, self->timeServer.timeout);
 }
 void sock_SetMaxConnections(PSocketServer self, int32_t maxActiveConnections) {
-  ((void) sizeof ((maxActiveConnections < 1024) ? 1 : 0), __extension__ ({ if (maxActiveConnections < 1024) ; else __assert_fail ("maxActiveConnections < MAX_CONNECTIONS_PER_SERVER", "bin/svv.c", 1967, __extension__ __PRETTY_FUNCTION__); }));
+  ((void) sizeof ((maxActiveConnections < 1024) ? 1 : 0), __extension__ ({ if (maxActiveConnections < 1024) ; else __assert_fail ("maxActiveConnections < MAX_CONNECTIONS_PER_SERVER", "bin/svv.c", 2164, __extension__ __PRETTY_FUNCTION__); }));
   self->maxActiveConnections = maxActiveConnections;
 }
 void sock_Write_Push(PSocketServer self, DataFragment *dt) {
@@ -9166,7 +9350,7 @@ void vct_Push(Vector self, void *buffer) {
   copyData(self, buffer);
 }
 void vct_RemoveElement(Vector self, size_t index) {
-  ((void) sizeof ((self->size != 0) ? 1 : 0), __extension__ ({ if (self->size != 0) ; else __assert_fail ("self->size != 0", "bin/svv.c", 2676, __extension__ __PRETTY_FUNCTION__); }));
+  ((void) sizeof ((self->size != 0) ? 1 : 0), __extension__ ({ if (self->size != 0) ; else __assert_fail ("self->size != 0", "bin/svv.c", 2873, __extension__ __PRETTY_FUNCTION__); }));
   if(index >= self->size) {
     return ;
   }
