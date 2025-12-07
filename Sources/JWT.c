@@ -12,6 +12,8 @@ static inline size_t jwt_Base64_Size(size_t sz);
 static inline void jwt_EncodeElement(JsonElement payload, uint8_t *code, size_t *sz);
 void jwt_HMAC(HttpString key, HttpString secret, uint8_t *hmacResult, size_t *currentSize);
 void jwt_PrintHMAC(uint8_t *hmacCode, size_t sz);
+void jwt_DecodeBase64(HttpString str, uint8_t *response, size_t *responseSz);
+void jwt_FromBase64URLEncodedToNormal(HttpString str, uint8_t *response, size_t *sz);
 
 static inline void jwt_Add_String(Vector strDrt, HttpString str) {
   for(size_t i = 0, c = str.sz; i < c; i++) {
@@ -78,6 +80,58 @@ HttpString jwt_Encode_t(JsonElement payload, HttpString secret, uint64_t iam, ui
     .buffer = bff,
     .sz = sz
   };
+}
+
+void jwt_FromBase64URLEncodedToNormal(HttpString str, uint8_t *response, size_t *sz) {
+  size_t paddingNeeded = (4 - (str.sz % 4)) % 4;
+  size_t z = 0;
+  for(size_t i = 0, c = str.sz; i < c; i++) {
+    switch (str.buffer[i])
+    {
+      case '-': {
+        response[i] = '+'; 
+        break;
+      }
+      case '_': {
+        response[i] = '/'; 
+        break;
+      }
+      
+      default: {
+        response[i] = str.buffer[i];
+        break;
+      }
+    }
+    z++;
+  }
+  for(size_t p = 0; p < paddingNeeded; p++) {
+    response[z++] = '=';
+  }
+  *sz = z;
+}
+
+void jwt_DecodeBase64(HttpString str, uint8_t *response, size_t *responseSz) {
+  BIO *bio, *b64;
+  b64 = BIO_new(BIO_f_base64());
+  BIO_set_flags(b64, BIO_FLAGS_BASE64_NO_NL);
+  bio = BIO_new_mem_buf((void*)str.buffer, str.sz);
+  bio = BIO_push(b64, bio);
+  *responseSz = BIO_read(bio, response, str.sz);
+  BIO_free_all(bio);
+}
+
+void jwt_DecodeURLEncodedBase64(HttpString str, uint8_t *response, size_t *responseSz) {
+  uint8_t decoded[str.sz + 5];
+  size_t sz;
+  jwt_FromBase64URLEncodedToNormal(str, decoded, &sz);
+  jwt_DecodeBase64((HttpString) {
+    .buffer = (char *)decoded,
+    .sz = sz
+  }, response, responseSz);
+}
+
+uint8_t jwt_IsValid(HttpString str, HttpString secret) {
+  return 0;
 }
 
 HttpString jwt_Encode(JsonElement payload, HttpString secret, uint64_t expirationInMS) {
