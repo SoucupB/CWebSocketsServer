@@ -20,6 +20,7 @@ void jwt_PrintHMAC(uint8_t *hmacCode, size_t sz);
 uint8_t jwt_DecodeURLEncodedBase64(HttpString str, uint8_t *response, size_t *responseSz);
 void jwt_ToBase64UrlEncoded(HttpString str, uint8_t *response, size_t *finalSize);
 uint8_t jwt_IsHeaderValid(HttpString str);
+uint8_t jwt_IsPayloadValid(HttpString str);
 
 static void test_jwt_hmac_create(void **state) {
   HttpString key = {
@@ -169,6 +170,38 @@ static void test_jwt_is_header_invalid(void **state) {
   }));
 }
 
+static void test_jwt_is_payload_valid_timestamp(void **state) {
+  const char *input = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjM3NjUxMDc2Njg2NjgsImlhdCI6MTc2NTEwNzY2ODY2OCwic29tZV9maWVsZCI6MzEzMTR9.7zOdXbes1bt_8gnBpACpntvUQoVifLj6WsijL8DvrLI";
+  assert_true(jwt_IsPayloadValid((HttpString) {
+    .buffer = (char *)input,
+    .sz = strlen(input)
+  }));
+}
+
+static void test_jwt_is_payload_invalid_timestamp(void **state) {
+  const char *input = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3NjUxMDc2Njg2NjgsImlhdCI6MTc2NTEwNzY2ODY2OCwic29tZV9maWVsZCI6MzEzMTR9.7zOdXbes1bt_8gnBpACpntvUQoVifLj6WsijL8DvrLI";
+  assert_false(jwt_IsPayloadValid((HttpString) {
+    .buffer = (char *)input,
+    .sz = strlen(input)
+  }));
+}
+
+static void test_jwt_is_payload_expiration_is_missing(void **state) {
+  const char *input = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpYXQiOjE3NjUxMDc2Njg2NjgsInNvbWVfZmllbGQiOjMxMzE0fQ.7zOdXbes1bt_8gnBpACpntvUQoVifLj6WsijL8DvrLI";
+  assert_true(jwt_IsPayloadValid((HttpString) {
+    .buffer = (char *)input,
+    .sz = strlen(input)
+  }));
+}
+
+static void test_jwt_is_payload_expiration_is_another_type(void **state) {
+  const char *input = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOiJkYWRhZmZhIiwiaWF0IjoxNzY1MTA3NjY4NjY4LCJzb21lX2ZpZWxkIjozMTMxNH0.7zOdXbes1bt_8gnBpACpntvUQoVifLj6WsijL8DvrLI";
+  assert_false(jwt_IsPayloadValid((HttpString) {
+    .buffer = (char *)input,
+    .sz = strlen(input)
+  }));
+}
+
 int main() {
   const struct CMUnitTest tests[] = {
     cmocka_unit_test_prestate(test_jwt_hmac_create, NULL),
@@ -182,6 +215,10 @@ int main() {
     cmocka_unit_test_prestate(test_jwt_decode_base64_string_with_padding_error, NULL),
     cmocka_unit_test_prestate(test_jwt_is_header_valid, NULL),
     cmocka_unit_test_prestate(test_jwt_is_header_invalid, NULL),
+    cmocka_unit_test_prestate(test_jwt_is_payload_valid_timestamp, NULL),
+    cmocka_unit_test_prestate(test_jwt_is_payload_invalid_timestamp, NULL),
+    cmocka_unit_test_prestate(test_jwt_is_payload_expiration_is_missing, NULL),
+    cmocka_unit_test_prestate(test_jwt_is_payload_expiration_is_another_type, NULL),
   };
   const uint32_t value = cmocka_run_group_tests(tests, NULL, NULL);
   return value;

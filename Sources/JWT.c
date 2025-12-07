@@ -184,23 +184,50 @@ uint8_t jwt_IsHeaderValid(HttpString str) {
   return 1;
 }
 
+uint8_t jwt_Payload_AreTokensValid(JsonElement payload) {
+  JsonElement exp = json_Map_GetString(payload, "exp");
+  if(exp.type == JSON_INVALID) {
+    return 1;
+  }
+  if(exp.type != JSON_INTEGER) {
+    return 0;
+  }
+  int64_t expDate = json_Integer_Get(exp);
+  if(expDate <= tf_CurrentTimeMS()) {
+    return 0;
+  }
+  return 1;
+}
+
 uint8_t jwt_IsPayloadValid(HttpString str) {
   size_t headerSize = jwt_ExtractStringChecker(str);
   HttpString payloadString = {
     .buffer = headerSize + str.buffer + 1,
     .sz = str.sz - headerSize
   };
-
+  ssize_t cSz = payloadString.sz;
+  while(cSz >= 0 && payloadString.buffer[cSz] != '.') {
+    cSz--;
+  }
+  payloadString.sz = cSz;
   size_t payloadDecodedSize;
   uint8_t payloadResponse[payloadString.sz + 1];
-  jwt_DecodeURLEncodedBase64((HttpString) {
-    .buffer = (char *)payloadString.buffer,
-    .sz = headerSize
-  }, payloadResponse, &payloadDecodedSize);
+  jwt_DecodeURLEncodedBase64(payloadString, payloadResponse, &payloadDecodedSize);
   if(!payloadDecodedSize) {
     return 0;
   }
-
+  JsonElement payloadJson = json_Parse((HttpString) {
+    .buffer = (char *)payloadResponse,
+    .sz = payloadDecodedSize
+  }, NULL);
+  if(payloadJson.type != JSON_JSON) {
+    json_DeleteElement(payloadJson);
+    return 0;
+  }
+  if(!jwt_Payload_AreTokensValid(payloadJson)) {
+    json_DeleteElement(payloadJson);
+    return 0;
+  }
   return 1;
 }
 
