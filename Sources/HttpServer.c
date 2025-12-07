@@ -44,6 +44,17 @@ JsonElement httpS_Json_Get(PHttpRequest req) {
   return jsonElement;
 }
 
+PHttpResponse httpS_Json_Post(JsonElement jsn) {
+  PHttpResponse response = http_Response_Create();
+  HttpString str = json_Element_ToString(jsn);
+  http_Response_SetBody(response, &str);
+  if(jsn.type == JSON_JSON) {
+    http_Response_SetJSON(response);
+  }
+  free(str.buffer);
+  return response;
+}
+
 void remote_OnReceiveMessage(PDataFragment frag, void *buffer) {
   PHttpServer self = buffer;
   sock_PushCloseConnections(self->server, &frag->conn);

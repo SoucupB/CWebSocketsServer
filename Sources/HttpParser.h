@@ -15,3 +15,4 @@ HttpString http_Response_ToString(PHttpResponse self);
 PHttpResponse http_Response_Empty();
 void http_Response_Set(PHttpResponse self, char *key, size_t keySize, char *value, size_t valueSize);
 void httpS_OnFrame(PHttpServer self, uint64_t deltaMS);
+void http_Response_SetJSON(PHttpResponse self);

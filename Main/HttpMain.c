@@ -9,9 +9,9 @@
 PHttpResponse caller(PHttpRequest req, void *mirror) {
   JsonElement plm = httpS_Json_Get(req);
   json_Parser_Print(plm);
+  PHttpResponse rsp = httpS_Json_Post(plm);
   json_DeleteElement(plm);
-
-  return http_Response_Empty();
+  return rsp;
 }
 
 int main()
