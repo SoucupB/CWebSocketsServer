@@ -3,6 +3,7 @@
 #include <stddef.h>
 
 #define PVOID void*
+
 #define crm_Alloc malloc
 #define crm_Free free
 
@@ -258,3 +259,10 @@ typedef struct JsonObject_t {
 } JsonObject;
 
 typedef JsonObject *PJsonObject;
+
+typedef struct HttpServer_t {
+  PSocketServer server;
+  PSocketMethod onReceive;
+} HttpServer;
+
+typedef HttpServer *PHttpServer;

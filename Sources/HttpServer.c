@@ -1,7 +1,7 @@
 #include "HttpServer.h"
 #include <stdlib.h>
-#include <HttpParser.h>
-#include <SocketServer.h>
+#include "HttpParser.h"
+#include "SocketServer.h"
 #include <string.h>
 
 void httpS_InitializeMethods(PHttpServer self);
@@ -19,7 +19,7 @@ void httpS_SetMethod(PHttpServer self, PSocketMethod onReceive) {
 }
 
 PHttpResponse httpS_PrivateCaller(PHttpServer self, PHttpRequest req) {
-  PHttpResponse (*caller)(PHttpRequest, void *) = (PHttpResponse (*)(PHttpRequest, void *))self->onReceive;
+  PHttpResponse (*caller)(PHttpRequest, void *) = (PHttpResponse (*)(PHttpRequest, void *))self->onReceive->method;
   return caller(req, self->onReceive->mirrorBuffer);
 }
 
