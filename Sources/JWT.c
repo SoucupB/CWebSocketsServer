@@ -7,6 +7,8 @@
 #include "Vector.h"
 #include <unistd.h>
 
+#define MAXIMUM_JWT_SIZE 1024 * 1024 * 10
+
 static inline char *jwt_CreateHeader();
 void jwt_ToBase64UrlEncoded(HttpString str, uint8_t *response, size_t *finalSize);
 static inline size_t jwt_Base64_Size(size_t sz);
@@ -15,6 +17,7 @@ void jwt_HMAC(HttpString key, HttpString secret, uint8_t *hmacResult, size_t *cu
 void jwt_PrintHMAC(uint8_t *hmacCode, size_t sz);
 void jwt_DecodeBase64(HttpString str, uint8_t *response, size_t *responseSz);
 void jwt_FromBase64URLEncodedToNormal(HttpString str, uint8_t *response, size_t *sz);
+static inline uint8_t jwt_CharValid(char chr);
 
 static inline void jwt_Add_String(Vector strDrt, HttpString str) {
   for(size_t i = 0, c = str.sz; i < c; i++) {
@@ -199,6 +202,37 @@ uint8_t jwt_Payload_AreTokensValid(JsonElement payload) {
   return 1;
 }
 
+static inline uint8_t jwt_CharValid(char chr) {
+  return (chr >= '0' && chr <= '9') ||
+         (chr >= 'A' && chr <= 'Z') ||
+         (chr >= 'a' && chr <= 'z') ||
+          chr == '_' || chr == '-';
+}
+
+uint8_t jwt_IsJWTCorrectlyFormatted(HttpString str) {
+  if(str.sz >= MAXIMUM_JWT_SIZE) {
+    return 0;
+  }
+  int8_t pnt = 0;
+  size_t index = 0;
+  int8_t checker = 0;
+  while(index < str.sz) {
+    if(jwt_CharValid(str.buffer[index])) {
+      checker = 1;
+    } else if(str.buffer[index] == '.') {
+      if(!checker) {
+        return 0;
+      }
+      checker = 0;
+      pnt++;
+    } else {
+      return 0;
+    }
+    index++;
+  }
+  return pnt == 2 && checker;
+}
+
 uint8_t jwt_IsPayloadValid(HttpString str) {
   size_t headerSize = jwt_ExtractStringChecker(str);
   HttpString payloadString = {
@@ -228,15 +262,15 @@ uint8_t jwt_IsPayloadValid(HttpString str) {
     json_DeleteElement(payloadJson);
     return 0;
   }
+  json_DeleteElement(payloadJson);
   return 1;
 }
 
 uint8_t jwt_IsValid(HttpString str, HttpString secret) {
-  if(!jwt_IsHeaderValid(str)) {
+  if(!jwt_IsHeaderValid(str) || !jwt_IsPayloadValid(str)) {
     return 0;
   }
-
-  return 0;
+  return jwt_IsSigned(str, secret);
 }
 
 HttpString jwt_Encode(JsonElement payload, HttpString secret, uint64_t expirationInMS) {

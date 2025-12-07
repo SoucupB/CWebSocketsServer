@@ -21,6 +21,7 @@ uint8_t jwt_DecodeURLEncodedBase64(HttpString str, uint8_t *response, size_t *re
 void jwt_ToBase64UrlEncoded(HttpString str, uint8_t *response, size_t *finalSize);
 uint8_t jwt_IsHeaderValid(HttpString str);
 uint8_t jwt_IsPayloadValid(HttpString str);
+uint8_t jwt_IsJWTCorrectlyFormatted(HttpString str);
 
 static void test_jwt_hmac_create(void **state) {
   HttpString key = {
@@ -202,6 +203,62 @@ static void test_jwt_is_payload_expiration_is_another_type(void **state) {
   }));
 }
 
+static void test_jwt_is_jwt_format_correct(void **state) {
+  const char *input = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOiJkYWRhZmZhIiwiaWF0IjoxNzY1MTA3NjY4NjY4LCJzb21lX2ZpZWxkIjozMTMxNH0.7zOdXbes1bt_8gnBpACpntvUQoVifLj6WsijL8DvrLI";
+  assert_true(jwt_IsJWTCorrectlyFormatted((HttpString) {
+    .buffer = (char *)input,
+    .sz = strlen(input)
+  }));
+}
+
+static void test_jwt_is_jwt_format_invalid_chars(void **state) {
+  const char *input = "eyJhbGciOiJIUzI1NiIsInR5c(I6IkpXVCJ9.eyJleHAiOiJkYWRhZmZhIiwiaWF0IjoxNzY1MTA3NjY4NjY4LCJzb21lX2ZpZWxkIjozMTMxNH0.7zOdXbes1bt_8gnBpACpntvUQoVifLj6WsijL8DvrLI";
+  assert_false(jwt_IsJWTCorrectlyFormatted((HttpString) {
+    .buffer = (char *)input,
+    .sz = strlen(input)
+  }));
+}
+
+static void test_jwt_is_jwt_format_invalid_spacing_mid(void **state) {
+  const char *input = "A..C";
+  assert_false(jwt_IsJWTCorrectlyFormatted((HttpString) {
+    .buffer = (char *)input,
+    .sz = strlen(input)
+  }));
+}
+
+static void test_jwt_is_jwt_format_invalid_spacing_front(void **state) {
+  const char *input = ".B.C";
+  assert_false(jwt_IsJWTCorrectlyFormatted((HttpString) {
+    .buffer = (char *)input,
+    .sz = strlen(input)
+  }));
+}
+
+static void test_jwt_is_jwt_format_invalid_spacing_back(void **state) {
+  const char *input = "B.A.";
+  assert_false(jwt_IsJWTCorrectlyFormatted((HttpString) {
+    .buffer = (char *)input,
+    .sz = strlen(input)
+  }));
+}
+
+static void test_jwt_is_jwt_format_invalid_spacing_missing_points(void **state) {
+  const char *input = "BA.CC";
+  assert_false(jwt_IsJWTCorrectlyFormatted((HttpString) {
+    .buffer = (char *)input,
+    .sz = strlen(input)
+  }));
+}
+
+static void test_jwt_is_jwt_format_valid_small(void **state) {
+  const char *input = "A.B.D";
+  assert_true(jwt_IsJWTCorrectlyFormatted((HttpString) {
+    .buffer = (char *)input,
+    .sz = strlen(input)
+  }));
+}
+
 int main() {
   const struct CMUnitTest tests[] = {
     cmocka_unit_test_prestate(test_jwt_hmac_create, NULL),
@@ -219,6 +276,13 @@ int main() {
     cmocka_unit_test_prestate(test_jwt_is_payload_invalid_timestamp, NULL),
     cmocka_unit_test_prestate(test_jwt_is_payload_expiration_is_missing, NULL),
     cmocka_unit_test_prestate(test_jwt_is_payload_expiration_is_another_type, NULL),
+    cmocka_unit_test_prestate(test_jwt_is_jwt_format_correct, NULL),
+    cmocka_unit_test_prestate(test_jwt_is_jwt_format_invalid_chars, NULL),
+    cmocka_unit_test_prestate(test_jwt_is_jwt_format_invalid_spacing_mid, NULL),
+    cmocka_unit_test_prestate(test_jwt_is_jwt_format_invalid_spacing_front, NULL),
+    cmocka_unit_test_prestate(test_jwt_is_jwt_format_invalid_spacing_back, NULL),
+    cmocka_unit_test_prestate(test_jwt_is_jwt_format_invalid_spacing_missing_points, NULL),
+    cmocka_unit_test_prestate(test_jwt_is_jwt_format_valid_small, NULL),
   };
   const uint32_t value = cmocka_run_group_tests(tests, NULL, NULL);
   return value;
