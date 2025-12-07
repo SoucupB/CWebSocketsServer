@@ -3,6 +3,7 @@
 #include <stddef.h>
 
 #define PVOID void*
+
 #define crm_Alloc malloc
 #define crm_Free free
 
