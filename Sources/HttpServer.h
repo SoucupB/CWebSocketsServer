@@ -4,3 +4,4 @@
 
 PHttpServer httpS_Create(uint16_t port);
 void httpS_Delete(PHttpServer self);
+JsonElement httpS_Json_Get(PHttpRequest req);

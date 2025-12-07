@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include "HttpParser.h"
 #include "SocketServer.h"
+#include "JsonParser.h"
 #include <string.h>
 
 void httpS_InitializeMethods(PHttpServer self);
@@ -21,6 +22,26 @@ void httpS_SetMethod(PHttpServer self, PSocketMethod onReceive) {
 PHttpResponse httpS_PrivateCaller(PHttpServer self, PHttpRequest req) {
   PHttpResponse (*caller)(PHttpRequest, void *) = (PHttpResponse (*)(PHttpRequest, void *))self->onReceive->method;
   return caller(req, self->onReceive->mirrorBuffer);
+}
+
+JsonElement httpS_Json_Get(PHttpRequest req) {
+  if(!req->body) {
+    return (JsonElement) {
+      .type = JSON_INVALID
+    };
+  }
+  char *_endingBuffer = NULL;
+  JsonElement jsonElement = json_Parse((HttpString) {
+    .buffer = req->body->buffer,
+    .sz = req->body->sz
+  }, &_endingBuffer);
+  if(jsonElement.type != JSON_JSON || _endingBuffer != req->body->buffer + req->body->sz) {
+    json_DeleteElement(jsonElement);
+    return (JsonElement) {
+      .type = JSON_INVALID
+    };
+  }
+  return jsonElement;
 }
 
 void remote_OnReceiveMessage(PDataFragment frag, void *buffer) {

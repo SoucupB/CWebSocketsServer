@@ -3,9 +3,14 @@
 #include "SocketServer.h"
 #include "HttpParser.h"
 #include "HttpServer.h"
+#include "JsonParser.h"
 #include "TimeFragment.h"
 
 PHttpResponse caller(PHttpRequest req, void *mirror) {
+  JsonElement plm = httpS_Json_Get(req);
+  json_Parser_Print(plm);
+  json_DeleteElement(plm);
+
   return http_Response_Empty();
 }
 
