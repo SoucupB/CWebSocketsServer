@@ -18,6 +18,7 @@ void jwt_PrintHMAC(uint8_t *hmacCode, size_t sz);
 void jwt_DecodeBase64(HttpString str, uint8_t *response, size_t *responseSz);
 void jwt_FromBase64URLEncodedToNormal(HttpString str, uint8_t *response, size_t *sz);
 static inline uint8_t jwt_CharValid(char chr);
+uint8_t jwt_IsJWTCorrectlyFormatted(HttpString str);
 
 static inline void jwt_Add_String(Vector strDrt, HttpString str) {
   for(size_t i = 0, c = str.sz; i < c; i++) {
@@ -267,6 +268,9 @@ uint8_t jwt_IsPayloadValid(HttpString str) {
 }
 
 uint8_t jwt_IsValid(HttpString str, HttpString secret) {
+  if(!jwt_IsJWTCorrectlyFormatted(str)) {
+    return 0;
+  }
   if(!jwt_IsHeaderValid(str) || !jwt_IsPayloadValid(str)) {
     return 0;
   }
