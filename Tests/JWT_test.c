@@ -17,6 +17,8 @@
 void jwt_HMAC(HttpString key, HttpString secret, uint8_t *hmacResult, size_t *currentSize);
 HttpString jwt_Encode_t(JsonElement payload, HttpString secret, uint64_t iam, uint64_t expirationMS);
 void jwt_PrintHMAC(uint8_t *hmacCode, size_t sz);
+uint8_t jwt_DecodeURLEncodedBase64(HttpString str, uint8_t *response, size_t *responseSz);
+void jwt_ToBase64UrlEncoded(HttpString str, uint8_t *response, size_t *finalSize);
 
 static void test_jwt_hmac_create(void **state) {
   HttpString key = {
@@ -83,12 +85,85 @@ static void test_jwt_invalid_signed(void **state) {
   free(crm.buffer);
 }
 
+static void test_jwt_decode_base64_string_header(void **state) {
+  const char *input = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9";
+  const char *expected = "{\"alg\":\"HS256\",\"typ\":\"JWT\"}";
+  const size_t sz = strlen(input);
+  uint8_t response[sz + 1];
+  size_t responseSz;
+  assert_true(jwt_DecodeURLEncodedBase64((HttpString) {
+    .buffer = (char *)input,
+    .sz = sz
+  }, response, &responseSz));
+  assert_int_equal(strlen(expected), responseSz);
+  assert_memory_equal(expected, response, responseSz);
+}
+
+static void test_jwt_decode_base64_string_payload(void **state) {
+  const char *input = "eyJleHAiOjMyMzI0MjU1ODQ5LCJpYXQiOjMyMzI0MjU1NTI1LCJzb21lX2ZpZWxkIjozMTMxNH0";
+  const char *expected = "{\"exp\":32324255849,\"iat\":32324255525,\"some_field\":31314}";
+  const size_t sz = strlen(input);
+  uint8_t response[sz + 1];
+  size_t responseSz;
+  assert_true(jwt_DecodeURLEncodedBase64((HttpString) {
+    .buffer = (char *)input,
+    .sz = sz
+  }, response, &responseSz));
+  assert_int_equal(strlen(expected), responseSz);
+  assert_memory_equal(expected, response, responseSz);
+}
+
+static void test_jwt_decode_base64_string_invalid(void **state) {
+  const char *input = "eyJleHAiOjMyMzI0MjU1ODQ5LCJpY'XQiOjMyMzI0MjU1NTI1LCJzb21lX2ZpZWxkIjozMTMxNH0";
+  const size_t sz = strlen(input);
+  uint8_t response[sz + 1];
+  size_t responseSz;
+  assert_false(jwt_DecodeURLEncodedBase64((HttpString) {
+    .buffer = (char *)input,
+    .sz = sz
+  }, response, &responseSz));
+  // jwt_PrintHMAC(response, responseSz);
+}
+
+static void test_jwt_decode_base64_string_with_special_chars(void **state) {
+  const char *input = "-wAA";
+  const char *expected = "\xFB\x00\x00";
+  const size_t sz = strlen(input);
+  uint8_t response[sz + 1];
+  size_t responseSz;
+  assert_true(jwt_DecodeURLEncodedBase64((HttpString) {
+    .buffer = (char *)input,
+    .sz = sz
+  }, response, &responseSz));
+  assert_int_equal(responseSz, 3);
+  assert_memory_equal(response, expected, responseSz);
+}
+
+static void test_jwt_decode_base64_string_with_padding_error(void **state) {
+  const char *input = "AQI";
+  const char *expected = "\x01\x02";
+  const size_t sz = strlen(input);
+  uint8_t response[sz + 1];
+  size_t responseSz;
+  assert_true(jwt_DecodeURLEncodedBase64((HttpString) {
+    .buffer = (char *)input,
+    .sz = sz
+  }, response, &responseSz));
+  assert_int_equal(responseSz, 2);
+  assert_memory_equal(response, expected, responseSz);
+}
+
 int main() {
   const struct CMUnitTest tests[] = {
     cmocka_unit_test_prestate(test_jwt_hmac_create, NULL),
     cmocka_unit_test_prestate(test_jwt_create_field, NULL),
     cmocka_unit_test_prestate(test_jwt_signed_correctly, NULL),
     cmocka_unit_test_prestate(test_jwt_invalid_signed, NULL),
+    cmocka_unit_test_prestate(test_jwt_decode_base64_string_header, NULL),
+    cmocka_unit_test_prestate(test_jwt_decode_base64_string_payload, NULL),
+    cmocka_unit_test_prestate(test_jwt_decode_base64_string_invalid, NULL),
+    cmocka_unit_test_prestate(test_jwt_decode_base64_string_with_special_chars, NULL),
+    cmocka_unit_test_prestate(test_jwt_decode_base64_string_with_padding_error, NULL),
   };
   const uint32_t value = cmocka_run_group_tests(tests, NULL, NULL);
   return value;

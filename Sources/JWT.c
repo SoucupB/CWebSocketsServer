@@ -5,9 +5,10 @@
 #include "JsonParser.h"
 #include <string.h>
 #include "Vector.h"
+#include <unistd.h>
 
 static inline char *jwt_CreateHeader();
-static inline void jwt_ToBase64UrlEncoded(HttpString str, uint8_t *response, size_t *finalSize);
+void jwt_ToBase64UrlEncoded(HttpString str, uint8_t *response, size_t *finalSize);
 static inline size_t jwt_Base64_Size(size_t sz);
 static inline void jwt_EncodeElement(JsonElement payload, uint8_t *code, size_t *sz);
 void jwt_HMAC(HttpString key, HttpString secret, uint8_t *hmacResult, size_t *currentSize);
@@ -116,11 +117,16 @@ void jwt_DecodeBase64(HttpString str, uint8_t *response, size_t *responseSz) {
   BIO_set_flags(b64, BIO_FLAGS_BASE64_NO_NL);
   bio = BIO_new_mem_buf((void*)str.buffer, str.sz);
   bio = BIO_push(b64, bio);
-  *responseSz = BIO_read(bio, response, str.sz);
+  ssize_t currentResponseSize = BIO_read(bio, response, str.sz);
   BIO_free_all(bio);
+  if(currentResponseSize <= 0) {
+    *responseSz = 0;
+    return ;
+  }
+  *responseSz = (size_t)currentResponseSize;
 }
 
-void jwt_DecodeURLEncodedBase64(HttpString str, uint8_t *response, size_t *responseSz) {
+uint8_t jwt_DecodeURLEncodedBase64(HttpString str, uint8_t *response, size_t *responseSz) {
   uint8_t decoded[str.sz + 5];
   size_t sz;
   jwt_FromBase64URLEncodedToNormal(str, decoded, &sz);
@@ -128,6 +134,7 @@ void jwt_DecodeURLEncodedBase64(HttpString str, uint8_t *response, size_t *respo
     .buffer = (char *)decoded,
     .sz = sz
   }, response, responseSz);
+  return *responseSz != 0;
 }
 
 uint8_t jwt_IsValid(HttpString str, HttpString secret) {
@@ -174,7 +181,7 @@ size_t jwt_Base64_Size_Public(size_t sz) {
   return jwt_Base64_Size(sz);
 }
 
-static inline void jwt_ToBase64UrlEncoded(HttpString str, uint8_t *response, size_t *finalSize) {
+void jwt_ToBase64UrlEncoded(HttpString str, uint8_t *response, size_t *finalSize) {
   const size_t cSize = jwt_Base64_Size(str.sz);
   EVP_EncodeBlock(response, (uint8_t *)str.buffer, str.sz);
   for(size_t i = 0; i < cSize; i++) {
