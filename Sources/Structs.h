@@ -259,3 +259,10 @@ typedef struct JsonObject_t {
 } JsonObject;
 
 typedef JsonObject *PJsonObject;
+
+typedef struct HttpServer_t {
+  PSocketServer server;
+  PSocketMethod onReceive;
+} HttpServer;
+
+typedef HttpServer *PHttpServer;

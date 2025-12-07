@@ -1,0 +1,64 @@
+#include "HttpServer.h"
+#include <stdlib.h>
+#include <HttpParser.h>
+#include <SocketServer.h>
+#include <string.h>
+
+void httpS_InitializeMethods(PHttpServer self);
+
+PHttpServer httpS_Create(uint16_t port) {
+  PHttpServer self = malloc(sizeof(HttpServer));
+  memset(self, 0, sizeof(HttpServer));
+  self->server = sock_Create(port);
+  httpS_InitializeMethods(self);
+  return self;
+}
+
+void httpS_SetMethod(PHttpServer self, PSocketMethod onReceive) {
+  self->onReceive = onReceive;
+}
+
+PHttpResponse httpS_PrivateCaller(PHttpServer self, PHttpRequest req) {
+  PHttpResponse (*caller)(PHttpRequest, void *) = (PHttpResponse (*)(PHttpRequest, void *))self->onReceive;
+  return caller(req, self->onReceive->mirrorBuffer);
+}
+
+void remote_OnReceiveMessage(PDataFragment frag, void *buffer) {
+  PHttpServer self = buffer;
+  sock_PushCloseConnections(self->server, &frag->conn);
+  if(!self->onReceive) {
+    return ;
+  }
+  PHttpRequest req = http_Request_Parse(frag->data, frag->size);
+  if(!req) {
+    return ;
+  }
+  PHttpResponse response = httpS_PrivateCaller(self, req);
+  HttpString responseString = http_Response_ToString(response);
+  DataFragment dt = {
+    .conn = frag->conn,
+    .data = responseString.buffer,
+    .persistent = 1,
+    .size = responseString.sz
+  };
+  sock_Write_Push(self->server, &dt);
+  free(responseString.buffer);
+}
+
+void httpS_InitializeMethods(PHttpServer self) {
+  PSocketMethod onReceive = sock_Method_Create(
+    (void *)remote_OnReceiveMessage,
+    self
+  );
+  self->server->onReceiveMessage = onReceive;
+}
+
+void httpS_Delete(PHttpServer self) {
+  sock_Method_Delete(self->server->onReceiveMessage);
+  sock_Delete(self->server);
+  free(self);
+}
+
+void httpS_OnFrame(PHttpServer self, uint64_t deltaMS) {
+  sock_OnFrame(self->server, deltaMS);
+}
