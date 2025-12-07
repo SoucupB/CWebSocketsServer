@@ -5,6 +5,7 @@
 #include "Structs.h"
 
 PHttpRequest http_Request_Parse(char *buffer, size_t sz);
+HttpString http_Request_ToString(PHttpRequest self);
 HttpString http_Request_GetValue(PHttpRequest self, char *buffer);
 void http_Request_Delete(PHttpRequest self);
 HttpString http_Hash_GetValue(Hash self, char *buffer, size_t bufferLen);

@@ -55,6 +55,8 @@
     "structs.h": "c",
     "stddef.h": "c",
     "evp.h": "c",
-    "eventmessage.h": "c"
+    "eventmessage.h": "c",
+    "sstream": "c",
+    "assert.h": "c"
   }
 }

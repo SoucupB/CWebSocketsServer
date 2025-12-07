@@ -469,6 +469,11 @@ void http_Response_SetDefault(PHttpResponse self) {
   http_Hash_Add(self->headers, "Connection", sizeof("Connection") - 1, "close", sizeof("close") - 1);
 }
 
+// to do.
+HttpString http_Request_ToString(PHttpRequest self) {
+  return (HttpString) {};
+}
+
 void http_Response_SetJSON(PHttpResponse self) {
   http_Hash_Add(self->headers, "Content-Type", sizeof("Content-Type") - 1, "json", sizeof("json") - 1);
 }

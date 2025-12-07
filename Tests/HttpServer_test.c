@@ -25,17 +25,26 @@ static void test_http_server_creation(void **state) {
   httpS_Delete(server);
 }
 
-static void test_http_server_push_server(void **state) {
+static void test_http_server_push_method(void **state) {
   const uint16_t cPort = port--;
   PHttpServer server = httpS_Create(cPort);
   http_Helper_AddMethod(server, /*default*/NULL);
   http_Helper_Free(server);
 }
 
+static void test_http_server_test_response(void **state) {
+  const uint16_t cPort = port--;
+  PHttpServer server = httpS_Create(cPort);
+  http_Helper_AddMethod(server, /*default*/NULL);
+
+  http_Helper_Free(server);
+}
+
 int main() {
   const struct CMUnitTest tests[] = {
     cmocka_unit_test_prestate(test_http_server_creation, NULL),
-    cmocka_unit_test_prestate(test_http_server_push_server, NULL),
+    cmocka_unit_test_prestate(test_http_server_push_method, NULL),
+    cmocka_unit_test_prestate(test_http_server_test_response, NULL),
   };
   const uint32_t value = cmocka_run_group_tests(tests, NULL, NULL);
   return value;
