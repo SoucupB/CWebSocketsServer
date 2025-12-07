@@ -19,6 +19,7 @@ HttpString jwt_Encode_t(JsonElement payload, HttpString secret, uint64_t iam, ui
 void jwt_PrintHMAC(uint8_t *hmacCode, size_t sz);
 uint8_t jwt_DecodeURLEncodedBase64(HttpString str, uint8_t *response, size_t *responseSz);
 void jwt_ToBase64UrlEncoded(HttpString str, uint8_t *response, size_t *finalSize);
+uint8_t jwt_IsHeaderValid(HttpString str);
 
 static void test_jwt_hmac_create(void **state) {
   HttpString key = {
@@ -122,7 +123,6 @@ static void test_jwt_decode_base64_string_invalid(void **state) {
     .buffer = (char *)input,
     .sz = sz
   }, response, &responseSz));
-  // jwt_PrintHMAC(response, responseSz);
 }
 
 static void test_jwt_decode_base64_string_with_special_chars(void **state) {
@@ -153,6 +153,22 @@ static void test_jwt_decode_base64_string_with_padding_error(void **state) {
   assert_memory_equal(response, expected, responseSz);
 }
 
+static void test_jwt_is_header_valid(void **state) {
+  const char *input = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjMyMzI0MjU1ODQ5LCJpYXQiOjMyMzI0MjU1NTI1LCJzb21lX2ZpZWxkIjozMTMxNH0.7zOdXbes1bt_8gnBpACpntvUQoVifLj6WsijL8DvrLI";
+  assert_true(jwt_IsHeaderValid((HttpString) {
+    .buffer = (char *)input,
+    .sz = strlen(input)
+  }));
+}
+
+static void test_jwt_is_header_invalid(void **state) {
+  const char *input = "eyJhbGciOiJIUzI1NjciLCJ0eXAiOiJKV1QifQ.eyJleHAiOjMyMzI0MjU1ODQ5LCJpYXQiOjMyMzI0MjU1NTI1LCJzb21lX2ZpZWxkIjozMTMxNH0.7zOdXbes1bt_8gnBpACpntvUQoVifLj6WsijL8DvrLI";
+  assert_false(jwt_IsHeaderValid((HttpString) {
+    .buffer = (char *)input,
+    .sz = strlen(input)
+  }));
+}
+
 int main() {
   const struct CMUnitTest tests[] = {
     cmocka_unit_test_prestate(test_jwt_hmac_create, NULL),
@@ -164,6 +180,8 @@ int main() {
     cmocka_unit_test_prestate(test_jwt_decode_base64_string_invalid, NULL),
     cmocka_unit_test_prestate(test_jwt_decode_base64_string_with_special_chars, NULL),
     cmocka_unit_test_prestate(test_jwt_decode_base64_string_with_padding_error, NULL),
+    cmocka_unit_test_prestate(test_jwt_is_header_valid, NULL),
+    cmocka_unit_test_prestate(test_jwt_is_header_invalid, NULL),
   };
   const uint32_t value = cmocka_run_group_tests(tests, NULL, NULL);
   return value;

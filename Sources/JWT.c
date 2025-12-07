@@ -137,7 +137,78 @@ uint8_t jwt_DecodeURLEncodedBase64(HttpString str, uint8_t *response, size_t *re
   return *responseSz != 0;
 }
 
+size_t jwt_ExtractStringChecker(HttpString str) {
+  size_t sz = 0;
+  while(sz < str.sz && str.buffer[sz] != '.') {
+    sz++;
+  }
+  return sz;
+}
+
+uint8_t jwt_IsHeaderValid(HttpString str) {
+  size_t headerSize = jwt_ExtractStringChecker(str);
+  size_t headerDecodedSize;
+  uint8_t headerResponse[str.sz + 1];
+  jwt_DecodeURLEncodedBase64((HttpString) {
+    .buffer = (char *)str.buffer,
+    .sz = headerSize
+  }, headerResponse, &headerDecodedSize);
+  if(!headerDecodedSize) {
+    return 0;
+  }
+  JsonElement headerJson = json_Parse((HttpString) {
+    .buffer = (char *)headerResponse,
+    .sz = headerDecodedSize
+  }, NULL);
+  if(headerJson.type != JSON_JSON) {
+    json_DeleteElement(headerJson);
+    return 0;
+  }
+  JsonElement encryptionType = json_Map_GetString(headerJson, "alg");
+  if(encryptionType.type != JSON_STRING) {
+    json_DeleteElement(headerJson);
+    return 0;
+  }
+  char *acceptedAlgorithm = "HS256";
+  size_t acceptedAlgorithmSize = strlen(acceptedAlgorithm);
+  PHttpString algoString = (PHttpString)encryptionType.value;
+  if(algoString->sz != acceptedAlgorithmSize) {
+    json_DeleteElement(headerJson);
+    return 0;
+  }
+  if(memcmp(acceptedAlgorithm, algoString->buffer, acceptedAlgorithmSize)) {
+    json_DeleteElement(headerJson);
+    return 0;
+  }
+  json_DeleteElement(headerJson);
+  return 1;
+}
+
+uint8_t jwt_IsPayloadValid(HttpString str) {
+  size_t headerSize = jwt_ExtractStringChecker(str);
+  HttpString payloadString = {
+    .buffer = headerSize + str.buffer + 1,
+    .sz = str.sz - headerSize
+  };
+
+  size_t payloadDecodedSize;
+  uint8_t payloadResponse[payloadString.sz + 1];
+  jwt_DecodeURLEncodedBase64((HttpString) {
+    .buffer = (char *)payloadString.buffer,
+    .sz = headerSize
+  }, payloadResponse, &payloadDecodedSize);
+  if(!payloadDecodedSize) {
+    return 0;
+  }
+
+  return 1;
+}
+
 uint8_t jwt_IsValid(HttpString str, HttpString secret) {
+  if(!jwt_IsHeaderValid(str)) {
+    return 0;
+  }
+
   return 0;
 }
 
