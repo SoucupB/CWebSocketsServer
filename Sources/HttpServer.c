@@ -43,6 +43,7 @@ void remote_OnReceiveMessage(PDataFragment frag, void *buffer) {
   };
   sock_Write_Push(self->server, &dt);
   free(responseString.buffer);
+  http_Response_Delete(response);
 }
 
 void httpS_InitializeMethods(PHttpServer self) {
