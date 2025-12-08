@@ -12,6 +12,7 @@
 #include "JWT.h"
 #include "JsonParser.h"
 #include "TimeFragment.h"
+#include "HttpParser.h"
 #include "HttpServer_Helper_test.h"
 
 #define EPSILON 1e-5f
@@ -34,10 +35,37 @@ static void test_http_server_push_method(void **state) {
 
 static void test_http_server_test_response(void **state) {
   const uint16_t cPort = port--;
-  PHttpServer server = httpS_Create(cPort);
-  http_Helper_AddMethod(server, /*default*/NULL);
+  char *request = "\
+POST /connect HTTP/1.1\r\n\
+Content-Type: application/json\r\n\
+User-Agent: PostmanRuntime/7.37.3\r\n\
+Accept: */*\r\n\
+Postman-Token: 4415f19a-a8bf-4577-affa-84bed769a538\r\n\
+Host: space_bots_instance_1.api.com\r\n\
+Accept-Encoding: gzip, deflate, br\r\n\
+Connection: keep-alive\r\n\
+Content-Length: 4\r\n\
+\r\n\
+abcd\
+";
+  // PHttpServer server = httpS_Create(cPort);
+  // http_Helper_AddMethod(server, /*default*/NULL);
+  // http_Helper_Free(server);
+  PHttpRequest req = http_Request_Parse(request, strlen(request));
+  HttpString str = http_Request_ToString(req);
+  // for(size_t i = 0; i < str.sz; i++) {
+  //   if(str.buffer[i] == '\r') {
+  //     printf("\\r");
+  //   }
+  //   else if(str.buffer[i] == '\n') {
+  //     printf("\\n\n");
+  //   } else {
+  //     printf("%c", str.buffer[i]);
+  //   }
+  // }
+  // printf("\n");
 
-  http_Helper_Free(server);
+  // printf("%d %.*s\n", str.sz, str.sz, str.buffer);
 }
 
 int main() {

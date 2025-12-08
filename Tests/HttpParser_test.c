@@ -290,6 +290,28 @@ Hello";
   http_Response_Delete(response);
 }
 
+static void test_http_parser_request_to_string(void **state) {
+  char *request = "\
+POST /connect HTTP/1.1\r\n\
+Content-Type: application/json\r\n\
+User-Agent: PostmanRuntime/7.37.3\r\n\
+Accept: */*\r\n\
+Postman-Token: 4415f19a-a8bf-4577-affa-84bed769a538\r\n\
+Host: space_bots_instance_1.api.com\r\n\
+Accept-Encoding: gzip, deflate, br\r\n\
+Connection: keep-alive\r\n\
+Content-Length: 4\r\n\
+\r\n\
+abcd\
+";
+  PHttpRequest req = http_Request_Parse(request, strlen(request));
+  HttpString str = http_Request_ToString(req);
+  assert_ptr_not_equal(str.buffer, NULL);
+  assert_int_equal(str.sz, strlen(request));
+  free(str.buffer);
+  http_Request_Delete(req);
+}
+
 int main(void) {
   const struct CMUnitTest tests[] = {
     cmocka_unit_test(test_http_parser_full_http_body),
@@ -312,6 +334,7 @@ int main(void) {
     cmocka_unit_test(test_http_null_data),
     cmocka_unit_test(test_http_response_to_small_string_reject),
     cmocka_unit_test(test_http_parser_postman_requests),
+    cmocka_unit_test(test_http_parser_request_to_string),
   };
   return cmocka_run_group_tests(tests, NULL, NULL);
 }

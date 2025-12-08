@@ -3,6 +3,7 @@
 #include <string.h>
 #include <stdio.h>
 #include <ctype.h>
+#include "Vector.h"
 #include "TrieHash.h"
 
 static inline PHttpMetaData http_InitMetadata();
@@ -469,9 +470,107 @@ void http_Response_SetDefault(PHttpResponse self) {
   http_Hash_Add(self->headers, "Connection", sizeof("Connection") - 1, "close", sizeof("close") - 1);
 }
 
+static inline void http_PushString(Vector str, HttpString buffer) {
+  char *bff = buffer.buffer;
+  for(size_t i = 0, c = buffer.sz; i < c; i++) {
+    vct_Push(str, &bff[i]);
+  }
+}
+
+static inline void http_PushCharArray(Vector str, char *buffer) {
+  for(size_t i = 0, c = strlen(buffer); i < c; i++) {
+    vct_Push(str, &buffer[i]);
+  }
+}
+
+
+void http_Request_AddTopString(PHttpRequest self, Vector str) {
+  switch (self->url->method)
+  {
+    case GET: {
+      http_PushString(str, (HttpString) {
+        .buffer = "GET",
+        .sz = sizeof("GET") - 1
+      });
+      break;
+    }
+    case POST: {
+      http_PushString(str, (HttpString) {
+        .buffer = "POST",
+        .sz = sizeof("POST") - 1
+      });
+      break;
+    }
+    case PUT: {
+      http_PushString(str, (HttpString) {
+        .buffer = "PUT",
+        .sz = sizeof("PUT") - 1
+      });
+      break;
+    }
+    case DELETE: {
+      http_PushString(str, (HttpString) {
+        .buffer = "DELETE",
+        .sz = sizeof("DELETE") - 1
+      });
+      break;
+    }
+    case PATCH: {
+      http_PushString(str, (HttpString) {
+        .buffer = "PATCH",
+        .sz = sizeof("PATCH") - 1
+      });
+      break;
+    }
+    default:
+      break;
+  }
+  http_PushCharArray(str, " ");
+  http_PushString(str, self->url->path);
+  http_PushCharArray(str, " ");
+  http_PushString(str, (HttpString) {
+    .buffer = self->url->httpType,
+    .sz = strlen(self->url->httpType)
+  });
+  http_PushCharArray(str, "\r\n");
+}
+
+void http_Request_PushHeaders(Hash header, Vector str) {
+  Vector headersArr = trh_GetKeys(header.hash);
+  Key *keys = headersArr->buffer;
+  for(size_t i = 0, c = headersArr->size; i < c; i++) {
+    HttpString valueBuffer = http_Hash_GetValue(header, keys[i].key, keys[i].keySize);
+    if(!valueBuffer.buffer) {
+      continue;
+    }
+    int32_t sz = snprintf(NULL, 0, "%.*s: %.*s\r\n", (int)keys[i].keySize, (char *)keys[i].key, (int)valueBuffer.sz, valueBuffer.buffer);
+    char response[sz + 2];
+    snprintf(response, sz + 2, "%.*s: %.*s\r\n", (int)keys[i].keySize, (char *)keys[i].key, (int)valueBuffer.sz, valueBuffer.buffer);
+    http_PushString(str, (HttpString) {
+      .buffer = response,
+      .sz = sz
+    });
+  }
+  http_PushCharArray(str, "\r\n");
+  trh_FreeKeys(headersArr);
+}
+
+static inline void http_Request_PushBody(PHttpRequest self, Vector str) {
+  http_PushString(str, *self->body);
+}
+
 // to do.
 HttpString http_Request_ToString(PHttpRequest self) {
-  return (HttpString) {};
+  Vector response = vct_Init(sizeof(char));
+  http_Request_AddTopString(self, response);
+  http_Request_PushHeaders(self->headers, response);
+  http_Request_PushBody(self, response);
+  HttpString rsp = {
+    .buffer = response->buffer,
+    .sz = response->size
+  };
+  vct_DeleteWOBuffer(response);
+  return rsp;
 }
 
 void http_Response_SetJSON(PHttpResponse self) {
