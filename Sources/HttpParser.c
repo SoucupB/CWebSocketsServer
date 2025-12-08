@@ -395,10 +395,18 @@ void http_Request_Delete(PHttpRequest self) {
   free(self);
 }
 
-void http_Request_SetBodySize(PHttpResponse self, size_t sz) {
+void http_SetBodySize(Hash hash, size_t sz) {
   char buffer[20] = {0};
   snprintf(buffer, sizeof(buffer), "%zu", sz);
-  http_Hash_Add(self->headers, "Content-Length", sizeof("Content-Length") - 1, buffer, strlen(buffer));
+  http_Hash_Add(hash, "Content-Length", sizeof("Content-Length") - 1, buffer, strlen(buffer));
+}
+
+static inline void http_Response_SetBodySize(PHttpResponse self, size_t sz) {
+  http_SetBodySize(self->headers, sz);
+}
+
+static inline void http_Request_SetBodySize(PHttpRequest self, size_t sz) {
+  http_SetBodySize(self->headers, sz);
 }
 
 void http_Response_SetBody(PHttpResponse self, PHttpString buffer) {
@@ -408,7 +416,7 @@ void http_Response_SetBody(PHttpResponse self, PHttpString buffer) {
   self->body.buffer = malloc(buffer->sz);
   memcpy(self->body.buffer, buffer->buffer, buffer->sz);
   self->body.sz = buffer->sz;
-  http_Request_SetBodySize(self, buffer->sz);
+  http_Response_SetBodySize(self, buffer->sz);
 }
 
 static inline size_t http_Response_Size(Hash headers, Vector headersArr) {
@@ -559,7 +567,6 @@ static inline void http_Request_PushBody(PHttpRequest self, Vector str) {
   http_PushString(str, *self->body);
 }
 
-// to do.
 HttpString http_Request_ToString(PHttpRequest self) {
   Vector response = vct_Init(sizeof(char));
   http_Request_AddTopString(self, response);
@@ -571,6 +578,32 @@ HttpString http_Request_ToString(PHttpRequest self) {
   };
   vct_DeleteWOBuffer(response);
   return rsp;
+}
+
+PHttpRequest http_Request_Create() {
+  PHttpRequest self = malloc(sizeof(HttpRequest));
+  memset(self, 0, sizeof(HttpRequest));
+  self->url = http_URL_Init();
+  self->metadata = http_InitMetadata();
+  self->headers = http_Hash_Create();
+  self->url->method = GET;
+  memcpy(self->url->httpType, "HTTP/1.1", sizeof("HTTP/1.1"));
+  return self;
+}
+
+HttpString http_String_Copy(HttpString str) {
+  HttpString response;
+  response.sz = str.sz;
+  response.buffer = malloc(str.sz);
+  memcpy(response.buffer, str.buffer, str.sz);
+  return response;
+}
+
+void http_Request_SetBody(PHttpRequest self, HttpString str) {
+  PHttpString resp = malloc(sizeof(HttpString));
+  *resp = http_String_Copy(str);
+  self->body = resp;
+  http_Request_SetBodySize(self, str.sz);
 }
 
 void http_Response_SetJSON(PHttpResponse self) {
@@ -587,7 +620,7 @@ PHttpResponse http_Response_Empty() {
   self->headers = http_Hash_Create();
   self->httpCode = "HTTP/1.1";
   self->response = 200;
-  http_Request_SetBodySize(self, 0);
+  http_Response_SetBodySize(self, 0);
   return self;
 }
 

@@ -312,6 +312,25 @@ abcd\
   http_Request_Delete(req);
 }
 
+static void test_http_parser_request_from_build_to_string(void **state) {
+  PHttpRequest req = http_Request_Create();
+  char *request = "\
+GET  HTTP/1.1\r\n\
+Content-Length: 13\r\n\
+\r\n\
+DSDSAFAFAFAFA\
+";
+  http_Request_SetBody(req, (HttpString) {
+    .buffer = "DSDSAFAFAFAFA",
+    .sz = sizeof("DSDSAFAFAFAFA") - 1
+  });
+  HttpString str = http_Request_ToString(req);
+  assert_int_equal(strlen(request), str.sz);
+  assert_memory_equal(request, str.buffer, strlen(request));
+  free(str.buffer);
+  http_Request_Delete(req);
+}
+
 int main(void) {
   const struct CMUnitTest tests[] = {
     cmocka_unit_test(test_http_parser_full_http_body),
@@ -335,6 +354,7 @@ int main(void) {
     cmocka_unit_test(test_http_response_to_small_string_reject),
     cmocka_unit_test(test_http_parser_postman_requests),
     cmocka_unit_test(test_http_parser_request_to_string),
+    cmocka_unit_test(test_http_parser_request_from_build_to_string),
   };
   return cmocka_run_group_tests(tests, NULL, NULL);
 }
