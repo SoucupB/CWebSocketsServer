@@ -8,7 +8,7 @@
 
 static inline PHttpMetaData http_InitMetadata();
 static inline PURL http_URL_Init();
-static inline void http_UpdateString(PHttpRequest self, PHttpString string, char *buffer);
+static inline void http_UpdateString(PHttpString string, char *buffer, char *_endBuffer);
 uint8_t http_Route_Parse(PHttpRequest parent, PHttpString buffer);
 static inline char *http_ChompString(PHttpString buff, char *like, uint8_t repeat);
 uint8_t http_Header_Parse(PHttpRequest self, PHttpString buffer);
@@ -73,24 +73,24 @@ static inline void http_Hash_Add(Hash self, char *key, size_t keySize, char *val
   trh_Add(self.valuesSize, key, keySize, &valueSize, sizeof(size_t));
 }
 
-char *http_Header_ParseLine(PHttpRequest self, PHttpString buffer) {
+char *http_Header_ParseLine(PHttpRequest self, char *endBuffer, PHttpString buffer) {
   char *key = http_ChompString(buffer, ACCEPTED_ALPHANUMERIC_KEY, 1);
   if(!key) {
     return NULL;
   }
   size_t keySize = (size_t)(key - buffer->buffer);
   char *keyOffset = buffer->buffer;
-  http_UpdateString(self, buffer, key);
+  http_UpdateString(buffer, key, endBuffer);
 
   char *separator = http_ChompString(buffer, ":", 0);
   if(!separator) {
     return NULL;
   }
-  http_UpdateString(self, buffer, separator);
+  http_UpdateString(buffer, separator, endBuffer);
 
   char *space = http_ChompString(buffer, " ", 0);
   if(space) {
-    http_UpdateString(self, buffer, space);
+    http_UpdateString(buffer, space, endBuffer);
   }
   char *value = http_ChompString(buffer, ACCEPTED_ALPHANUMERIC_VALUE, 1);
   if(!value) {
@@ -98,14 +98,14 @@ char *http_Header_ParseLine(PHttpRequest self, PHttpString buffer) {
   }
   size_t valueSize = (size_t)(value - buffer->buffer);
   char *valueOffset = buffer->buffer;
-  http_UpdateString(self, buffer, value);
+  http_UpdateString(buffer, value, endBuffer);
 
   http_Hash_Add(self->headers, keyOffset, keySize, valueOffset, valueSize);
   char *endOfLine = http_ChompLineSeparator(buffer);
   if(!endOfLine) {
     return NULL;
   }
-  http_UpdateString(self, buffer, endOfLine);
+  http_UpdateString(buffer, endOfLine, endBuffer);
   return endOfLine;
 }
 
@@ -146,12 +146,12 @@ HttpString http_Hash_GetValue(Hash self, char *buffer, size_t bufferLen) {
 uint8_t http_Header_Parse(PHttpRequest self, PHttpString buffer) {
   char *buff;
   HttpString cpyStr = *buffer;
-  while((buff = http_Header_ParseLine(self, &cpyStr)) && buff);
+  while((buff = http_Header_ParseLine(self, self->_endBuffer, &cpyStr)) && buff);
   char *endOfLine = http_ChompLineSeparator(&cpyStr);
   if(!endOfLine) {
     return 0;
   }
-  http_UpdateString(self, buffer, endOfLine);
+  http_UpdateString(buffer, endOfLine, self->_endBuffer);
   return 1;
 }
 
@@ -232,7 +232,7 @@ void http_Body_Process(PHttpRequest self, PHttpString buffer) {
     return ;
   }
   self->body = body;
-  http_UpdateString(self, buffer, bodyBuffer);
+  http_UpdateString(buffer, bodyBuffer, self->_endBuffer);
 }
 
 char *http_Route_ParseCodes(PHttpRequest parent, PHttpString buffer) {
@@ -248,9 +248,9 @@ char *http_Route_ParseCodes(PHttpRequest parent, PHttpString buffer) {
   return NULL;
 }
 
-static inline void http_UpdateString(PHttpRequest self, PHttpString string, char *buffer) {
+static inline void http_UpdateString(PHttpString string, char *buffer, char *_endBuffer) {
   string->buffer = buffer;
-  string->sz = (size_t)(self->_endBuffer - buffer);
+  string->sz = (size_t)(_endBuffer - buffer);
 }
 
 static inline char *http_ChompString(PHttpString buff, char *like, uint8_t repeat) {
@@ -280,7 +280,7 @@ char *http_Path_Parse(PHttpRequest parent, PHttpString buffer) {
   uint8_t i = 0;
   char *bff;
   while((bff = http_ChompString(&cpyBuffer, strings[i], i)) && bff) {
-    http_UpdateString(parent, &cpyBuffer, bff);
+    http_UpdateString(&cpyBuffer, bff, parent->_endBuffer);
     i = !i;
   }
   return cpyBuffer.buffer;
@@ -292,19 +292,19 @@ char *http_Route_ParseType(PHttpRequest parent, PHttpString buffer) {
   if(!bff) {
     return NULL;
   }
-  http_UpdateString(parent, &cpyString, bff);
+  http_UpdateString(&cpyString, bff, parent->_endBuffer);
 
   bff = http_ChompString(&cpyString, "/", 0);
   if(!bff) {
     return NULL;
   }
-  http_UpdateString(parent, &cpyString, bff);
+  http_UpdateString(&cpyString, bff, parent->_endBuffer);
 
   bff = http_ChompString(&cpyString, ALPHANUMERIC, 1);
   if(!bff) {
     return NULL;
   }
-  http_UpdateString(parent, &cpyString, bff);
+  http_UpdateString(&cpyString, bff, parent->_endBuffer);
 
   return bff;
 }
@@ -314,13 +314,13 @@ char *http_Route_Parse_t(PHttpRequest parent, PHttpString buffer) {
   if(!codesBuffer) {
     return NULL;
   }
-  http_UpdateString(parent, buffer, codesBuffer);
+  http_UpdateString(buffer, codesBuffer, parent->_endBuffer);
 
   char *chompedSpace = http_ChompString(buffer, " ", 0);
   if(!chompedSpace) {
     return NULL;
   }
-  http_UpdateString(parent, buffer, chompedSpace);
+  http_UpdateString(buffer, chompedSpace, parent->_endBuffer);
 
   char *path = http_Path_Parse(parent, buffer);
   if(!path) {
@@ -330,13 +330,13 @@ char *http_Route_Parse_t(PHttpRequest parent, PHttpString buffer) {
   parent->url->path.buffer = malloc(bffSize);
   memcpy(parent->url->path.buffer, buffer->buffer, bffSize);
   parent->url->path.sz = bffSize;
-  http_UpdateString(parent, buffer, path);
+  http_UpdateString(buffer, path, parent->_endBuffer);
   
   chompedSpace = http_ChompString(buffer, " ", 0);
   if(!chompedSpace) {
     return NULL;
   }
-  http_UpdateString(parent, buffer, chompedSpace);
+  http_UpdateString(buffer, chompedSpace, parent->_endBuffer);
 
   char *httpType = http_Route_ParseType(parent, buffer);
   if(!httpType) {
@@ -347,13 +347,13 @@ char *http_Route_Parse_t(PHttpRequest parent, PHttpString buffer) {
     return NULL;
   }
   memcpy(parent->url->httpType, buffer->buffer, mthSize);
-  http_UpdateString(parent, buffer, httpType);
+  http_UpdateString(buffer, httpType, parent->_endBuffer);
 
   chompedSpace = http_ChompLineSeparator(buffer);
   if(!chompedSpace) {
     return NULL;
   }
-  http_UpdateString(parent, buffer, chompedSpace);
+  http_UpdateString(buffer, chompedSpace, parent->_endBuffer);
   return buffer->buffer;
 }
 
@@ -363,7 +363,7 @@ uint8_t http_Route_Parse(PHttpRequest parent, PHttpString buffer) {
   if(!urlParse) {
     return 0;
   }
-  http_UpdateString(parent, buffer, urlParse);
+  http_UpdateString(buffer, urlParse, parent->_endBuffer);
   return 1;
 }
 
@@ -697,8 +697,8 @@ uint8_t http_Response_ParseMessage(HttpString buffer, PHttpString nextPart) {
   return 1;
 }
 
-uint8_t http_Response_ParseHeaders(HttpString buffer, PHttpString nextPart) {
-  
+uint8_t http_Response_ParseHeaders(PHttpString nextPart) {
+  return 0;
 }
 
 PHttpResponse http_Response_Parse(HttpString buffer) {
