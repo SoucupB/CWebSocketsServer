@@ -15,6 +15,7 @@ typedef struct RequestMetadata_t {
 typedef RequestMetadata *PRequestMetadata;
 
 HttpString sock_Client_ReceiveWithErrors(PConnection conn);
+void httpS_Request_CleanHangingConnections(const PHttpRequestServer self) ;
 
 PHttpRequestServer httpS_Request_Create(int64_t timeoutMS) {
   PHttpRequestServer self = malloc(sizeof(HttpRequestServer));
@@ -24,6 +25,7 @@ PHttpRequestServer httpS_Request_Create(int64_t timeoutMS) {
 }
 
 void httpS_Request_Delete(PHttpRequestServer self) {
+  httpS_Request_CleanHangingConnections(self);
   vct_Delete(self->requests);
   free(self);
 }
@@ -95,6 +97,17 @@ static inline uint8_t httpS_Request_ProcessCurrentFragment(PHttpRequestServer se
   return 1;
 }
 
+void httpS_Request_CleanHangingConnections(const PHttpRequestServer self) {
+  RequestMetadata *buffer = self->requests->buffer;
+  for(size_t i = 0, c = self->requests->size; i < c; i++) {
+    if(!buffer[i].conn) {
+      continue;
+    }
+    sock_Client_Free(buffer[i].conn);
+    buffer[i].conn = NULL;
+  }
+}
+
 void httpS_Request_ProcessActiveRequests(PHttpRequestServer self, uint64_t deltaMS) {
   RequestMetadata *buffer = self->requests->buffer;
   Vector indexes = vct_Init(sizeof(size_t));
@@ -104,6 +117,8 @@ void httpS_Request_ProcessActiveRequests(PHttpRequestServer self, uint64_t delta
     }
     if(httpS_Request_ProcessCurrentFragment(self, &buffer[i], deltaMS)) {
       vct_Push(indexes, &i);
+      sock_Client_Free(buffer[i].conn);
+      buffer[i].conn = NULL;
     }
   }
   vct_RemoveElements(self->requests, indexes);
