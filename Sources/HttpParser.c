@@ -11,7 +11,7 @@ static inline PURL http_URL_Init();
 static inline void http_UpdateString(PHttpString string, char *buffer, char *_endBuffer);
 uint8_t http_Route_Parse(PHttpRequest parent, PHttpString buffer);
 static inline char *http_ChompString(PHttpString buff, char *like, uint8_t repeat);
-uint8_t http_Header_Parse(PHttpRequest self, PHttpString buffer);
+uint8_t http_Header_Parse(Hash self, char *endBuffer, PHttpString buffer);
 char *http_GetToken(PHttpString buffer, PHttpString token);
 static inline char *http_ChompLineSeparator(PHttpString buffer);
 static inline Hash http_Hash_Create();
@@ -38,7 +38,7 @@ PHttpRequest http_Request_Parse(char *buffer, size_t sz) {
     http_Request_Delete(self);
     return NULL;
   }
-  if(!http_Header_Parse(self, &input)) {
+  if(!http_Header_Parse(self->headers, self->_endBuffer, &input)) {
     http_Request_Delete(self);
     return NULL;
   }
@@ -73,7 +73,7 @@ static inline void http_Hash_Add(Hash self, char *key, size_t keySize, char *val
   trh_Add(self.valuesSize, key, keySize, &valueSize, sizeof(size_t));
 }
 
-char *http_Header_ParseLine(PHttpRequest self, char *endBuffer, PHttpString buffer) {
+char *http_Header_ParseLine(Hash self, char *endBuffer, PHttpString buffer) {
   char *key = http_ChompString(buffer, ACCEPTED_ALPHANUMERIC_KEY, 1);
   if(!key) {
     return NULL;
@@ -100,7 +100,7 @@ char *http_Header_ParseLine(PHttpRequest self, char *endBuffer, PHttpString buff
   char *valueOffset = buffer->buffer;
   http_UpdateString(buffer, value, endBuffer);
 
-  http_Hash_Add(self->headers, keyOffset, keySize, valueOffset, valueSize);
+  http_Hash_Add(self, keyOffset, keySize, valueOffset, valueSize);
   char *endOfLine = http_ChompLineSeparator(buffer);
   if(!endOfLine) {
     return NULL;
@@ -143,15 +143,15 @@ HttpString http_Hash_GetValue(Hash self, char *buffer, size_t bufferLen) {
   };
 }
 
-uint8_t http_Header_Parse(PHttpRequest self, PHttpString buffer) {
+uint8_t http_Header_Parse(Hash self, char *endBuffer, PHttpString buffer) {
   char *buff;
   HttpString cpyStr = *buffer;
-  while((buff = http_Header_ParseLine(self, self->_endBuffer, &cpyStr)) && buff);
+  while((buff = http_Header_ParseLine(self, endBuffer, &cpyStr)) && buff);
   char *endOfLine = http_ChompLineSeparator(&cpyStr);
   if(!endOfLine) {
     return 0;
   }
-  http_UpdateString(buffer, endOfLine, self->_endBuffer);
+  http_UpdateString(buffer, endOfLine, endBuffer);
   return 1;
 }
 
