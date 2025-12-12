@@ -331,6 +331,50 @@ DSDSAFAFAFAFA\
   http_Request_Delete(req);
 }
 
+static void test_http_parser_response_parse_success(void **state) {
+  char *responseStr = "\
+HTTP/1.1 205 OK\r\n\
+Content-Length: 13\r\n\
+Some-Custom-Data-2: aaaafdsfdsggg\r\n\
+Some-Custom-Data: fdsfdsggg\r\n\
+\r\n\
+DSDSAFAFAFAFA\
+";
+  PHttpResponse response = http_Response_Parse((HttpString) {
+    .buffer = responseStr,
+    .sz = strlen(responseStr)
+  });
+  char *expectedResponse = "\
+HTTP/1.1 205\r\n\
+Content-Length: 13\r\n\
+Some-Custom-Data: fdsfdsggg\r\n\
+Some-Custom-Data-2: aaaafdsfdsggg\r\n\
+\r\n\
+DSDSAFAFAFAFA\
+";
+  assert_ptr_not_equal(response, NULL);
+  HttpString toString = http_Response_ToString(response);
+  assert_memory_equal(expectedResponse, toString.buffer, strlen(expectedResponse));
+  assert_int_equal(strlen(expectedResponse), toString.sz);
+  free(toString.buffer);
+  http_Response_Delete(response);
+}
+
+static void test_http_parser_response_parse_failed(void **state) {
+  char *responseStr = "\
+HTTP/1.1 20320 OK\r\n\
+Content-Length: 13\r\n\
+Some-Custom-Data: fdsfdsggg\r\n\
+\r\n\
+DSDSAFAFAFAFA\
+";
+  PHttpResponse response = http_Response_Parse((HttpString) {
+    .buffer = responseStr,
+    .sz = strlen(responseStr)
+  });
+  assert_ptr_equal(response, NULL);
+}
+
 int main(void) {
   const struct CMUnitTest tests[] = {
     cmocka_unit_test(test_http_parser_full_http_body),
@@ -355,6 +399,8 @@ int main(void) {
     cmocka_unit_test(test_http_parser_postman_requests),
     cmocka_unit_test(test_http_parser_request_to_string),
     cmocka_unit_test(test_http_parser_request_from_build_to_string),
+    cmocka_unit_test(test_http_parser_response_parse_success),
+    cmocka_unit_test(test_http_parser_response_parse_failed),
   };
   return cmocka_run_group_tests(tests, NULL, NULL);
 }

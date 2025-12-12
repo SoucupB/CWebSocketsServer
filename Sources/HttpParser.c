@@ -677,7 +677,7 @@ static inline void http_Response_SetCode(PHttpResponse self, char *buffer) {
 static inline void http_SetBuffer(HttpString buffer, PHttpString nextPart, char *next) {
   *nextPart = (HttpString) {
     .buffer = next,
-    .sz = (size_t)(next - buffer.buffer)
+    .sz = (size_t)((buffer.buffer + buffer.sz) - next)
   };
 }
 
