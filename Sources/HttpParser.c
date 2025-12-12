@@ -42,6 +42,7 @@ PHttpRequest http_Request_Parse(char *buffer, size_t sz) {
     http_Request_Delete(self);
     return NULL;
   }
+  // self->body = http_Body_Process(self->headers, self->_endBuffer, &input);
   http_Body_Process(self, &input);
   if(input.sz) {
     http_Request_Delete(self);
@@ -185,9 +186,9 @@ ssize_t http_Parse_Number(char *buffer, size_t sz, char **endBufer) {
   return number;
 }
 
-ssize_t http_Get_Number(PHttpRequest self, char *key, uint8_t *isValid) {
+ssize_t http_Get_Number(Hash self, char *key, uint8_t *isValid) {
   *isValid = 0;
-  HttpString value = http_Request_GetValue(self, key);
+  HttpString value = http_Hash_GetValue(self, key, strlen(key));
   if(!value.buffer) {
     return 0;
   }
@@ -200,7 +201,7 @@ ssize_t http_Get_Number(PHttpRequest self, char *key, uint8_t *isValid) {
   return number;
 }
 
-PHttpString http_Body_Chomp_t(PHttpRequest self, PHttpString buffer, ssize_t contentLength) {
+PHttpString http_Body_Chomp_t(PHttpString buffer, ssize_t contentLength) {
   if(contentLength > buffer->sz) {
     return NULL;
   }
@@ -211,13 +212,13 @@ PHttpString http_Body_Chomp_t(PHttpRequest self, PHttpString buffer, ssize_t con
   return response;
 }
 
-char *http_Body_Chomp(PHttpRequest self, PHttpString buffer, PHttpString *response) {
+char *http_Body_Chomp(Hash self, PHttpString buffer, PHttpString *response) {
   uint8_t valid;
   ssize_t contentLength = http_Get_Number(self, "Content-Length", &valid);
   if(!valid || contentLength < 0) {
     return NULL;
   }
-  PHttpString body = http_Body_Chomp_t(self, buffer, contentLength);
+  PHttpString body = http_Body_Chomp_t(buffer, contentLength);
   if(!body) {
     return NULL;
   }
@@ -227,7 +228,7 @@ char *http_Body_Chomp(PHttpRequest self, PHttpString buffer, PHttpString *respon
 
 void http_Body_Process(PHttpRequest self, PHttpString buffer) {
   PHttpString body;
-  char *bodyBuffer = http_Body_Chomp(self, buffer, &body);
+  char *bodyBuffer = http_Body_Chomp(self->headers, buffer, &body);
   if(!bodyBuffer) {
     return ;
   }
@@ -697,8 +698,8 @@ uint8_t http_Response_ParseMessage(HttpString buffer, PHttpString nextPart) {
   return 1;
 }
 
-uint8_t http_Response_ParseHeaders(PHttpString nextPart) {
-  return 0;
+uint8_t http_Response_ParseBody(PHttpResponse self, PHttpServer buffer) {
+  return 1;
 }
 
 PHttpResponse http_Response_Parse(HttpString buffer) {
@@ -726,7 +727,10 @@ PHttpResponse http_Response_Parse(HttpString buffer) {
     http_Response_Delete(resp);
     return NULL;
   }
-
+  if(!http_Header_Parse(resp->headers, buffer.buffer + buffer.sz, &cpyBuffer)) {
+    http_Response_Delete(resp);
+    return NULL;
+  }
   return resp;
 }
 
