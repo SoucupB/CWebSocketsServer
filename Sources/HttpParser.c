@@ -643,28 +643,28 @@ uint8_t http_Response_ParseCurrentToken(PHttpString buffer, PHttpString token, P
   return 1;
 }
 
-uint8_t http_Response_ParseCode(HttpString buffer, PHttpString nextPart) {
+uint8_t http_Response_ParseCode(PHttpString buffer) {
   HttpString token = {
     .buffer = "HTTP/1.1",
     .sz = sizeof("HTTP/1.1") - 1
   };
-  return http_Response_ParseCurrentToken(&buffer, &token, nextPart);
+  return http_Response_ParseCurrentToken(buffer, &token, buffer);
 }
 
-uint8_t http_Response_ParseEmptySpace(HttpString buffer, PHttpString nextPart) {
+uint8_t http_Response_ParseEmptySpace(PHttpString buffer) {
   HttpString token = {
     .buffer = " ",
     .sz = sizeof(" ") - 1
   };
-  return http_Response_ParseCurrentToken(&buffer, &token, nextPart);
+  return http_Response_ParseCurrentToken(buffer, &token, buffer);
 }
 
-uint8_t http_Response_ParseLineSeparator(HttpString buffer, PHttpString nextPart) {
+uint8_t http_Response_ParseLineSeparator(PHttpString buffer) {
   HttpString token = {
     .buffer = "\r\n",
     .sz = sizeof("\r\n") - 1
   };
-  return http_Response_ParseCurrentToken(&buffer, &token, nextPart);
+  return http_Response_ParseCurrentToken(buffer, &token, buffer);
 }
 
 static inline void http_Response_SetCode(PHttpResponse self, char *buffer) {
@@ -678,22 +678,22 @@ static inline void http_SetBuffer(HttpString buffer, PHttpString nextPart, char 
   };
 }
 
-uint8_t http_Response_ParseHttpCode(PHttpResponse self, HttpString buffer, PHttpString nextPart) {
-  char *next = http_ChompString(&buffer, NUMBERS, 1);
-  if(!next || (next - buffer.buffer != 0x3)) {
+uint8_t http_Response_ParseHttpCode(PHttpResponse self, PHttpString buffer) {
+  char *next = http_ChompString(buffer, NUMBERS, 1);
+  if(!next || (next - buffer->buffer != 0x3)) {
     return 0;
   }
-  http_Response_SetCode(self, buffer.buffer);
-  http_SetBuffer(buffer, nextPart, next);
+  http_Response_SetCode(self, buffer->buffer);
+  http_SetBuffer(*buffer, buffer, next);
   return 1;
 }
 
-uint8_t http_Response_ParseMessage(HttpString buffer, PHttpString nextPart) {
-  char *next = http_ChompString(&buffer, ALPHANUMERIC, 1);
+uint8_t http_Response_ParseMessage(PHttpString buffer) {
+  char *next = http_ChompString(buffer, ALPHANUMERIC, 1);
   if(!next) {
     return 0;
   }
-  http_SetBuffer(buffer, nextPart, next);
+  http_SetBuffer(*buffer, buffer, next);
   return 1;
 }
 
@@ -703,34 +703,40 @@ uint8_t http_Response_ParseBody(PHttpResponse self, PHttpServer buffer) {
 
 PHttpResponse http_Response_Parse(HttpString buffer) {
   HttpString cpyBuffer = buffer;
-  if(!http_Response_ParseCode(cpyBuffer, &cpyBuffer)) {
+  if(!http_Response_ParseCode(&cpyBuffer)) {
     return NULL;
   }
-  if(!http_Response_ParseEmptySpace(cpyBuffer, &cpyBuffer)) {
+  if(!http_Response_ParseEmptySpace(&cpyBuffer)) {
     return NULL;
   }
-  PHttpResponse resp = http_Response_Empty();
-  if(!http_Response_ParseHttpCode(resp, cpyBuffer, &cpyBuffer)) {
-    http_Response_Delete(resp);
+  char *_endBuffer = buffer.buffer + buffer.sz;
+  PHttpResponse self = http_Response_Empty();
+  if(!http_Response_ParseHttpCode(self, &cpyBuffer)) {
+    http_Response_Delete(self);
     return NULL;
   }
-  if(!http_Response_ParseEmptySpace(cpyBuffer, &cpyBuffer)) {
-    http_Response_Delete(resp);
+  if(!http_Response_ParseEmptySpace(&cpyBuffer)) {
+    http_Response_Delete(self);
     return NULL;
   }
-  if(!http_Response_ParseMessage(cpyBuffer, &cpyBuffer)) {
-    http_Response_Delete(resp);
+  if(!http_Response_ParseMessage(&cpyBuffer)) {
+    http_Response_Delete(self);
     return NULL;
   }
-  if(!http_Response_ParseLineSeparator(cpyBuffer, &cpyBuffer)) {
-    http_Response_Delete(resp);
+  if(!http_Response_ParseLineSeparator(&cpyBuffer)) {
+    http_Response_Delete(self);
     return NULL;
   }
-  if(!http_Header_Parse(resp->headers, buffer.buffer + buffer.sz, &cpyBuffer)) {
-    http_Response_Delete(resp);
+  if(!http_Header_Parse(self->headers, _endBuffer, &cpyBuffer)) {
+    http_Response_Delete(self);
     return NULL;
   }
-  return resp;
+  // self->body = http_Body_Process(self->headers, _endBuffer, &cpyBuffer);
+  // if(cpyBuffer.sz) {
+  //   http_Response_Delete(self);
+  //   return NULL;
+  // }
+  return self;
 }
 
 PHttpResponse http_Response_Create() {
