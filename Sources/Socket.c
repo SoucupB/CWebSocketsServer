@@ -86,6 +86,12 @@ void sock_Write_Push(PSocketServer self, DataFragment *dt) {
   vct_Push(self->outputCommands, &newDt);
 }
 
+Connection sock_InvalidConnection() {
+  return (Connection) {
+    .fd = -1
+  };
+}
+
 uint8_t _sock_StartConnections(PSocketServer self) {
   int32_t sockfd;
   struct sockaddr_in servaddr;
@@ -375,6 +381,20 @@ DataFragment sock_Client_Receive(PConnection conn) {
   };
   vct_DeleteWOBuffer(dataToRead);
   return fragment;
+}
+
+HttpString sock_Client_ReceiveWithErrors(PConnection conn) {
+  DataFragment dt = sock_Client_Receive(conn);
+  if(!dt.size) {
+    free(dt.data);
+    return (HttpString) {
+      .buffer = NULL,
+    };
+  }
+  return (HttpString) {
+    .buffer = dt.data,
+    .sz = dt.size
+  };
 }
 
 void sock_Client_Free(PConnection conn) {

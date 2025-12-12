@@ -632,6 +632,10 @@ PHttpResponse http_Response_Empty() {
   return self;
 }
 
+PHttpResponse http_Response_Parse(HttpString buffer) {
+  return NULL;
+}
+
 PHttpResponse http_Response_Create() {
   PHttpResponse self = http_Response_Empty();
   http_Response_SetDefault(self);

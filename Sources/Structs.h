@@ -246,6 +246,11 @@ typedef enum {
   JSON_ARRAY
 } JsonType;
 
+typedef enum {
+  RESPONSE_TIMEOUT,
+  RESPONSE_PARSE_ERROR
+} RequestError;
+
 typedef struct JsonElement_t {
   void *value;
   JsonType type;
@@ -266,3 +271,18 @@ typedef struct HttpServer_t {
 } HttpServer;
 
 typedef HttpServer *PHttpServer;
+
+typedef struct HttpRequestServer_t {
+  Vector requests;
+  int64_t timeoutMS;
+} HttpRequestServer;
+
+typedef HttpRequestServer *PHttpRequestServer;
+
+typedef struct RequestStruct_t {
+  uint16_t port;
+  char ip[16];
+  HttpString query;
+  PSocketMethod onSuccess; // void (*onSuccess)(PHttpResponse req, void *mirror)
+  PSocketMethod onFailure; // void (*onFailure)(RequestError error, void *mirror)
+} RequestStruct;
