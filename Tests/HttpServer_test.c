@@ -33,8 +33,7 @@ static void test_http_server_push_method(void **state) {
   http_Helper_Free(server);
 }
 
-static void test_http_server_test_response(void **state) {
-  const uint16_t cPort = port--;
+static void test_http_server_parse_request(void **state) {
   char *request = "\
 POST /connect HTTP/1.1\r\n\
 Content-Type: application/json\r\n\
@@ -48,31 +47,27 @@ Content-Length: 4\r\n\
 \r\n\
 abcd\
 ";
-  // PHttpServer server = httpS_Create(cPort);
-  // http_Helper_AddMethod(server, /*default*/NULL);
-  // http_Helper_Free(server);
   PHttpRequest req = http_Request_Parse(request, strlen(request));
   HttpString str = http_Request_ToString(req);
-  // for(size_t i = 0; i < str.sz; i++) {
-  //   if(str.buffer[i] == '\r') {
-  //     printf("\\r");
-  //   }
-  //   else if(str.buffer[i] == '\n') {
-  //     printf("\\n\n");
-  //   } else {
-  //     printf("%c", str.buffer[i]);
-  //   }
-  // }
-  // printf("\n");
-
-  // printf("%d %.*s\n", str.sz, str.sz, str.buffer);
+  assert_ptr_not_equal(str.buffer, NULL);
+  HttpString path = http_Request_GetPath(req);
+  HttpString key = http_Request_GetValue(req, "User-Agent");
+  HttpString body = http_Request_GetBody(req);
+  assert_int_equal(path.sz, sizeof("/connect") - 1);
+  assert_memory_equal(path.buffer, "/connect", path.sz);
+  assert_int_equal(key.sz, sizeof("PostmanRuntime/7.37.3") - 1);
+  assert_memory_equal(key.buffer, "PostmanRuntime/7.37.3", key.sz);
+  assert_int_equal(body.sz, sizeof("abcd") - 1);
+  assert_memory_equal(body.buffer, "abcd", body.sz);
+  http_Request_Delete(req);
+  free(str.buffer);
 }
 
 int main() {
   const struct CMUnitTest tests[] = {
     cmocka_unit_test_prestate(test_http_server_creation, NULL),
     cmocka_unit_test_prestate(test_http_server_push_method, NULL),
-    cmocka_unit_test_prestate(test_http_server_test_response, NULL),
+    cmocka_unit_test_prestate(test_http_server_parse_request, NULL),
   };
   const uint32_t value = cmocka_run_group_tests(tests, NULL, NULL);
   return value;

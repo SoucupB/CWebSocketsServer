@@ -580,6 +580,14 @@ HttpString http_Request_ToString(PHttpRequest self) {
   return rsp;
 }
 
+HttpString http_Request_GetPath(PHttpRequest self) {
+  return self->url->path;
+}
+
+HttpString http_Request_GetBody(PHttpRequest self) {
+  return *self->body;
+}
+
 PHttpRequest http_Request_Create() {
   PHttpRequest self = malloc(sizeof(HttpRequest));
   memset(self, 0, sizeof(HttpRequest));
