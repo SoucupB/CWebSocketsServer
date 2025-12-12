@@ -74,18 +74,24 @@ static inline void httpS_Request_ExecuteSuccessMethod(PSocketMethod method, PHtt
   onSuccess(response, method->mirrorBuffer);
 }
 
-static inline uint8_t httpS_Request_ProcessCurrentFragment(PHttpRequestServer self, RequestMetadata metadata, uint64_t deltaMS) {
-  HttpString response = sock_Client_ReceiveWithErrors(metadata.conn);
+static inline uint8_t httpS_Request_ProcessCurrentFragment(PHttpRequestServer self, PRequestMetadata metadata, uint64_t deltaMS) {
+  HttpString response = sock_Client_ReceiveWithErrors(metadata->conn);
   if(!response.buffer) {
     return 0;
   }
   PHttpResponse httpResponse = http_Response_Parse(response);
   if(!httpResponse) {
-    httpS_Request_ExecuteErrorMethod(metadata.metadata.onFailure, RESPONSE_PARSE_ERROR);
+    httpS_Request_ExecuteErrorMethod(metadata->metadata.onFailure, RESPONSE_PARSE_ERROR);
     return 1;
   }
-  httpS_Request_ExecuteSuccessMethod(metadata.metadata.onSuccess, httpResponse);
+  if(metadata->requestDateMS <= deltaMS) {
+    http_Response_Delete(httpResponse);
+    httpS_Request_ExecuteErrorMethod(metadata->metadata.onFailure, RESPONSE_TIMEOUT);
+    return 1;
+  }
+  httpS_Request_ExecuteSuccessMethod(metadata->metadata.onSuccess, httpResponse);
   http_Response_Delete(httpResponse);
+  metadata->requestDateMS -= deltaMS;
   return 1;
 }
 
@@ -96,7 +102,7 @@ void httpS_Request_ProcessActiveRequests(PHttpRequestServer self, uint64_t delta
     if(!buffer[i].conn) {
       continue;
     }
-    if(httpS_Request_ProcessCurrentFragment(self, buffer[i], deltaMS)) {
+    if(httpS_Request_ProcessCurrentFragment(self, &buffer[i], deltaMS)) {
       vct_Push(indexes, &i);
     }
   }
