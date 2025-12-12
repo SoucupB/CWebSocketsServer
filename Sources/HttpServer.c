@@ -25,17 +25,17 @@ PHttpResponse httpS_PrivateCaller(PHttpServer self, PHttpRequest req) {
 }
 
 JsonElement httpS_Json_Get(PHttpRequest req) {
-  if(!req->body) {
+  if(!req->body.buffer) {
     return (JsonElement) {
       .type = JSON_INVALID
     };
   }
   char *_endingBuffer = NULL;
   JsonElement jsonElement = json_Parse((HttpString) {
-    .buffer = req->body->buffer,
-    .sz = req->body->sz
+    .buffer = req->body.buffer,
+    .sz = req->body.sz
   }, &_endingBuffer);
-  if(jsonElement.type != JSON_JSON || _endingBuffer != req->body->buffer + req->body->sz) {
+  if(jsonElement.type != JSON_JSON || _endingBuffer != req->body.buffer + req->body.sz) {
     json_DeleteElement(jsonElement);
     return (JsonElement) {
       .type = JSON_INVALID

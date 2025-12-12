@@ -219,7 +219,7 @@ typedef struct Hash_t {
 typedef struct HttpRequest_t {
   Hash headers;
   PURL url;
-  PHttpString body;
+  HttpString body;
   char *_endBuffer;
   PHttpMetaData metadata;
 } HttpRequest;

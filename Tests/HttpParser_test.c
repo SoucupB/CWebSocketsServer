@@ -180,7 +180,7 @@ abc\
 ";
   PHttpRequest httpObj = http_Request_Parse(request, strlen(request));
   assert_non_null(httpObj);
-  assert_memory_equal(httpObj->body->buffer, "abc", sizeof("abc") - 1);
+  assert_memory_equal(httpObj->body.buffer, "abc", sizeof("abc") - 1);
   http_Request_Delete(httpObj);
 }
 

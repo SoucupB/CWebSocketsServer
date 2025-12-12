@@ -15,7 +15,7 @@ uint8_t http_Header_Parse(Hash self, char *endBuffer, PHttpString buffer);
 char *http_GetToken(PHttpString buffer, PHttpString token);
 static inline char *http_ChompLineSeparator(PHttpString buffer);
 static inline Hash http_Hash_Create();
-PHttpString http_Body_Process(Hash self, char *_endBuffer, PHttpString buffer);
+HttpString http_Body_Process(Hash self, char *_endBuffer, PHttpString buffer);
 static inline void http_SetBuffer(HttpString buffer, PHttpString nextPart, char *next);
 
 #define ALPHANUMERIC "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_."
@@ -200,36 +200,40 @@ ssize_t http_Get_Number(Hash self, char *key, uint8_t *isValid) {
   return number;
 }
 
-PHttpString http_Body_Chomp_t(PHttpString buffer, ssize_t contentLength) {
+HttpString http_Body_Chomp_t(PHttpString buffer, ssize_t contentLength) {
   if(contentLength > buffer->sz) {
-    return NULL;
+    return (HttpString) {
+      .buffer = NULL
+    };
   }
-  PHttpString response = malloc(sizeof(HttpString));
-  response->buffer = malloc(contentLength);
-  response->sz = (size_t)contentLength;
-  memcpy(response->buffer, buffer->buffer, response->sz);
+  HttpString response;
+  response.buffer = malloc(contentLength);
+  response.sz = (size_t)contentLength;
+  memcpy(response.buffer, buffer->buffer, response.sz);
   return response;
 }
 
-char *http_Body_Chomp(Hash self, PHttpString buffer, PHttpString *response) {
+char *http_Body_Chomp(Hash self, PHttpString buffer, HttpString *response) {
   uint8_t valid;
   ssize_t contentLength = http_Get_Number(self, "Content-Length", &valid);
   if(!valid || contentLength < 0) {
     return NULL;
   }
-  PHttpString body = http_Body_Chomp_t(buffer, contentLength);
-  if(!body) {
+  HttpString body = http_Body_Chomp_t(buffer, contentLength);
+  if(!body.buffer) {
     return NULL;
   }
   *response = body;
-  return buffer->buffer + body->sz;
+  return buffer->buffer + body.sz;
 }
 
-PHttpString http_Body_Process(Hash self, char *_endBuffer, PHttpString buffer) {
-  PHttpString body;
+HttpString http_Body_Process(Hash self, char *_endBuffer, PHttpString buffer) {
+  HttpString body;
   char *bodyBuffer = http_Body_Chomp(self, buffer, &body);
   if(!bodyBuffer) {
-    return NULL;
+    return (HttpString) {
+      .buffer = NULL
+    };
   }
   http_UpdateString(buffer, bodyBuffer, _endBuffer);
   return body;
@@ -387,9 +391,8 @@ void http_Metadata_Delete(PHttpMetaData self) {
 }
 
 void http_Request_Delete(PHttpRequest self) {
-  if(self->body) {
-    free(self->body->buffer);
-    free(self->body);
+  if(self->body.buffer) {
+    free(self->body.buffer);
   }
   http_URL_Free(self->url);
   http_Hash_Delete(self->headers);
@@ -566,7 +569,7 @@ void http_Request_PushHeaders(Hash header, Vector str) {
 }
 
 static inline void http_Request_PushBody(PHttpRequest self, Vector str) {
-  http_PushString(str, *self->body);
+  http_PushString(str, self->body);
 }
 
 HttpString http_Request_ToString(PHttpRequest self) {
@@ -587,7 +590,7 @@ HttpString http_Request_GetPath(PHttpRequest self) {
 }
 
 HttpString http_Request_GetBody(PHttpRequest self) {
-  return *self->body;
+  return self->body;
 }
 
 PHttpRequest http_Request_Create() {
@@ -610,8 +613,8 @@ HttpString http_String_Copy(HttpString str) {
 }
 
 void http_Request_SetBody(PHttpRequest self, HttpString str) {
-  PHttpString resp = malloc(sizeof(HttpString));
-  *resp = http_String_Copy(str);
+  HttpString resp;
+  resp = http_String_Copy(str);
   self->body = resp;
   http_Request_SetBodySize(self, str.sz);
 }
@@ -731,11 +734,11 @@ PHttpResponse http_Response_Parse(HttpString buffer) {
     http_Response_Delete(self);
     return NULL;
   }
-  // self->body = http_Body_Process(self->headers, _endBuffer, &cpyBuffer);
-  // if(cpyBuffer.sz) {
-  //   http_Response_Delete(self);
-  //   return NULL;
-  // }
+  self->body = http_Body_Process(self->headers, _endBuffer, &cpyBuffer);
+  if(cpyBuffer.sz) {
+    http_Response_Delete(self);
+    return NULL;
+  }
   return self;
 }
 
