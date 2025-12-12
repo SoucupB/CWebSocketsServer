@@ -281,7 +281,7 @@ typedef HttpRequestServer *PHttpRequestServer;
 
 typedef struct RequestStruct_t {
   uint16_t port;
-  char ip[16];
+  char ip[17];
   HttpString query;
   PSocketMethod onSuccess; // void (*onSuccess)(PHttpResponse req, void *mirror)
   PSocketMethod onFailure; // void (*onFailure)(RequestError error, void *mirror)

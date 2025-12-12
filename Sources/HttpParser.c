@@ -16,10 +16,12 @@ char *http_GetToken(PHttpString buffer, PHttpString token);
 static inline char *http_ChompLineSeparator(PHttpString buffer);
 static inline Hash http_Hash_Create();
 void http_Body_Process(PHttpRequest self, PHttpString buffer);
+static inline void http_SetBuffer(HttpString buffer, PHttpString nextPart, char *next);
 
 #define ALPHANUMERIC "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_."
 #define ACCEPTED_ALPHANUMERIC_KEY "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!#$%&'*+-.^_`|~"
 #define ACCEPTED_ALPHANUMERIC_VALUE "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ!\"#$%&'()*+,-./;:<=>?@[\\]^_`{|}~ "
+#define NUMBERS "0123456789"
 
 PHttpRequest http_Request_Parse(char *buffer, size_t sz) {
   PHttpRequest self = malloc(sizeof(HttpRequest));
@@ -171,7 +173,7 @@ char *http_GetToken(PHttpString buffer, PHttpString token) {
   return buffer->buffer + token->sz;
 }
 
-ssize_t http_Parse_Number(PHttpRequest self, char *buffer, size_t sz, char **endBufer) {
+ssize_t http_Parse_Number(char *buffer, size_t sz, char **endBufer) {
   size_t index = 0;
   ssize_t number = 0;
   while(index < sz && index < 15 && buffer[index] >= '0' && buffer[index] <= '9') {
@@ -190,7 +192,7 @@ ssize_t http_Get_Number(PHttpRequest self, char *key, uint8_t *isValid) {
     return 0;
   }
   char *endPtr;
-  ssize_t number = http_Parse_Number(self, value.buffer, value.sz, &endPtr);
+  ssize_t number = http_Parse_Number(value.buffer, value.sz, &endPtr);
   if(endPtr != value.buffer + value.sz) {
     return 0;
   }
@@ -632,8 +634,100 @@ PHttpResponse http_Response_Empty() {
   return self;
 }
 
+uint8_t http_Response_ParseCurrentToken(PHttpString buffer, PHttpString token, PHttpString nextPart) {
+  char *next = http_GetToken(buffer, token);
+  if(!next) {
+    return 0;
+  }
+  http_SetBuffer(*buffer, nextPart, next);
+  return 1;
+}
+
+uint8_t http_Response_ParseCode(HttpString buffer, PHttpString nextPart) {
+  HttpString token = {
+    .buffer = "HTTP/1.1",
+    .sz = sizeof("HTTP/1.1") - 1
+  };
+  return http_Response_ParseCurrentToken(&buffer, &token, nextPart);
+}
+
+uint8_t http_Response_ParseEmptySpace(HttpString buffer, PHttpString nextPart) {
+  HttpString token = {
+    .buffer = " ",
+    .sz = sizeof(" ") - 1
+  };
+  return http_Response_ParseCurrentToken(&buffer, &token, nextPart);
+}
+
+uint8_t http_Response_ParseLineSeparator(HttpString buffer, PHttpString nextPart) {
+  HttpString token = {
+    .buffer = "\r\n",
+    .sz = sizeof("\r\n") - 1
+  };
+  return http_Response_ParseCurrentToken(&buffer, &token, nextPart);
+}
+
+static inline void http_Response_SetCode(PHttpResponse self, char *buffer) {
+  self->response = (buffer[0] - '0') * 100 + (buffer[1] - '0') * 10 + (buffer[2] - '0');
+}
+
+static inline void http_SetBuffer(HttpString buffer, PHttpString nextPart, char *next) {
+  *nextPart = (HttpString) {
+    .buffer = next,
+    .sz = (size_t)(next - buffer.buffer)
+  };
+}
+
+uint8_t http_Response_ParseHttpCode(PHttpResponse self, HttpString buffer, PHttpString nextPart) {
+  char *next = http_ChompString(&buffer, NUMBERS, 1);
+  if(!next || (next - buffer.buffer != 0x3)) {
+    return 0;
+  }
+  http_Response_SetCode(self, buffer.buffer);
+  http_SetBuffer(buffer, nextPart, next);
+  return 1;
+}
+
+uint8_t http_Response_ParseMessage(HttpString buffer, PHttpString nextPart) {
+  char *next = http_ChompString(&buffer, ALPHANUMERIC, 1);
+  if(!next) {
+    return 0;
+  }
+  http_SetBuffer(buffer, nextPart, next);
+  return 1;
+}
+
+uint8_t http_Response_ParseHeaders(HttpString buffer, PHttpString nextPart) {
+  
+}
+
 PHttpResponse http_Response_Parse(HttpString buffer) {
-  return NULL;
+  HttpString cpyBuffer = buffer;
+  if(!http_Response_ParseCode(cpyBuffer, &cpyBuffer)) {
+    return NULL;
+  }
+  if(!http_Response_ParseEmptySpace(cpyBuffer, &cpyBuffer)) {
+    return NULL;
+  }
+  PHttpResponse resp = http_Response_Empty();
+  if(!http_Response_ParseHttpCode(resp, cpyBuffer, &cpyBuffer)) {
+    http_Response_Delete(resp);
+    return NULL;
+  }
+  if(!http_Response_ParseEmptySpace(cpyBuffer, &cpyBuffer)) {
+    http_Response_Delete(resp);
+    return NULL;
+  }
+  if(!http_Response_ParseMessage(cpyBuffer, &cpyBuffer)) {
+    http_Response_Delete(resp);
+    return NULL;
+  }
+  if(!http_Response_ParseLineSeparator(cpyBuffer, &cpyBuffer)) {
+    http_Response_Delete(resp);
+    return NULL;
+  }
+
+  return resp;
 }
 
 PHttpResponse http_Response_Create() {
