@@ -15,7 +15,7 @@ uint8_t http_Header_Parse(Hash self, char *endBuffer, PHttpString buffer);
 char *http_GetToken(PHttpString buffer, PHttpString token);
 static inline char *http_ChompLineSeparator(PHttpString buffer);
 static inline Hash http_Hash_Create();
-void http_Body_Process(PHttpRequest self, PHttpString buffer);
+PHttpString http_Body_Process(Hash self, char *_endBuffer, PHttpString buffer);
 static inline void http_SetBuffer(HttpString buffer, PHttpString nextPart, char *next);
 
 #define ALPHANUMERIC "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_."
@@ -42,8 +42,7 @@ PHttpRequest http_Request_Parse(char *buffer, size_t sz) {
     http_Request_Delete(self);
     return NULL;
   }
-  // self->body = http_Body_Process(self->headers, self->_endBuffer, &input);
-  http_Body_Process(self, &input);
+  self->body = http_Body_Process(self->headers, self->_endBuffer, &input);
   if(input.sz) {
     http_Request_Delete(self);
     return NULL;
@@ -226,14 +225,14 @@ char *http_Body_Chomp(Hash self, PHttpString buffer, PHttpString *response) {
   return buffer->buffer + body->sz;
 }
 
-void http_Body_Process(PHttpRequest self, PHttpString buffer) {
+PHttpString http_Body_Process(Hash self, char *_endBuffer, PHttpString buffer) {
   PHttpString body;
-  char *bodyBuffer = http_Body_Chomp(self->headers, buffer, &body);
+  char *bodyBuffer = http_Body_Chomp(self, buffer, &body);
   if(!bodyBuffer) {
-    return ;
+    return NULL;
   }
-  self->body = body;
-  http_UpdateString(buffer, bodyBuffer, self->_endBuffer);
+  http_UpdateString(buffer, bodyBuffer, _endBuffer);
+  return body;
 }
 
 char *http_Route_ParseCodes(PHttpRequest parent, PHttpString buffer) {
