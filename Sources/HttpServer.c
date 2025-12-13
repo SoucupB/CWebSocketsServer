@@ -67,6 +67,9 @@ void remote_OnReceiveMessage(PDataFragment frag, void *buffer) {
   }
   PHttpResponse response = httpS_PrivateCaller(self, req);
   HttpString responseString = http_Response_ToString(response);
+  if(!responseString.buffer) {
+    return ;
+  }
   DataFragment dt = {
     .conn = frag->conn,
     .data = responseString.buffer,
