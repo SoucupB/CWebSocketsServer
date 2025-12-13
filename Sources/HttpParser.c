@@ -125,13 +125,7 @@ static inline char *http_ChompLineSeparator(PHttpString buffer) {
 }
 
 HttpString http_Request_GetValue(PHttpRequest self, char *buffer) {
-  size_t bufferLen = strlen(buffer);
-  char *response = trh_GetBuffer(self->headers.hash, buffer, bufferLen);
-  size_t *size = trh_GetBuffer(self->headers.valuesSize, buffer, bufferLen);
-  return (HttpString){
-    .buffer = response,
-    .sz = size ? *size : 0
-  };
+  return http_Hash_GetValue(self->headers, buffer, strlen(buffer));
 }
 
 HttpString http_Hash_GetValue(Hash self, char *buffer, size_t bufferLen) {
@@ -740,6 +734,10 @@ PHttpResponse http_Response_Parse(HttpString buffer) {
     return NULL;
   }
   return self;
+}
+
+HttpString http_Response_GetValue(PHttpResponse self, char *buffer) {
+  return http_Hash_GetValue(self->headers, buffer, strlen(buffer));
 }
 
 PHttpResponse http_Response_Create() {

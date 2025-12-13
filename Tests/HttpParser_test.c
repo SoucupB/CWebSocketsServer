@@ -356,6 +356,11 @@ DSDSAFAFAFAFA\
   HttpString toString = http_Response_ToString(response);
   assert_memory_equal(expectedResponse, toString.buffer, strlen(expectedResponse));
   assert_int_equal(strlen(expectedResponse), toString.sz);
+  HttpString customBuffer = http_Response_GetValue(response, "Some-Custom-Data-2");
+  assert_int_equal(customBuffer.sz, strlen("aaaafdsfdsggg"));
+  assert_memory_equal(customBuffer.buffer, "aaaafdsfdsggg", customBuffer.sz);
+  HttpString customBufferNonExistent = http_Response_GetValue(response, "Some-Custom-Data-3");
+  assert_ptr_equal(customBufferNonExistent.buffer, NULL);
   free(toString.buffer);
   http_Response_Delete(response);
 }
@@ -364,6 +369,36 @@ static void test_http_parser_response_parse_failed(void **state) {
   char *responseStr = "\
 HTTP/1.1 20320 OK\r\n\
 Content-Length: 13\r\n\
+Some-Custom-Data: fdsfdsggg\r\n\
+\r\n\
+DSDSAFAFAFAFA\
+";
+  PHttpResponse response = http_Response_Parse((HttpString) {
+    .buffer = responseStr,
+    .sz = strlen(responseStr)
+  });
+  assert_ptr_equal(response, NULL);
+}
+
+static void test_http_parser_response_parse_wrong_content_length_bigger(void **state) {
+  char *responseStr = "\
+HTTP/1.1 300 OK\r\n\
+Content-Length: 15\r\n\
+Some-Custom-Data: fdsfdsggg\r\n\
+\r\n\
+DSDSAFAFAFAFA\
+";
+  PHttpResponse response = http_Response_Parse((HttpString) {
+    .buffer = responseStr,
+    .sz = strlen(responseStr)
+  });
+  assert_ptr_equal(response, NULL);
+}
+
+static void test_http_parser_response_parse_wrong_content_length_smaller(void **state) {
+  char *responseStr = "\
+HTTP/1.1 300 OK\r\n\
+Content-Length: 12\r\n\
 Some-Custom-Data: fdsfdsggg\r\n\
 \r\n\
 DSDSAFAFAFAFA\
@@ -401,6 +436,8 @@ int main(void) {
     cmocka_unit_test(test_http_parser_request_from_build_to_string),
     cmocka_unit_test(test_http_parser_response_parse_success),
     cmocka_unit_test(test_http_parser_response_parse_failed),
+    cmocka_unit_test(test_http_parser_response_parse_wrong_content_length_bigger),
+    cmocka_unit_test(test_http_parser_response_parse_wrong_content_length_smaller),
   };
   return cmocka_run_group_tests(tests, NULL, NULL);
 }
