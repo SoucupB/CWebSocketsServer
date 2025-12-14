@@ -264,7 +264,7 @@ typedef struct Hash_t {
 typedef struct HttpRequest_t {
   Hash headers;
   PURL url;
-  PHttpString body;
+  HttpString body;
   char *_endBuffer;
   PHttpMetaData metadata;
 } HttpRequest;
@@ -1875,6 +1875,7 @@ PHttpRequest http_Request_Create();
 void http_Request_SetBody(PHttpRequest self, HttpString str);
 HttpString http_Request_GetBody(PHttpRequest self);
 HttpString http_Request_GetPath(PHttpRequest self);
+void http_Request_AddHeader(PHttpRequest self, char *key, char *value);
 HttpString http_Hash_GetValue(Hash self, char *buffer, size_t bufferLen);
 PHttpResponse http_Response_Create();
 void http_Response_SetBody(PHttpResponse self, PHttpString buffer);
@@ -1884,6 +1885,7 @@ PHttpResponse http_Response_Empty();
 void http_Response_Set(PHttpResponse self, char *key, size_t keySize, char *value, size_t valueSize);
 void http_Response_SetJSON(PHttpResponse self);
 PHttpResponse http_Response_Parse(HttpString buffer);
+HttpString http_Response_GetValue(PHttpResponse self, char *buffer);
 
 enum
 {
@@ -1992,7 +1994,7 @@ uint8_t http_Header_Parse(Hash self, char *endBuffer, PHttpString buffer);
 char *http_GetToken(PHttpString buffer, PHttpString token);
 static inline char *http_ChompLineSeparator(PHttpString buffer);
 static inline Hash http_Hash_Create();
-PHttpString http_Body_Process(Hash self, char *_endBuffer, PHttpString buffer);
+HttpString http_Body_Process(Hash self, char *_endBuffer, PHttpString buffer);
 static inline void http_SetBuffer(HttpString buffer, PHttpString nextPart, char *next);
 PHttpRequest http_Request_Parse(char *buffer, size_t sz) {
   PHttpRequest self = malloc(sizeof(HttpRequest));
@@ -2023,6 +2025,9 @@ PHttpRequest http_Request_Parse(char *buffer, size_t sz) {
 static inline PURL http_URL_Init() {
   PURL self = malloc(sizeof(URL));
   memset(self, 0, sizeof(URL));
+  self->path.buffer = malloc(sizeof(char));
+  self->path.buffer[0] = '/';
+  self->path.sz = 1;
   return self;
 }
 static inline void http_Meta_InitCodes(PHttpMetaData self) {
@@ -2086,13 +2091,7 @@ static inline char *http_ChompLineSeparator(PHttpString buffer) {
   return http_GetToken(buffer, &lineSeparator);
 }
 HttpString http_Request_GetValue(PHttpRequest self, char *buffer) {
-  size_t bufferLen = strlen(buffer);
-  char *response = trh_GetBuffer(self->headers.hash, buffer, bufferLen);
-  size_t *size = trh_GetBuffer(self->headers.valuesSize, buffer, bufferLen);
-  return (HttpString){
-    .buffer = response,
-    .sz = size ? *size : 0
-  };
+  return http_Hash_GetValue(self->headers, buffer, strlen(buffer));
 }
 HttpString http_Hash_GetValue(Hash self, char *buffer, size_t bufferLen) {
   char *response = trh_GetBuffer(self.hash, buffer, bufferLen);
@@ -2154,34 +2153,38 @@ ssize_t http_Get_Number(Hash self, char *key, uint8_t *isValid) {
   *isValid = 1;
   return number;
 }
-PHttpString http_Body_Chomp_t(PHttpString buffer, ssize_t contentLength) {
+HttpString http_Body_Chomp_t(PHttpString buffer, ssize_t contentLength) {
   if(contentLength > buffer->sz) {
-    return ((void *)0);
+    return (HttpString) {
+      .buffer = ((void *)0)
+    };
   }
-  PHttpString response = malloc(sizeof(HttpString));
-  response->buffer = malloc(contentLength);
-  response->sz = (size_t)contentLength;
-  memcpy(response->buffer, buffer->buffer, response->sz);
+  HttpString response;
+  response.buffer = malloc(contentLength);
+  response.sz = (size_t)contentLength;
+  memcpy(response.buffer, buffer->buffer, response.sz);
   return response;
 }
-char *http_Body_Chomp(Hash self, PHttpString buffer, PHttpString *response) {
+char *http_Body_Chomp(Hash self, PHttpString buffer, HttpString *response) {
   uint8_t valid;
   ssize_t contentLength = http_Get_Number(self, "Content-Length", &valid);
   if(!valid || contentLength < 0) {
     return ((void *)0);
   }
-  PHttpString body = http_Body_Chomp_t(buffer, contentLength);
-  if(!body) {
+  HttpString body = http_Body_Chomp_t(buffer, contentLength);
+  if(!body.buffer) {
     return ((void *)0);
   }
   *response = body;
-  return buffer->buffer + body->sz;
+  return buffer->buffer + body.sz;
 }
-PHttpString http_Body_Process(Hash self, char *_endBuffer, PHttpString buffer) {
-  PHttpString body;
+HttpString http_Body_Process(Hash self, char *_endBuffer, PHttpString buffer) {
+  HttpString body;
   char *bodyBuffer = http_Body_Chomp(self, buffer, &body);
   if(!bodyBuffer) {
-    return ((void *)0);
+    return (HttpString) {
+      .buffer = ((void *)0)
+    };
   }
   http_UpdateString(buffer, bodyBuffer, _endBuffer);
   return body;
@@ -2320,9 +2323,8 @@ void http_Metadata_Delete(PHttpMetaData self) {
   free(self);
 }
 void http_Request_Delete(PHttpRequest self) {
-  if(self->body) {
-    free(self->body->buffer);
-    free(self->body);
+  if(self->body.buffer) {
+    free(self->body.buffer);
   }
   http_URL_Free(self->url);
   http_Hash_Delete(self->headers);
@@ -2485,7 +2487,7 @@ void http_Request_PushHeaders(Hash header, Vector str) {
   trh_FreeKeys(headersArr);
 }
 static inline void http_Request_PushBody(PHttpRequest self, Vector str) {
-  http_PushString(str, *self->body);
+  http_PushString(str, self->body);
 }
 HttpString http_Request_ToString(PHttpRequest self) {
   Vector response = vct_Init(sizeof(char));
@@ -2503,7 +2505,7 @@ HttpString http_Request_GetPath(PHttpRequest self) {
   return self->url->path;
 }
 HttpString http_Request_GetBody(PHttpRequest self) {
-  return *self->body;
+  return self->body;
 }
 PHttpRequest http_Request_Create() {
   PHttpRequest self = malloc(sizeof(HttpRequest));
@@ -2515,6 +2517,9 @@ PHttpRequest http_Request_Create() {
   memcpy(self->url->httpType, "HTTP/1.1", sizeof("HTTP/1.1"));
   return self;
 }
+void http_Request_AddHeader(PHttpRequest self, char *key, char *value) {
+  http_Hash_Add(self->headers, key, strlen(key), value, strlen(value));
+}
 HttpString http_String_Copy(HttpString str) {
   HttpString response;
   response.sz = str.sz;
@@ -2523,8 +2528,8 @@ HttpString http_String_Copy(HttpString str) {
   return response;
 }
 void http_Request_SetBody(PHttpRequest self, HttpString str) {
-  PHttpString resp = malloc(sizeof(HttpString));
-  *resp = http_String_Copy(str);
+  HttpString resp;
+  resp = http_String_Copy(str);
   self->body = resp;
   http_Request_SetBodySize(self, str.sz);
 }
@@ -2551,26 +2556,26 @@ uint8_t http_Response_ParseCurrentToken(PHttpString buffer, PHttpString token, P
   http_SetBuffer(*buffer, nextPart, next);
   return 1;
 }
-uint8_t http_Response_ParseCode(HttpString buffer, PHttpString nextPart) {
+uint8_t http_Response_ParseCode(PHttpString buffer) {
   HttpString token = {
     .buffer = "HTTP/1.1",
     .sz = sizeof("HTTP/1.1") - 1
   };
-  return http_Response_ParseCurrentToken(&buffer, &token, nextPart);
+  return http_Response_ParseCurrentToken(buffer, &token, buffer);
 }
-uint8_t http_Response_ParseEmptySpace(HttpString buffer, PHttpString nextPart) {
+uint8_t http_Response_ParseEmptySpace(PHttpString buffer) {
   HttpString token = {
     .buffer = " ",
     .sz = sizeof(" ") - 1
   };
-  return http_Response_ParseCurrentToken(&buffer, &token, nextPart);
+  return http_Response_ParseCurrentToken(buffer, &token, buffer);
 }
-uint8_t http_Response_ParseLineSeparator(HttpString buffer, PHttpString nextPart) {
+uint8_t http_Response_ParseLineSeparator(PHttpString buffer) {
   HttpString token = {
     .buffer = "\r\n",
     .sz = sizeof("\r\n") - 1
   };
-  return http_Response_ParseCurrentToken(&buffer, &token, nextPart);
+  return http_Response_ParseCurrentToken(buffer, &token, buffer);
 }
 static inline void http_Response_SetCode(PHttpResponse self, char *buffer) {
   self->response = (buffer[0] - '0') * 100 + (buffer[1] - '0') * 10 + (buffer[2] - '0');
@@ -2578,24 +2583,24 @@ static inline void http_Response_SetCode(PHttpResponse self, char *buffer) {
 static inline void http_SetBuffer(HttpString buffer, PHttpString nextPart, char *next) {
   *nextPart = (HttpString) {
     .buffer = next,
-    .sz = (size_t)(next - buffer.buffer)
+    .sz = (size_t)((buffer.buffer + buffer.sz) - next)
   };
 }
-uint8_t http_Response_ParseHttpCode(PHttpResponse self, HttpString buffer, PHttpString nextPart) {
-  char *next = http_ChompString(&buffer, "0123456789", 1);
-  if(!next || (next - buffer.buffer != 0x3)) {
+uint8_t http_Response_ParseHttpCode(PHttpResponse self, PHttpString buffer) {
+  char *next = http_ChompString(buffer, "0123456789", 1);
+  if(!next || (next - buffer->buffer != 0x3)) {
     return 0;
   }
-  http_Response_SetCode(self, buffer.buffer);
-  http_SetBuffer(buffer, nextPart, next);
+  http_Response_SetCode(self, buffer->buffer);
+  http_SetBuffer(*buffer, buffer, next);
   return 1;
 }
-uint8_t http_Response_ParseMessage(HttpString buffer, PHttpString nextPart) {
-  char *next = http_ChompString(&buffer, "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_.", 1);
+uint8_t http_Response_ParseMessage(PHttpString buffer) {
+  char *next = http_ChompString(buffer, "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ!\"#$%&'()*+,-./;:<=>?@[\\]^_`{|}~ ", 1);
   if(!next) {
     return 0;
   }
-  http_SetBuffer(buffer, nextPart, next);
+  http_SetBuffer(*buffer, buffer, next);
   return 1;
 }
 uint8_t http_Response_ParseBody(PHttpResponse self, PHttpServer buffer) {
@@ -2603,34 +2608,44 @@ uint8_t http_Response_ParseBody(PHttpResponse self, PHttpServer buffer) {
 }
 PHttpResponse http_Response_Parse(HttpString buffer) {
   HttpString cpyBuffer = buffer;
-  if(!http_Response_ParseCode(cpyBuffer, &cpyBuffer)) {
+  printf("DADAFgffg\n");
+  if(!http_Response_ParseCode(&cpyBuffer)) {
     return ((void *)0);
   }
-  if(!http_Response_ParseEmptySpace(cpyBuffer, &cpyBuffer)) {
+  if(!http_Response_ParseEmptySpace(&cpyBuffer)) {
     return ((void *)0);
   }
-  PHttpResponse resp = http_Response_Empty();
-  if(!http_Response_ParseHttpCode(resp, cpyBuffer, &cpyBuffer)) {
-    http_Response_Delete(resp);
+  char *_endBuffer = buffer.buffer + buffer.sz;
+  PHttpResponse self = http_Response_Empty();
+  if(!http_Response_ParseHttpCode(self, &cpyBuffer)) {
+    http_Response_Delete(self);
     return ((void *)0);
   }
-  if(!http_Response_ParseEmptySpace(cpyBuffer, &cpyBuffer)) {
-    http_Response_Delete(resp);
+  if(!http_Response_ParseEmptySpace(&cpyBuffer)) {
+    http_Response_Delete(self);
     return ((void *)0);
   }
-  if(!http_Response_ParseMessage(cpyBuffer, &cpyBuffer)) {
-    http_Response_Delete(resp);
+  if(!http_Response_ParseMessage(&cpyBuffer)) {
+    http_Response_Delete(self);
     return ((void *)0);
   }
-  if(!http_Response_ParseLineSeparator(cpyBuffer, &cpyBuffer)) {
-    http_Response_Delete(resp);
+  if(!http_Response_ParseLineSeparator(&cpyBuffer)) {
+    http_Response_Delete(self);
     return ((void *)0);
   }
-  if(!http_Header_Parse(resp->headers, buffer.buffer + buffer.sz, &cpyBuffer)) {
-    http_Response_Delete(resp);
+  if(!http_Header_Parse(self->headers, _endBuffer, &cpyBuffer)) {
+    http_Response_Delete(self);
     return ((void *)0);
   }
-  return resp;
+  self->body = http_Body_Process(self->headers, _endBuffer, &cpyBuffer);
+  if(cpyBuffer.sz) {
+    http_Response_Delete(self);
+    return ((void *)0);
+  }
+  return self;
+}
+HttpString http_Response_GetValue(PHttpResponse self, char *buffer) {
+  return http_Hash_GetValue(self->headers, buffer, strlen(buffer));
 }
 PHttpResponse http_Response_Create() {
   PHttpResponse self = http_Response_Empty();
@@ -2653,6 +2668,8 @@ void httpS_OnFrame(PHttpServer self, uint64_t deltaMS);
 PHttpRequestServer httpS_Request_Create(int64_t timeoutMS);
 void httpS_Request_Delete(PHttpRequestServer self);
 void httpS_Request_OnFrame(PHttpRequestServer self, uint64_t deltaMS);
+void httpS_Request_Send(PHttpRequestServer self, RequestStruct request);
+RequestStruct httpS_Request_StructInit(HttpString ip, uint16_t port);
        
 PTimeServer tf_Create();
 void tf_OnFrame(PTimeServer self, uint64_t deltaMS);
@@ -2705,7 +2722,7 @@ void httpS_Request_ProcessRequests(PHttpRequestServer self, PRequestMetadata dat
 void httpS_Request_ProcessPendingRequests(PHttpRequestServer self) {
   RequestMetadata *buffer = self->requests->buffer;
   for(size_t i = 0, c = self->requests->size; i < c; i++) {
-    if(!buffer[i].conn) {
+    if(buffer[i].conn) {
       continue;
     }
     buffer[i].conn = sock_Client_Connect(buffer[i].metadata.port, buffer[i].metadata.ip);
@@ -2732,6 +2749,7 @@ static inline uint8_t httpS_Request_ProcessCurrentFragment(PHttpRequestServer se
     return 0;
   }
   PHttpResponse httpResponse = http_Response_Parse(response);
+  printf("%.*s\n", response.sz, response.buffer);
   if(!httpResponse) {
     httpS_Request_ExecuteErrorMethod(metadata->metadata.onFailure, RESPONSE_PARSE_ERROR);
     return 1;
@@ -2766,10 +2784,9 @@ void httpS_Request_ProcessActiveRequests(PHttpRequestServer self, uint64_t delta
     if(httpS_Request_ProcessCurrentFragment(self, &buffer[i], deltaMS)) {
       vct_Push(indexes, &i);
       sock_Client_Free(buffer[i].conn);
-      buffer[i].conn = ((void *)0);
     }
   }
-  vct_RemoveElements(self->requests, indexes);
+  self->requests = vct_RemoveElements(self->requests, indexes);
   vct_Delete(indexes);
 }
 void httpS_Request_OnFrame(PHttpRequestServer self, uint64_t deltaMS) {
@@ -2813,17 +2830,17 @@ PHttpResponse httpS_PrivateCaller(PHttpServer self, PHttpRequest req) {
   return caller(req, self->onReceive->mirrorBuffer);
 }
 JsonElement httpS_Json_Get(PHttpRequest req) {
-  if(!req->body) {
+  if(!req->body.buffer) {
     return (JsonElement) {
       .type = JSON_INVALID
     };
   }
   char *_endingBuffer = ((void *)0);
   JsonElement jsonElement = json_Parse((HttpString) {
-    .buffer = req->body->buffer,
-    .sz = req->body->sz
+    .buffer = req->body.buffer,
+    .sz = req->body.sz
   }, &_endingBuffer);
-  if(jsonElement.type != JSON_JSON || _endingBuffer != req->body->buffer + req->body->sz) {
+  if(jsonElement.type != JSON_JSON || _endingBuffer != req->body.buffer + req->body.sz) {
     json_DeleteElement(jsonElement);
     return (JsonElement) {
       .type = JSON_INVALID
@@ -2841,6 +2858,14 @@ PHttpResponse httpS_Json_Post(JsonElement jsn) {
   free(str.buffer);
   return response;
 }
+RequestStruct httpS_Request_StructInit(HttpString ip, uint16_t port) {
+  RequestStruct response;
+  memset(&response, 0, sizeof(RequestStruct));
+  response.ip[ip.sz] = 0;
+  memcpy(response.ip, ip.buffer, ip.sz);
+  response.port = port;
+  return response;
+}
 void remote_OnReceiveMessage(PDataFragment frag, void *buffer) {
   PHttpServer self = buffer;
   sock_PushCloseConnections(self->server, &frag->conn);
@@ -2853,6 +2878,9 @@ void remote_OnReceiveMessage(PDataFragment frag, void *buffer) {
   }
   PHttpResponse response = httpS_PrivateCaller(self, req);
   HttpString responseString = http_Response_ToString(response);
+  if(!responseString.buffer) {
+    return ;
+  }
   DataFragment dt = {
     .conn = frag->conn,
     .data = responseString.buffer,
@@ -2905,7 +2933,7 @@ PJsonObject json_Create() {
   return self;
 }
 void json_Add(PJsonObject self, PHttpString key, JsonElement element) {
-  ((void) sizeof ((self->hsh) ? 1 : 0), __extension__ ({ if (self->hsh) ; else __assert_fail ("self->hsh", "bin/svv.c", 1387, __extension__ __PRETTY_FUNCTION__); }));
+  ((void) sizeof ((self->hsh) ? 1 : 0), __extension__ ({ if (self->hsh) ; else __assert_fail ("self->hsh", "bin/svv.c", 1414, __extension__ __PRETTY_FUNCTION__); }));
   trh_Add(self->hsh, key->buffer, key->sz, &element, sizeof(JsonElement));
 }
 void json_Delete(PJsonObject self) {
@@ -2998,17 +3026,17 @@ void json_PushLeafValue(Vector str, JsonElement element) {
       break;
     }
     case JSON_INTEGER: {
-      ((void) sizeof ((element.value) ? 1 : 0), __extension__ ({ if (element.value) ; else __assert_fail ("element.value", "bin/svv.c", 1493, __extension__ __PRETTY_FUNCTION__); }));
+      ((void) sizeof ((element.value) ? 1 : 0), __extension__ ({ if (element.value) ; else __assert_fail ("element.value", "bin/svv.c", 1520, __extension__ __PRETTY_FUNCTION__); }));
       json_Element_PushInteger(str, *(int64_t *)element.value);
       break;
     }
     case JSON_NUMBER: {
-      ((void) sizeof ((element.value) ? 1 : 0), __extension__ ({ if (element.value) ; else __assert_fail ("element.value", "bin/svv.c", 1498, __extension__ __PRETTY_FUNCTION__); }));
+      ((void) sizeof ((element.value) ? 1 : 0), __extension__ ({ if (element.value) ; else __assert_fail ("element.value", "bin/svv.c", 1525, __extension__ __PRETTY_FUNCTION__); }));
       json_Element_PushFloat(str, *(float *)element.value);
       break;
     }
     case JSON_STRING: {
-      ((void) sizeof ((element.value) ? 1 : 0), __extension__ ({ if (element.value) ; else __assert_fail ("element.value", "bin/svv.c", 1503, __extension__ __PRETTY_FUNCTION__); }));
+      ((void) sizeof ((element.value) ? 1 : 0), __extension__ ({ if (element.value) ; else __assert_fail ("element.value", "bin/svv.c", 1530, __extension__ __PRETTY_FUNCTION__); }));
       json_Element_PushString(str, element.value);
       break;
     }
@@ -3185,7 +3213,7 @@ TokenParser json_Parser_Null(TokenParser tck) {
   return tck;
 }
 void json_Map_Add(JsonElement map, char *key, JsonElement element) {
-  ((void) sizeof ((map.type == JSON_JSON) ? 1 : 0), __extension__ ({ if (map.type == JSON_JSON) ; else __assert_fail ("map.type == JSON_JSON", "bin/svv.c", 1694, __extension__ __PRETTY_FUNCTION__); }));
+  ((void) sizeof ((map.type == JSON_JSON) ? 1 : 0), __extension__ ({ if (map.type == JSON_JSON) ; else __assert_fail ("map.type == JSON_JSON", "bin/svv.c", 1721, __extension__ __PRETTY_FUNCTION__); }));
   HttpString str = {
     .buffer = key,
     .sz = strlen(key)
@@ -3646,15 +3674,15 @@ JsonElement json_Array_At(JsonElement arr, size_t index) {
   return ((JsonElement *)vct->buffer)[index];
 }
 size_t json_Array_Size(JsonElement arr) {
-  ((void) sizeof ((arr.type == JSON_ARRAY) ? 1 : 0), __extension__ ({ if (arr.type == JSON_ARRAY) ; else __assert_fail ("arr.type == JSON_ARRAY", "bin/svv.c", 2187, __extension__ __PRETTY_FUNCTION__); }));
+  ((void) sizeof ((arr.type == JSON_ARRAY) ? 1 : 0), __extension__ ({ if (arr.type == JSON_ARRAY) ; else __assert_fail ("arr.type == JSON_ARRAY", "bin/svv.c", 2214, __extension__ __PRETTY_FUNCTION__); }));
   return ((Vector)arr.value)->size;
 }
 int64_t json_Integer_Get(JsonElement arr) {
-  ((void) sizeof ((arr.type == JSON_INTEGER) ? 1 : 0), __extension__ ({ if (arr.type == JSON_INTEGER) ; else __assert_fail ("arr.type == JSON_INTEGER", "bin/svv.c", 2192, __extension__ __PRETTY_FUNCTION__); }));
+  ((void) sizeof ((arr.type == JSON_INTEGER) ? 1 : 0), __extension__ ({ if (arr.type == JSON_INTEGER) ; else __assert_fail ("arr.type == JSON_INTEGER", "bin/svv.c", 2219, __extension__ __PRETTY_FUNCTION__); }));
   return *((int64_t *)arr.value);
 }
 float json_Number_Get(JsonElement arr) {
-  ((void) sizeof ((arr.type == JSON_NUMBER) ? 1 : 0), __extension__ ({ if (arr.type == JSON_NUMBER) ; else __assert_fail ("arr.type == JSON_NUMBER", "bin/svv.c", 2197, __extension__ __PRETTY_FUNCTION__); }));
+  ((void) sizeof ((arr.type == JSON_NUMBER) ? 1 : 0), __extension__ ({ if (arr.type == JSON_NUMBER) ; else __assert_fail ("arr.type == JSON_NUMBER", "bin/svv.c", 2224, __extension__ __PRETTY_FUNCTION__); }));
   return *((float *)arr.value);
 }
        
@@ -9154,7 +9182,7 @@ void sock_PushCloseConnMethod(PSocketServer self, Connection conn, size_t index)
   tf_ExecuteAfter(self->timeServer.timeServer, timeFragment, self->timeServer.timeout);
 }
 void sock_SetMaxConnections(PSocketServer self, int32_t maxActiveConnections) {
-  ((void) sizeof ((maxActiveConnections < 1024) ? 1 : 0), __extension__ ({ if (maxActiveConnections < 1024) ; else __assert_fail ("maxActiveConnections < MAX_CONNECTIONS_PER_SERVER", "bin/svv.c", 2642, __extension__ __PRETTY_FUNCTION__); }));
+  ((void) sizeof ((maxActiveConnections < 1024) ? 1 : 0), __extension__ ({ if (maxActiveConnections < 1024) ; else __assert_fail ("maxActiveConnections < MAX_CONNECTIONS_PER_SERVER", "bin/svv.c", 2669, __extension__ __PRETTY_FUNCTION__); }));
   self->maxActiveConnections = maxActiveConnections;
 }
 void sock_Write_Push(PSocketServer self, DataFragment *dt) {
@@ -9825,7 +9853,7 @@ void vct_Push(Vector self, void *buffer) {
   copyData(self, buffer);
 }
 void vct_RemoveElement(Vector self, size_t index) {
-  ((void) sizeof ((self->size != 0) ? 1 : 0), __extension__ ({ if (self->size != 0) ; else __assert_fail ("self->size != 0", "bin/svv.c", 3371, __extension__ __PRETTY_FUNCTION__); }));
+  ((void) sizeof ((self->size != 0) ? 1 : 0), __extension__ ({ if (self->size != 0) ; else __assert_fail ("self->size != 0", "bin/svv.c", 3398, __extension__ __PRETTY_FUNCTION__); }));
   if(index >= self->size) {
     return ;
   }

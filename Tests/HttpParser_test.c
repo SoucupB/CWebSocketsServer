@@ -315,7 +315,7 @@ abcd\
 static void test_http_parser_request_from_build_to_string(void **state) {
   PHttpRequest req = http_Request_Create();
   char *request = "\
-GET  HTTP/1.1\r\n\
+GET / HTTP/1.1\r\n\
 Content-Length: 13\r\n\
 \r\n\
 DSDSAFAFAFAFA\
@@ -329,6 +329,30 @@ DSDSAFAFAFAFA\
   assert_memory_equal(request, str.buffer, strlen(request));
   free(str.buffer);
   http_Request_Delete(req);
+}
+
+static void test_http_parser_request_with_different_http_code_1_1(void **state) {
+  char *request = "\
+GET / HTTP/1.1\r\n\
+Content-Length: 13\r\n\
+\r\n\
+DSDSAFAFAFAFA\
+";
+  PHttpRequest response = http_Request_Parse(request, strlen(request));
+  assert_ptr_not_equal(response, NULL);
+  http_Request_Delete(response);
+}
+
+static void test_http_parser_request_with_different_http_code_1_0(void **state) {
+  char *request = "\
+GET / HTTP/1.0\r\n\
+Content-Length: 13\r\n\
+\r\n\
+DSDSAFAFAFAFA\
+";
+  PHttpRequest response = http_Request_Parse(request, strlen(request));
+  assert_ptr_not_equal(response, NULL);
+  http_Request_Delete(response);
 }
 
 static void test_http_parser_response_parse_success(void **state) {
@@ -438,6 +462,8 @@ int main(void) {
     cmocka_unit_test(test_http_parser_response_parse_failed),
     cmocka_unit_test(test_http_parser_response_parse_wrong_content_length_bigger),
     cmocka_unit_test(test_http_parser_response_parse_wrong_content_length_smaller),
+    cmocka_unit_test(test_http_parser_request_with_different_http_code_1_1),
+    cmocka_unit_test(test_http_parser_request_with_different_http_code_1_0),
   };
   return cmocka_run_group_tests(tests, NULL, NULL);
 }

@@ -11,3 +11,5 @@ void httpS_OnFrame(PHttpServer self, uint64_t deltaMS);
 PHttpRequestServer httpS_Request_Create(int64_t timeoutMS);
 void httpS_Request_Delete(PHttpRequestServer self);
 void httpS_Request_OnFrame(PHttpRequestServer self, uint64_t deltaMS);
+void httpS_Request_Send(PHttpRequestServer self, RequestStruct request);
+RequestStruct httpS_Request_StructInit(HttpString ip, uint16_t port);

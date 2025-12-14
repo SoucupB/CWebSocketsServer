@@ -52,7 +52,7 @@ void httpS_Request_ProcessRequests(PHttpRequestServer self, PRequestMetadata dat
 void httpS_Request_ProcessPendingRequests(PHttpRequestServer self) {
   RequestMetadata *buffer = self->requests->buffer;
   for(size_t i = 0, c = self->requests->size; i < c; i++) {
-    if(!buffer[i].conn) {
+    if(buffer[i].conn) {
       continue;
     }
     buffer[i].conn = sock_Client_Connect(buffer[i].metadata.port, buffer[i].metadata.ip);
@@ -82,6 +82,7 @@ static inline uint8_t httpS_Request_ProcessCurrentFragment(PHttpRequestServer se
     return 0;
   }
   PHttpResponse httpResponse = http_Response_Parse(response);
+  // printf("%.*s\n", response.sz, response.buffer);
   if(!httpResponse) {
     httpS_Request_ExecuteErrorMethod(metadata->metadata.onFailure, RESPONSE_PARSE_ERROR);
     return 1;
@@ -118,10 +119,9 @@ void httpS_Request_ProcessActiveRequests(PHttpRequestServer self, uint64_t delta
     if(httpS_Request_ProcessCurrentFragment(self, &buffer[i], deltaMS)) {
       vct_Push(indexes, &i);
       sock_Client_Free(buffer[i].conn);
-      buffer[i].conn = NULL;
     }
   }
-  vct_RemoveElements(self->requests, indexes);
+  self->requests = vct_RemoveElements(self->requests, indexes);
   vct_Delete(indexes);
 }
 

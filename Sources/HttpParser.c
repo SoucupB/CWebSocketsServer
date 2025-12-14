@@ -53,6 +53,9 @@ PHttpRequest http_Request_Parse(char *buffer, size_t sz) {
 static inline PURL http_URL_Init() {
   PURL self = malloc(sizeof(URL));
   memset(self, 0, sizeof(URL));
+  self->path.buffer = malloc(sizeof(char));
+  self->path.buffer[0] = '/';
+  self->path.sz = 1;
   return self;
 }
 
@@ -303,8 +306,16 @@ char *http_Route_ParseType(PHttpRequest parent, PHttpString buffer) {
     return NULL;
   }
   http_UpdateString(&cpyString, bff, parent->_endBuffer);
-
   return bff;
+}
+
+void http_URL_Set(PURL url, HttpString buffer) {
+  if(url->path.buffer) {
+    free(url->path.buffer);
+  }
+  url->path.buffer = malloc(buffer.sz);
+  memcpy(url->path.buffer, buffer.buffer, buffer.sz);
+  url->path.sz = buffer.sz;
 }
 
 char *http_Route_Parse_t(PHttpRequest parent, PHttpString buffer) {
@@ -325,9 +336,10 @@ char *http_Route_Parse_t(PHttpRequest parent, PHttpString buffer) {
     return NULL;
   }
   size_t bffSize = (size_t)(path - buffer->buffer);
-  parent->url->path.buffer = malloc(bffSize);
-  memcpy(parent->url->path.buffer, buffer->buffer, bffSize);
-  parent->url->path.sz = bffSize;
+  http_URL_Set(parent->url, (HttpString) {
+    .buffer = buffer->buffer,
+    .sz = bffSize
+  });
   http_UpdateString(buffer, path, parent->_endBuffer);
   
   chompedSpace = http_ChompString(buffer, " ", 0);
@@ -598,6 +610,10 @@ PHttpRequest http_Request_Create() {
   return self;
 }
 
+void http_Request_AddHeader(PHttpRequest self, char *key, char *value) {
+  http_Hash_Add(self->headers, key, strlen(key), value, strlen(value));
+}
+
 HttpString http_String_Copy(HttpString str) {
   HttpString response;
   response.sz = str.sz;
@@ -640,12 +656,28 @@ uint8_t http_Response_ParseCurrentToken(PHttpString buffer, PHttpString token, P
   return 1;
 }
 
+uint8_t http_Response_ParseHttpVersion(PHttpString buffer) {
+  size_t index = 0;
+  while(index < buffer->sz && (buffer->buffer[index] != ' ')) {
+    if(buffer->buffer[index] == '\n' || buffer->buffer[index] == '\r') {
+      return 0;
+    }
+    index++;
+  }
+  buffer->sz = buffer->sz - index;
+  buffer->buffer += (size_t)index;
+  return 1;
+}
+
 uint8_t http_Response_ParseCode(PHttpString buffer) {
   HttpString token = {
     .buffer = "HTTP/1.1",
-    .sz = sizeof("HTTP/1.1") - 1
+    .sz = sizeof("HTTP/") - 1
   };
-  return http_Response_ParseCurrentToken(buffer, &token, buffer);
+  if(!http_Response_ParseCurrentToken(buffer, &token, buffer)) {
+    return 0;
+  }
+  return http_Response_ParseHttpVersion(buffer);
 }
 
 uint8_t http_Response_ParseEmptySpace(PHttpString buffer) {
@@ -686,7 +718,7 @@ uint8_t http_Response_ParseHttpCode(PHttpResponse self, PHttpString buffer) {
 }
 
 uint8_t http_Response_ParseMessage(PHttpString buffer) {
-  char *next = http_ChompString(buffer, ALPHANUMERIC, 1);
+  char *next = http_ChompString(buffer, ACCEPTED_ALPHANUMERIC_VALUE, 1);
   if(!next) {
     return 0;
   }

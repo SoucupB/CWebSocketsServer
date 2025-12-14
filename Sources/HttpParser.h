@@ -12,6 +12,7 @@ PHttpRequest http_Request_Create();
 void http_Request_SetBody(PHttpRequest self, HttpString str);
 HttpString http_Request_GetBody(PHttpRequest self);
 HttpString http_Request_GetPath(PHttpRequest self);
+void http_Request_AddHeader(PHttpRequest self, char *key, char *value);
 
 HttpString http_Hash_GetValue(Hash self, char *buffer, size_t bufferLen);
 

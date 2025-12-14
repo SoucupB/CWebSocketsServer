@@ -55,6 +55,15 @@ PHttpResponse httpS_Json_Post(JsonElement jsn) {
   return response;
 }
 
+RequestStruct httpS_Request_StructInit(HttpString ip, uint16_t port) {
+  RequestStruct response;
+  memset(&response, 0, sizeof(RequestStruct));
+  response.ip[ip.sz] = 0;
+  memcpy(response.ip, ip.buffer, ip.sz);
+  response.port = port;
+  return response;
+}
+
 void remote_OnReceiveMessage(PDataFragment frag, void *buffer) {
   PHttpServer self = buffer;
   sock_PushCloseConnections(self->server, &frag->conn);

@@ -12,8 +12,10 @@ PHttpRequest http_Request_Create();
 void http_Request_SetBody(PHttpRequest self, HttpString str);
 HttpString http_Request_GetBody(PHttpRequest self);
 HttpString http_Request_GetPath(PHttpRequest self);
+void http_Request_AddHeader(PHttpRequest self, char *key, char *value);
 
 HttpString http_Hash_GetValue(Hash self, char *buffer, size_t bufferLen);
+
 PHttpResponse http_Response_Create();
 void http_Response_SetBody(PHttpResponse self, PHttpString buffer);
 void http_Response_Delete(PHttpResponse self);
@@ -22,3 +24,4 @@ PHttpResponse http_Response_Empty();
 void http_Response_Set(PHttpResponse self, char *key, size_t keySize, char *value, size_t valueSize);
 void http_Response_SetJSON(PHttpResponse self);
 PHttpResponse http_Response_Parse(HttpString buffer);
+HttpString http_Response_GetValue(PHttpResponse self, char *buffer);
