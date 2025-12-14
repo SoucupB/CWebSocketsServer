@@ -82,7 +82,6 @@ static inline uint8_t httpS_Request_ProcessCurrentFragment(PHttpRequestServer se
     return 0;
   }
   PHttpResponse httpResponse = http_Response_Parse(response);
-  // printf("%.*s\n", response.sz, response.buffer);
   if(!httpResponse) {
     httpS_Request_ExecuteErrorMethod(metadata->metadata.onFailure, RESPONSE_PARSE_ERROR);
     return 1;
