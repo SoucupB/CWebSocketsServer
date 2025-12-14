@@ -5,6 +5,7 @@
 #include <ctype.h>
 #include "Vector.h"
 #include "TrieHash.h"
+#include "String.h"
 
 static inline PHttpMetaData http_InitMetadata();
 static inline PURL http_URL_Init();
@@ -117,6 +118,18 @@ static inline Hash http_Hash_Create() {
   hash.hash = trh_Create();
   hash.valuesSize = trh_Create();
   return hash;
+}
+
+Hash http_Hash_DeepCopy(Hash hash) {
+  Hash newHash = http_Hash_Create();
+  Vector keys = trh_GetKeys(hash.hash);
+  Key *bff = keys->buffer;
+  for(size_t i = 0, c = keys->size; i < c; i++) {
+    HttpString value = http_Hash_GetValue(hash, bff[i].key, bff[i].keySize);
+    http_Hash_Add(newHash, bff[i].key, bff[i].keySize, value.buffer, value.sz);
+  }
+  trh_FreeKeys(keys);
+  return newHash;
 }
 
 static inline char *http_ChompLineSeparator(PHttpString buffer) {
@@ -270,6 +283,15 @@ static inline char *http_ChompString(PHttpString buff, char *like, uint8_t repea
     return NULL;
   }
   return buff->buffer + index;
+}
+
+PHttpResponse http_Response_DeepCopy(PHttpResponse self) {
+  PHttpResponse newResponse = http_Response_Empty();
+  newResponse->httpCode = self->httpCode;
+  newResponse->response = self->response;
+  newResponse->headers = http_Hash_DeepCopy(self->headers);
+  newResponse->body = string_DeepCopy(self->body);
+  return newResponse;
 }
 
 char *http_Path_Parse(PHttpRequest parent, PHttpString buffer) {

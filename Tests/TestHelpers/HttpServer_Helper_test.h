@@ -8,4 +8,4 @@
 
 void http_Helper_AddMethod(PHttpServer server, void *method);
 void http_Helper_Free(PHttpServer server);
-PHttpResponse http_Helper_Send(PHttpServer server, uint16_t port, PHttpRequest req);
+PHttpResponse http_Helper_Send(uint16_t port, PHttpRequest req) ;

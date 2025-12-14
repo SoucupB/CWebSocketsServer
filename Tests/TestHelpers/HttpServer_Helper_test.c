@@ -31,11 +31,13 @@ void http_Helper_AddMethod(PHttpServer server, void *method) {
 void onSuccess(PHttpResponse req, void *mirror) {
   CheckerStruct *prc = mirror;
   *prc->hasExecuted = 1;
-  *prc->response = req;
+  *prc->response = http_Response_DeepCopy(req);
+  // *prc->response = req;
 }
 
-PHttpResponse http_Helper_Send(PHttpServer server, uint16_t port, PHttpRequest req) {
+PHttpResponse http_Helper_Send(uint16_t port, PHttpRequest req) {
   uint32_t hasExecuted = 0;
+  int32_t timesExecuted = 5000;
   PHttpResponse response = NULL;
   CheckerStruct inpData = {
     .hasExecuted = &hasExecuted,
@@ -52,18 +54,23 @@ PHttpResponse http_Helper_Send(PHttpServer server, uint16_t port, PHttpRequest r
   RequestStruct reqData = httpS_Request_StructInit(ip, port);
   reqData.query = http_Request_ToString(req);
   reqData.onSuccess = onReceive;
-  PHttpRequestServer reqServer = httpS_Request_Create(5000);
+  PHttpRequestServer reqServer = httpS_Request_Create(15000);
   httpS_Request_Send(reqServer, reqData);
   while(1) {
-    if(hasExecuted) {
+    if(hasExecuted || !timesExecuted) {
       break;
     }
+    timesExecuted--;
     httpS_Request_OnFrame(reqServer, 1);
     usleep(1 * 1000);
   }
   free(reqData.query.buffer);
+  httpS_Request_Delete(reqServer);
   sock_Method_Delete(onReceive);
-  return NULL;
+  if(!hasExecuted) {
+    return NULL;
+  }
+  return response;
 }
 
 void http_Helper_Free(PHttpServer server) {

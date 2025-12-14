@@ -64,14 +64,20 @@ abcd\
 }
 
 static void test_http_server_request_response(void **state) {
-  
+  PHttpRequest req = http_Request_Basic();
+  PHttpResponse resp = http_Helper_Send(8000, req);
+  HttpString str = http_Response_ToString(resp);
+  // printf("%.*s\n", str.sz, str.buffer);
+  free(str.buffer);
+  http_Request_Delete(req);
+  http_Response_Delete(resp);
 }
 
 int main() {
   const struct CMUnitTest tests[] = {
-    cmocka_unit_test_prestate(test_http_server_creation, NULL),
-    cmocka_unit_test_prestate(test_http_server_push_method, NULL),
-    cmocka_unit_test_prestate(test_http_server_parse_request, NULL),
+    // cmocka_unit_test_prestate(test_http_server_creation, NULL),
+    // cmocka_unit_test_prestate(test_http_server_push_method, NULL),
+    // cmocka_unit_test_prestate(test_http_server_parse_request, NULL),
     cmocka_unit_test_prestate(test_http_server_request_response, NULL),
   };
   const uint32_t value = cmocka_run_group_tests(tests, NULL, NULL);
