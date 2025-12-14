@@ -610,6 +610,20 @@ PHttpRequest http_Request_Create() {
   return self;
 }
 
+PHttpRequest http_Request_Basic() {
+  PHttpRequest self = malloc(sizeof(HttpRequest));
+  memset(self, 0, sizeof(HttpRequest));
+  self->url = http_URL_Init();
+  self->metadata = http_InitMetadata();
+  self->headers = http_Hash_Create();
+  self->url->method = GET;
+  http_Request_AddHeader(self, "Accept", "*/*");
+  http_Request_AddHeader(self, "Accept-Encoding", "gzip, deflate, br");
+  http_Request_AddHeader(self, "Connection", "keep-alive");
+  memcpy(self->url->httpType, "HTTP/1.1", sizeof("HTTP/1.1"));
+  return self;
+}
+
 void http_Request_AddHeader(PHttpRequest self, char *key, char *value) {
   http_Hash_Add(self->headers, key, strlen(key), value, strlen(value));
 }

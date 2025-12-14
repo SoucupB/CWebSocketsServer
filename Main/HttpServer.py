@@ -13,7 +13,7 @@ class RequestHandler(BaseHTTPRequestHandler):
       "params": params
     }
 
-    self.send_response(200)
+    self.send_response(400)
     self.send_header("Content-Length", str(len(json.dumps(response))))
     self.send_header("Some-Custom-Data", "fdsfdsggg")
     self.send_header("Some-Custom-Data-2", "aaaafdsfdsggg")

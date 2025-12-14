@@ -9,6 +9,7 @@
 void onSuccess(PHttpResponse req, void *mirror) {
   HttpString str = http_Response_ToString(req);
   printf("Received!\n%.*s\n", str.sz, str.buffer);
+  printf("Received!\n");
 }
 
 int main()
@@ -24,10 +25,7 @@ int main()
     .buffer = "127.0.0.1",
     .sz = sizeof("127.0.0.1") - 1
   };
-  PHttpRequest httpReq = http_Request_Create();
-  http_Request_AddHeader(httpReq, "Accept", "*/*");
-  http_Request_AddHeader(httpReq, "Accept-Encoding", "gzip, deflate, br");
-  http_Request_AddHeader(httpReq, "Connection", "keep-alive");
+  PHttpRequest httpReq = http_Request_Basic();
   RequestStruct reqData = httpS_Request_StructInit(ip, 8000);
   reqData.query = http_Request_ToString(httpReq);
   reqData.onSuccess = onReceive;
@@ -37,7 +35,7 @@ int main()
     uint64_t currentTime = tf_CurrentTimeMS();
     httpS_Request_OnFrame(req, currentTime - currentTimestamp);
     currentTimestamp = currentTime;
-    usleep(1000 * 1000);
+    usleep(16 * 1000);
   }
   httpS_Request_Delete(req);
   sock_Method_Delete(onReceive);
