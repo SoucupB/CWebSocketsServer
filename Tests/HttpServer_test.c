@@ -63,11 +63,16 @@ abcd\
   free(str.buffer);
 }
 
+static void test_http_server_request_response(void **state) {
+  
+}
+
 int main() {
   const struct CMUnitTest tests[] = {
     cmocka_unit_test_prestate(test_http_server_creation, NULL),
     cmocka_unit_test_prestate(test_http_server_push_method, NULL),
     cmocka_unit_test_prestate(test_http_server_parse_request, NULL),
+    cmocka_unit_test_prestate(test_http_server_request_response, NULL),
   };
   const uint32_t value = cmocka_run_group_tests(tests, NULL, NULL);
   return value;
