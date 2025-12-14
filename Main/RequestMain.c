@@ -7,7 +7,8 @@
 #include "TimeFragment.h"
 
 void onSuccess(PHttpResponse req, void *mirror) {
-  printf("Received!\n");
+  HttpString str = http_Response_ToString(req);
+  printf("Received!\n%.*s\n", str.sz, str.buffer);
 }
 
 int main()
