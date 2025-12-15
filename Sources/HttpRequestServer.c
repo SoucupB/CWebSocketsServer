@@ -56,6 +56,9 @@ void httpS_Request_ProcessPendingRequests(PHttpRequestServer self) {
       continue;
     }
     buffer[i].conn = sock_Client_Connect(buffer[i].metadata.port, buffer[i].metadata.ip);
+    if(!buffer[i].conn) {
+      continue;
+    }
     httpS_Request_ProcessRequests(self, &buffer[i]);
   }
 }

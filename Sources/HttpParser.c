@@ -18,6 +18,7 @@ static inline char *http_ChompLineSeparator(PHttpString buffer);
 static inline Hash http_Hash_Create();
 HttpString http_Body_Process(Hash self, char *_endBuffer, PHttpString buffer);
 static inline void http_SetBuffer(HttpString buffer, PHttpString nextPart, char *next);
+PHttpResponse _http_Response_Empty(Hash headers);
 
 #define ALPHANUMERIC "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_."
 #define ACCEPTED_ALPHANUMERIC_KEY "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!#$%&'*+-.^_`|~"
@@ -286,10 +287,10 @@ static inline char *http_ChompString(PHttpString buff, char *like, uint8_t repea
 }
 
 PHttpResponse http_Response_DeepCopy(PHttpResponse self) {
-  PHttpResponse newResponse = http_Response_Empty();
+  Hash newHeaders = http_Hash_DeepCopy(self->headers);
+  PHttpResponse newResponse = _http_Response_Empty(newHeaders);
   newResponse->httpCode = self->httpCode;
   newResponse->response = self->response;
-  newResponse->headers = http_Hash_DeepCopy(self->headers);
   newResponse->body = string_DeepCopy(self->body);
   return newResponse;
 }
@@ -485,7 +486,7 @@ char *http_FormatHeaders(Hash headers, Vector headersArr, char *buffer, size_t b
 
 HttpString http_Response_ToString(PHttpResponse self) {
   char messageHeader[64] = {0};
-  snprintf(messageHeader, sizeof(messageHeader), "%s %u\r\n", self->httpCode, self->response);
+  snprintf(messageHeader, sizeof(messageHeader), "%s %u OK\r\n", self->httpCode, self->response);
   Vector headersArr = trh_GetKeys(self->headers.hash);
   size_t requestSize = http_Response_Size(self->headers, headersArr);
   size_t headerSizeCode = strlen(messageHeader);
@@ -673,14 +674,26 @@ void http_Response_Set(PHttpResponse self, char *key, size_t keySize, char *valu
   http_Hash_Add(self->headers, key, keySize, value, valueSize);
 }
 
-PHttpResponse http_Response_Empty() {
+PHttpResponse _http_Response_Empty(Hash headers) {
   PHttpResponse self = malloc(sizeof(HttpResponse));
   memset(self, 0, sizeof(HttpResponse));
-  self->headers = http_Hash_Create();
+  self->headers = headers;
   self->httpCode = "HTTP/1.1";
   self->response = 200;
   http_Response_SetBodySize(self, 0);
   return self;
+}
+
+PHttpResponse http_Response_Empty() {
+  Hash newHash = http_Hash_Create();
+  return _http_Response_Empty(newHash);
+  // PHttpResponse self = malloc(sizeof(HttpResponse));
+  // memset(self, 0, sizeof(HttpResponse));
+  // self->headers = http_Hash_Create();
+  // self->httpCode = "HTTP/1.1";
+  // self->response = 200;
+  // http_Response_SetBodySize(self, 0);
+  // return self;
 }
 
 uint8_t http_Response_ParseCurrentToken(PHttpString buffer, PHttpString token, PHttpString nextPart) {
@@ -707,7 +720,7 @@ uint8_t http_Response_ParseHttpVersion(PHttpString buffer) {
 
 uint8_t http_Response_ParseCode(PHttpString buffer) {
   HttpString token = {
-    .buffer = "HTTP/1.1",
+    .buffer = "HTTP/",
     .sz = sizeof("HTTP/") - 1
   };
   if(!http_Response_ParseCurrentToken(buffer, &token, buffer)) {

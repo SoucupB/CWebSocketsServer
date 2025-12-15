@@ -8,4 +8,6 @@
 
 void http_Helper_AddMethod(PHttpServer server, void *method);
 void http_Helper_Free(PHttpServer server);
-PHttpResponse http_Helper_Send(uint16_t port, PHttpRequest req) ;
+PHttpResponse http_Helper_Send(uint16_t port, PHttpRequest req, PSocketMethod method);
+PHttpResponse http_Helper_Process(PHttpServer server, PHttpRequest req);
+PSocketMethod http_Helper_MirrorMethod(void *mirror);

@@ -35,7 +35,7 @@ void onSuccess(PHttpResponse req, void *mirror) {
   // *prc->response = req;
 }
 
-PHttpResponse http_Helper_Send(uint16_t port, PHttpRequest req) {
+PHttpResponse http_Helper_Send(uint16_t port, PHttpRequest req, PSocketMethod method) {
   uint32_t hasExecuted = 0;
   int32_t timesExecuted = 5000;
   PHttpResponse response = NULL;
@@ -60,6 +60,10 @@ PHttpResponse http_Helper_Send(uint16_t port, PHttpRequest req) {
     if(hasExecuted || !timesExecuted) {
       break;
     }
+    if(method) {
+      void (*methodDef)(void *) = method->method;
+      methodDef(method->mirrorBuffer);
+    }
     timesExecuted--;
     httpS_Request_OnFrame(reqServer, 1);
     usleep(1 * 1000);
@@ -71,6 +75,39 @@ PHttpResponse http_Helper_Send(uint16_t port, PHttpRequest req) {
     return NULL;
   }
   return response;
+}
+
+void dummyOnFrameMethod(void *buffer) {
+  PHttpServer server = buffer;
+  httpS_OnFrame(server, 1);
+}
+
+PHttpResponse http_Helper_Process(PHttpServer server, PHttpRequest req) {
+  PSocketMethod onFrame = sock_Method_Create(
+    (void *)dummyOnFrameMethod,
+    server
+  );
+  PHttpResponse resp = http_Helper_Send(server->server->port, req, onFrame);
+  sock_Method_Delete(onFrame);
+  return resp;
+}
+
+PHttpResponse _caller(PHttpRequest req, void *mirror) {
+  PHttpResponse empty = http_Response_Empty();
+  HttpString str = {
+    .buffer = "SOME_BUFFER_SOMER_BUFFER",
+    .sz = sizeof("SOME_BUFFER_SOMER_BUFFER") - 1
+  };
+  http_Response_SetBody(empty, &str);
+  return empty;
+}
+
+PSocketMethod http_Helper_MirrorMethod(void *mirror) {
+  PSocketMethod socket = sock_Method_Create(
+    (void *)_caller,
+    mirror
+  );
+  return socket;
 }
 
 void http_Helper_Free(PHttpServer server) {
