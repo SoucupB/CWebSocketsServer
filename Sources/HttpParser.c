@@ -484,9 +484,20 @@ char *http_FormatHeaders(Hash headers, Vector headersArr, char *buffer, size_t b
   return buffer;
 }
 
+char *http_Response_ResponseString(PHttpResponse self) {
+  if(self->response >= 200 && self->response <= 299) {
+    return "OK";
+  }
+  if(self->response >= 400 && self->response <= 499) {
+    return "Bad Request";
+  }
+  return "Undefined";
+}
+
 HttpString http_Response_ToString(PHttpResponse self) {
   char messageHeader[64] = {0};
-  snprintf(messageHeader, sizeof(messageHeader), "%s %u OK\r\n", self->httpCode, self->response);
+  // this is bugged, needs fix.
+  snprintf(messageHeader, sizeof(messageHeader), "%s %u %s\r\n", self->httpCode, self->response, http_Response_ResponseString(self));
   Vector headersArr = trh_GetKeys(self->headers.hash);
   size_t requestSize = http_Response_Size(self->headers, headersArr);
   size_t headerSizeCode = strlen(messageHeader);

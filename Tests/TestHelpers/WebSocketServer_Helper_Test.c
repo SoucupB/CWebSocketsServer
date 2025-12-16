@@ -26,7 +26,7 @@ Sec-WebSocket-Key: dGhlIHNhbXBsZSBub25jZQ==\r\n\
 Sec-WebSocket-Version: 13\r\n\
 \r\n";
 char *handshakeAccepted = "\
-HTTP/1.1 101\r\n\
+HTTP/1.1 101 Undefined\r\n\
 Connection: Upgrade\r\n\
 Content-Length: 0\r\n\
 Sec-WebSocket-Accept: s3pPLMBiTxaQ9kYGzzhZRbK+xOo=\r\n\

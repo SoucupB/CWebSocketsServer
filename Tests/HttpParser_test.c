@@ -253,7 +253,7 @@ static void test_http_response_to_string(void **state) {
   http_Response_SetBody(response, &body);
   HttpString responseStr = http_Response_ToString(response);
   const char *expectedResponse = "\
-HTTP/1.1 200\r\n\
+HTTP/1.1 200 OK\r\n\
 Connection: close\r\n\
 Content-Length: 13\r\n\
 Content-Type: text/plain\r\n\
@@ -277,7 +277,7 @@ static void test_http_response_to_small_string_reject(void **state) {
   http_Response_SetBody(response, &body);
   HttpString responseStr = http_Response_ToString(response);
   const char *expectedResponse = "\
-HTTP/1.1 400\r\n\
+HTTP/1.1 400 Bad Request\r\n\
 Connection: close\r\n\
 Content-Length: 5\r\n\
 Content-Type: text/plain\r\n\
@@ -369,7 +369,7 @@ DSDSAFAFAFAFA\
     .sz = strlen(responseStr)
   });
   char *expectedResponse = "\
-HTTP/1.1 205\r\n\
+HTTP/1.1 205 OK\r\n\
 Content-Length: 13\r\n\
 Some-Custom-Data: fdsfdsggg\r\n\
 Some-Custom-Data-2: aaaafdsfdsggg\r\n\
