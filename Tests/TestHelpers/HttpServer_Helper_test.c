@@ -32,7 +32,6 @@ void onSuccess(PHttpResponse req, void *mirror) {
   CheckerStruct *prc = mirror;
   *prc->hasExecuted = 1;
   *prc->response = http_Response_DeepCopy(req);
-  // *prc->response = req;
 }
 
 PHttpResponse http_Helper_Send(uint16_t port, PHttpRequest req, PSocketMethod method) {

@@ -18,6 +18,7 @@ PHttpRequest http_Request_Basic();
 HttpString http_Hash_GetValue(Hash self, char *buffer, size_t bufferLen);
 
 PHttpResponse http_Response_Create();
+PHttpResponse http_Response_DeepCopy(PHttpResponse self);
 void http_Response_SetBody(PHttpResponse self, PHttpString buffer);
 void http_Response_Delete(PHttpResponse self);
 HttpString http_Response_ToString(PHttpResponse self);
