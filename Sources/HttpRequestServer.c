@@ -114,7 +114,7 @@ void httpS_Request_CleanHangingConnections(const PHttpRequestServer self) {
 
 void httpS_Request_ProcessActiveRequests(PHttpRequestServer self, uint64_t deltaMS) {
   RequestMetadata *buffer = self->requests->buffer;
-  Vector indexes = vct_Init(sizeof(size_t));
+  Array indexes = vct_Init(sizeof(size_t));
   for(size_t i = 0, c = self->requests->size; i < c; i++) {
     if(!buffer[i].conn) {
       continue;
@@ -125,7 +125,7 @@ void httpS_Request_ProcessActiveRequests(PHttpRequestServer self, uint64_t delta
       buffer[i].conn = NULL;
     }
   }
-  Vector request = self->requests;
+  Array request = self->requests;
   self->requests = vct_RemoveElements(self->requests, indexes);
   vct_Delete(request);
   vct_Delete(indexes);

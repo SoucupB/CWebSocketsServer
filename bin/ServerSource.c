@@ -743,16 +743,16 @@ typedef struct TimeFragment_t {
   int64_t executeAfter;
   int64_t time;
 } TimeFragment;
-struct Vector_t {
+struct Array_t {
   void *buffer;
   size_t size;
   size_t capacity;
   size_t objSize;
 };
-typedef struct Vector_t *Vector;
+typedef struct Array_t *Array;
 typedef struct TimeServer_t {
-  Vector methods;
-  Vector loopMethods;
+  Array methods;
+  Array loopMethods;
 } TimeServer;
 typedef TimeServer *PTimeServer;
 typedef struct Timeout_t {
@@ -769,10 +769,10 @@ typedef struct SocketServer_t {
   int32_t maxActiveConnections;
   int32_t maxBytesPerReadConnection;
   Connection serverFD;
-  Vector connections;
-  Vector inputReads;
-  Vector outputCommands;
-  Vector closeConnectionsQueue;
+  Array connections;
+  Array inputReads;
+  Array outputCommands;
+  Array closeConnectionsQueue;
   PSocketMethod onConnectionRelease;
   PSocketMethod onConnectionAquire;
   PSocketMethod onReceiveMessage;
@@ -785,8 +785,8 @@ typedef struct WebSocketServer_t {
   PSocketMethod onReceiveMessage;
   PSocketMethod onRelease;
   PrivateMethodsBundle methodsBundle;
-  Vector pendingConnections;
-  Vector pendingPingRequests;
+  Array pendingConnections;
+  Array pendingPingRequests;
   PTimeout timeServer;
 } WebSocketServer;
 typedef WebSocketServer *PWebSocketServer;
@@ -877,7 +877,7 @@ typedef struct HttpServer_t {
 } HttpServer;
 typedef HttpServer *PHttpServer;
 typedef struct HttpRequestServer_t {
-  Vector requests;
+  Array requests;
   int64_t timeoutMS;
 } HttpRequestServer;
 typedef HttpRequestServer *PHttpRequestServer;
@@ -888,19 +888,19 @@ typedef struct RequestStruct_t {
   PSocketMethod onSuccess;
   PSocketMethod onFailure;
 } RequestStruct;
-Vector vct_Init(size_t size);
-Vector vct_InitWithCapacity(size_t size, size_t count);
-void vct_Push(Vector self, void *buffer);
-void vct_Delete(Vector self);
-void vct_DeleteWOBuffer(Vector self);
-void vct_Clear(Vector self);
-void vct_RemoveElement(Vector payload, size_t index);
-Vector vct_RemoveElements(Vector payload, Vector indexes);
-int64_t vct_Find(Vector payload, void *element);
-Vector vct_InitWithSize(size_t objSize, size_t count);
-char *vct_Last(Vector self);
-void vct_Pop(Vector self);
-void vct_RemoveElementsWithReplacing(Vector *self, Vector indexes);
+Array vct_Init(size_t size);
+Array vct_InitWithCapacity(size_t size, size_t count);
+void vct_Push(Array self, void *buffer);
+void vct_Delete(Array self);
+void vct_DeleteWOBuffer(Array self);
+void vct_Clear(Array self);
+void vct_RemoveElement(Array payload, size_t index);
+Array vct_RemoveElements(Array payload, Array indexes);
+int64_t vct_Find(Array payload, void *element);
+Array vct_InitWithSize(size_t objSize, size_t count);
+char *vct_Last(Array self);
+void vct_Pop(Array self);
+void vct_RemoveElementsWithReplacing(Array *self, Array indexes);
 
 extern void *memcpy (void *__restrict __dest, const void *__restrict __src,
        size_t __n) __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__nonnull__ (1, 2)));
@@ -1513,42 +1513,42 @@ extern void __assert_perror_fail (int __errnum, const char *__file,
 extern void __assert (const char *__assertion, const char *__file, int __line)
      __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__noreturn__));
 
-Vector vct_Init(size_t size) {
-  Vector self = (Vector)malloc(sizeof(struct Vector_t));
+Array vct_Init(size_t size) {
+  Array self = (Array)malloc(sizeof(struct Array_t));
   self->buffer = malloc(size);
   self->size = 0;
   self->capacity = 1;
   self->objSize = size;
   return self;
 }
-Vector vct_InitWithCapacity(size_t size, size_t count) {
-  Vector self = malloc(sizeof(struct Vector_t));
+Array vct_InitWithCapacity(size_t size, size_t count) {
+  Array self = malloc(sizeof(struct Array_t));
   self->buffer = malloc(size * count);
   self->size = 0;
   self->capacity = count;
   self->objSize = size;
   return self;
 }
-Vector vct_InitWithSize(size_t objSize, size_t count) {
-  Vector self = malloc(sizeof(struct Vector_t));
+Array vct_InitWithSize(size_t objSize, size_t count) {
+  Array self = malloc(sizeof(struct Array_t));
   self->buffer = malloc(objSize * count);
   self->size = count;
   self->capacity = count;
   self->objSize = objSize;
   return self;
 }
-void copyData(Vector self, void *buffer) {
+void copyData(Array self, void *buffer) {
   memcpy(self->buffer + (self->size * self->objSize), buffer, self->objSize);
   self->size++;
 }
-void vct_Push(Vector self, void *buffer) {
+void vct_Push(Array self, void *buffer) {
   if(self->size >= self->capacity) {
     self->capacity <<= 1;
     self->buffer = realloc(self->buffer, self->capacity * self->objSize);
   }
   copyData(self, buffer);
 }
-void vct_RemoveElement(Vector self, size_t index) {
+void vct_RemoveElement(Array self, size_t index) {
   ((void) sizeof ((self->size != 0) ? 1 : 0), __extension__ ({ if (self->size != 0) ; else __assert_fail ("self->size != 0", "bin/svv.c", 52, __extension__ __PRETTY_FUNCTION__); }));
   if(index >= self->size) {
     return ;
@@ -1559,27 +1559,27 @@ void vct_RemoveElement(Vector self, size_t index) {
   }
   self->size--;
 }
-void vct_Delete(Vector self) {
+void vct_Delete(Array self) {
   free(self->buffer);
   free(self);
 }
-void vct_DeleteWOBuffer(Vector self) {
+void vct_DeleteWOBuffer(Array self) {
   free(self);
 }
-char *vct_Last(Vector self) {
+char *vct_Last(Array self) {
   if(!self->size) {
     return ((void *)0);
   }
   return self->buffer + (self->size - 1) * self->objSize;
 }
-void vct_Pop(Vector self) {
+void vct_Pop(Array self) {
   if(!self->size) {
     return ;
   }
   self->size--;
 }
-Vector vct_RemoveElements(Vector payload, Vector indexes) {
-  Vector indexesCount = vct_InitWithSize(sizeof(uint8_t), payload->size);
+Array vct_RemoveElements(Array payload, Array indexes) {
+  Array indexesCount = vct_InitWithSize(sizeof(uint8_t), payload->size);
   memset(indexesCount->buffer, 0, sizeof(uint8_t) * payload->size);
   size_t *indexesBuffer = indexes->buffer;
   uint8_t *aparitionCount = indexesCount->buffer;
@@ -1588,7 +1588,7 @@ Vector vct_RemoveElements(Vector payload, Vector indexes) {
       aparitionCount[indexesBuffer[i]] = 1;
     }
   }
-  Vector payloadWithMissingElements = vct_Init(payload->objSize);
+  Array payloadWithMissingElements = vct_Init(payload->objSize);
   for(size_t i = 0, c = payload->size; i < c; i++) {
     if(!aparitionCount[i]) {
       vct_Push(payloadWithMissingElements, payload->buffer + i * payload->objSize);
@@ -1597,12 +1597,12 @@ Vector vct_RemoveElements(Vector payload, Vector indexes) {
   vct_Delete(indexesCount);
   return payloadWithMissingElements;
 }
-void vct_RemoveElementsWithReplacing(Vector *self, Vector indexes) {
-  Vector deleted = vct_RemoveElements(*self, indexes);
+void vct_RemoveElementsWithReplacing(Array *self, Array indexes) {
+  Array deleted = vct_RemoveElements(*self, indexes);
   vct_Delete(*self);
   *self = deleted;
 }
-int64_t vct_Find(Vector payload, void *element) {
+int64_t vct_Find(Array payload, void *element) {
   void *startingPointer = payload->buffer;
   size_t objSize = payload->objSize;
   for(size_t i = 0, c = payload->size; i < c; i++) {
@@ -1612,7 +1612,7 @@ int64_t vct_Find(Vector payload, void *element) {
   }
   return -1;
 }
-void vct_Clear(Vector self) {
+void vct_Clear(Array self) {
   self->size = 0;
 }
        
@@ -2086,9 +2086,9 @@ void trh_Buffer_RemoveAtIndex64(PTrieHash self, uint64_t id);
 void trh_Buffer_AddToIndex(PTrieHash self, uint32_t id, void* buffer, uint32_t bufferSize);
 void* trh_Buffer_GetFromIndex(PTrieHash self, uint32_t id);
 void trh_Buffer_RemoveAtIndex(PTrieHash self, uint32_t id);
-Vector trh_GetValues(PTrieHash self, size_t valueSize);
-Vector trh_GetKeys(PTrieHash self);
-void trh_FreeKeys(Vector keys);
+Array trh_GetValues(PTrieHash self, size_t valueSize);
+Array trh_GetKeys(PTrieHash self);
+void trh_FreeKeys(Array keys);
        
 HttpString string_DeepCopy(HttpString str);
 static inline PHttpMetaData http_InitMetadata();
@@ -2192,7 +2192,7 @@ static inline Hash http_Hash_Create() {
 }
 Hash http_Hash_DeepCopy(Hash hash) {
   Hash newHash = http_Hash_Create();
-  Vector keys = trh_GetKeys(hash.hash);
+  Array keys = trh_GetKeys(hash.hash);
   Key *bff = keys->buffer;
   for(size_t i = 0, c = keys->size; i < c; i++) {
     HttpString value = http_Hash_GetValue(hash, bff[i].key, bff[i].keySize);
@@ -2486,7 +2486,7 @@ void http_Response_SetBody(PHttpResponse self, PHttpString buffer) {
   self->body.sz = buffer->sz;
   http_Response_SetBodySize(self, buffer->sz);
 }
-static inline size_t http_Response_Size(Hash headers, Vector headersArr) {
+static inline size_t http_Response_Size(Hash headers, Array headersArr) {
   size_t totalSize = 0;
   Key *headerBuffer = headersArr->buffer;
   for(size_t i = 0, c = headersArr->size; i < c; i++) {
@@ -2498,7 +2498,7 @@ static inline size_t http_Response_Size(Hash headers, Vector headersArr) {
   }
   return totalSize;
 }
-char *http_FormatHeaders(Hash headers, Vector headersArr, char *buffer, size_t bufferSize) {
+char *http_FormatHeaders(Hash headers, Array headersArr, char *buffer, size_t bufferSize) {
   Key *headerBuffer = headersArr->buffer;
   for(size_t i = 0, c = headersArr->size; i < c; i++) {
     HttpString valueBuffer = http_Hash_GetValue(headers, headerBuffer[i].key, headerBuffer[i].keySize);
@@ -2527,7 +2527,7 @@ char *http_Response_ResponseString(PHttpResponse self) {
 HttpString http_Response_ToString(PHttpResponse self) {
   char messageHeader[64] = {0};
   snprintf(messageHeader, sizeof(messageHeader), "%s %u %s\r\n", self->httpCode, self->response, http_Response_ResponseString(self));
-  Vector headersArr = trh_GetKeys(self->headers.hash);
+  Array headersArr = trh_GetKeys(self->headers.hash);
   size_t requestSize = http_Response_Size(self->headers, headersArr);
   size_t headerSizeCode = strlen(messageHeader);
   size_t bufferSize = headerSizeCode + requestSize + self->body.sz + 5;
@@ -2550,18 +2550,18 @@ void http_Response_SetDefault(PHttpResponse self) {
   http_Hash_Add(self->headers, "Content-Type", sizeof("Content-Type") - 1, "text/plain", sizeof("text/plain") - 1);
   http_Hash_Add(self->headers, "Connection", sizeof("Connection") - 1, "close", sizeof("close") - 1);
 }
-static inline void http_PushString(Vector str, HttpString buffer) {
+static inline void http_PushString(Array str, HttpString buffer) {
   char *bff = buffer.buffer;
   for(size_t i = 0, c = buffer.sz; i < c; i++) {
     vct_Push(str, &bff[i]);
   }
 }
-static inline void http_PushCharArray(Vector str, char *buffer) {
+static inline void http_PushCharArray(Array str, char *buffer) {
   for(size_t i = 0, c = strlen(buffer); i < c; i++) {
     vct_Push(str, &buffer[i]);
   }
 }
-void http_Request_AddTopString(PHttpRequest self, Vector str) {
+void http_Request_AddTopString(PHttpRequest self, Array str) {
   switch (self->url->method)
   {
     case GET: {
@@ -2611,8 +2611,8 @@ void http_Request_AddTopString(PHttpRequest self, Vector str) {
   });
   http_PushCharArray(str, "\r\n");
 }
-void http_Request_PushHeaders(Hash header, Vector str) {
-  Vector headersArr = trh_GetKeys(header.hash);
+void http_Request_PushHeaders(Hash header, Array str) {
+  Array headersArr = trh_GetKeys(header.hash);
   Key *keys = headersArr->buffer;
   for(size_t i = 0, c = headersArr->size; i < c; i++) {
     HttpString valueBuffer = http_Hash_GetValue(header, keys[i].key, keys[i].keySize);
@@ -2630,11 +2630,11 @@ void http_Request_PushHeaders(Hash header, Vector str) {
   http_PushCharArray(str, "\r\n");
   trh_FreeKeys(headersArr);
 }
-static inline void http_Request_PushBody(PHttpRequest self, Vector str) {
+static inline void http_Request_PushBody(PHttpRequest self, Array str) {
   http_PushString(str, self->body);
 }
 HttpString http_Request_ToString(PHttpRequest self) {
-  Vector response = vct_Init(sizeof(char));
+  Array response = vct_Init(sizeof(char));
   http_Request_AddTopString(self, response);
   http_Request_PushHeaders(self->headers, response);
   http_Request_PushBody(self, response);
@@ -2954,7 +2954,7 @@ void httpS_Request_CleanHangingConnections(const PHttpRequestServer self) {
 }
 void httpS_Request_ProcessActiveRequests(PHttpRequestServer self, uint64_t deltaMS) {
   RequestMetadata *buffer = self->requests->buffer;
-  Vector indexes = vct_Init(sizeof(size_t));
+  Array indexes = vct_Init(sizeof(size_t));
   for(size_t i = 0, c = self->requests->size; i < c; i++) {
     if(!buffer[i].conn) {
       continue;
@@ -2965,7 +2965,7 @@ void httpS_Request_ProcessActiveRequests(PHttpRequestServer self, uint64_t delta
       buffer[i].conn = ((void *)0);
     }
   }
-  Vector request = self->requests;
+  Array request = self->requests;
   self->requests = vct_RemoveElements(self->requests, indexes);
   vct_Delete(request);
   vct_Delete(indexes);
@@ -3091,9 +3091,9 @@ void httpS_OnFrame(PHttpServer self, uint64_t deltaMS) {
 
 extern int *__errno_location (void) __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__const__));
 
-void json_ToString_t(PJsonObject self, Vector str);
+void json_ToString_t(PJsonObject self, Array str);
 void json_DeleteArray(JsonElement element);
-void json_PushLeafValue(Vector str, JsonElement element);
+void json_PushLeafValue(Array str, JsonElement element);
 typedef struct TokenParser_t {
   char *startToken;
   char *endToken;
@@ -3123,7 +3123,7 @@ void json_Delete(PJsonObject self) {
   trh_Delete(self->hsh);
   free(self);
 }
-static inline void json_PushString(Vector str, char *strC, size_t sz) {
+static inline void json_PushString(Array str, char *strC, size_t sz) {
   for(size_t i = 0; i < sz; i++) {
     vct_Push(str, &strC[i]);
   }
@@ -3149,12 +3149,12 @@ static inline TokenParser json_Parse_Invalid() {
     .endingBuffer = ((void *)0)
   };
 }
-static inline void json_Element_PushInteger(Vector str, int64_t number) {
+static inline void json_Element_PushInteger(Array str, int64_t number) {
   char arr[21] = {0};
   snprintf(arr, sizeof(arr) - 1, "%ld", number);
   json_PushString(str, arr, strlen(arr));
 }
-static inline void json_Element_PushFloat(Vector str, float number) {
+static inline void json_Element_PushFloat(Array str, float number) {
   char arr[21] = {0};
   snprintf(arr, sizeof(arr) - 1, "%f", number);
   json_PushString(str, arr, strlen(arr));
@@ -3164,7 +3164,7 @@ static inline JsonElement json_Element_Invalid() {
     .type = JSON_INVALID
   };
 }
-static inline void json_Element_PushString(Vector str, PHttpString value) {
+static inline void json_Element_PushString(Array str, PHttpString value) {
   vct_Push(str, &(char){'"'});
   char *bff = value->buffer;
   for(size_t i = 0, c = value->sz; i < c; i++) {
@@ -3172,9 +3172,9 @@ static inline void json_Element_PushString(Vector str, PHttpString value) {
   }
   vct_Push(str, &(char){'"'});
 }
-void json_PushLeafArray(Vector str, JsonElement element) {
+void json_PushLeafArray(Array str, JsonElement element) {
   vct_Push(str, &(char){'['});
-  Vector currentVector = element.value;
+  Array currentVector = element.value;
   JsonElement *arrList = currentVector->buffer;
   for(size_t i = 0, c = currentVector->size; i < c; i++) {
     json_PushLeafValue(str, arrList[i]);
@@ -3184,7 +3184,7 @@ void json_PushLeafArray(Vector str, JsonElement element) {
   }
   vct_Push(str, &(char){']'});
 }
-void json_PushLeafValue(Vector str, JsonElement element) {
+void json_PushLeafValue(Array str, JsonElement element) {
   switch (element.type)
   {
     case JSON_NULL: {
@@ -3230,7 +3230,7 @@ void json_PushLeafValue(Vector str, JsonElement element) {
       break;
   }
 }
-void json_PushLeafElement(Vector str, PHttpString key, JsonElement element, int8_t lastElement) {
+void json_PushLeafElement(Array str, PHttpString key, JsonElement element, int8_t lastElement) {
   vct_Push(str, &(char){'"'});
   char *bff = key->buffer;
   for(size_t i = 0, c = key->sz; i < c; i++) {
@@ -3243,9 +3243,9 @@ void json_PushLeafElement(Vector str, PHttpString key, JsonElement element, int8
     vct_Push(str, &(char){','});
   }
 }
-void json_ToString_t(PJsonObject self, Vector str) {
+void json_ToString_t(PJsonObject self, Array str) {
   vct_Push(str, &(char){'{'});
-  Vector keys = trh_GetKeys(self->hsh);
+  Array keys = trh_GetKeys(self->hsh);
   Key *keysBuffer = keys->buffer;
   for(size_t i = 0, c = keys->size; i < c; i++) {
     HttpString currentKey = {
@@ -3260,7 +3260,7 @@ void json_ToString_t(PJsonObject self, Vector str) {
   vct_Delete(keys);
 }
 HttpString json_ToString(PJsonObject self) {
-  Vector rsp = vct_Init(sizeof(char));
+  Array rsp = vct_Init(sizeof(char));
   json_ToString_t(self, rsp);
   HttpString response = {
     .buffer = rsp->buffer,
@@ -3270,7 +3270,7 @@ HttpString json_ToString(PJsonObject self) {
   return response;
 }
 HttpString json_Element_ToString(JsonElement self) {
-  Vector responseString = vct_Init(sizeof(char));
+  Array responseString = vct_Init(sizeof(char));
   json_PushLeafValue(responseString, self);
   HttpString response = {
     .buffer = responseString->buffer,
@@ -3308,7 +3308,7 @@ void json_DeleteElement(JsonElement element) {
   }
 }
 void json_DeleteArray(JsonElement element) {
-  Vector listArr = element.value;
+  Array listArr = element.value;
   JsonElement *arr = listArr->buffer;
   for(size_t i = 0, c = listArr->size; i < c; i++) {
     json_DeleteElement(arr[i]);
@@ -3319,7 +3319,7 @@ void json_RemoveSelfContainedData(PJsonObject self) {
   if(!self || !self->selfContained) {
     return ;
   }
-  Vector values = trh_GetValues(self->hsh, sizeof(JsonElement));
+  Array values = trh_GetValues(self->hsh, sizeof(JsonElement));
   JsonElement *elements = values->buffer;
   for(size_t i = 0, c = values->size; i < c; i++) {
     json_DeleteElement(elements[i]);
@@ -3709,7 +3709,7 @@ JsonElement json_Parser_Get_Array(TokenParser tck, PTokenParser next) {
   if(json_Parser_IsInvalid(nextTck)) {
     return json_Element_Invalid();
   }
-  Vector rspArray = vct_Init(sizeof(JsonElement));
+  Array rspArray = vct_Init(sizeof(JsonElement));
   JsonElement response = {
     .type = JSON_ARRAY,
     .value = rspArray
@@ -3849,7 +3849,7 @@ JsonElement json_Array_At(JsonElement arr, size_t index) {
   if(arr.type != JSON_ARRAY) {
     return json_Parser_Get_Invalid();
   }
-  Vector vct = arr.value;
+  Array vct = arr.value;
   if(index >= vct->size) {
     return json_Parser_Get_Invalid();
   }
@@ -3857,7 +3857,7 @@ JsonElement json_Array_At(JsonElement arr, size_t index) {
 }
 size_t json_Array_Size(JsonElement arr) {
   ((void) sizeof ((arr.type == JSON_ARRAY) ? 1 : 0), __extension__ ({ if (arr.type == JSON_ARRAY) ; else __assert_fail ("arr.type == JSON_ARRAY", "bin/svv.c", 2432, __extension__ __PRETTY_FUNCTION__); }));
-  return ((Vector)arr.value)->size;
+  return ((Array)arr.value)->size;
 }
 int64_t json_Integer_Get(JsonElement arr) {
   ((void) sizeof ((arr.type == JSON_INTEGER) ? 1 : 0), __extension__ ({ if (arr.type == JSON_INTEGER) ; else __assert_fail ("arr.type == JSON_INTEGER", "bin/svv.c", 2437, __extension__ __PRETTY_FUNCTION__); }));
@@ -7900,15 +7900,15 @@ void jwt_DecodeBase64(HttpString str, uint8_t *response, size_t *responseSz);
 void jwt_FromBase64URLEncodedToNormal(HttpString str, uint8_t *response, size_t *sz);
 static inline uint8_t jwt_CharValid(char chr);
 uint8_t jwt_IsJWTCorrectlyFormatted(HttpString str);
-static inline void jwt_Add_String(Vector strDrt, HttpString str) {
+static inline void jwt_Add_String(Array strDrt, HttpString str) {
   for(size_t i = 0, c = str.sz; i < c; i++) {
     vct_Push(strDrt, &str.buffer[i]);
   }
 }
-static inline void jwt_Add_Char(Vector strDrt, char chr) {
+static inline void jwt_Add_Char(Array strDrt, char chr) {
   vct_Push(strDrt, &chr);
 }
-static inline void jwt_Add_Header(Vector strDrt) {
+static inline void jwt_Add_Header(Array strDrt) {
   char *header = jwt_CreateHeader();
   size_t sz = strlen(header);
   size_t headerBase64Size = jwt_Base64_Size(sz);
@@ -7923,7 +7923,7 @@ static inline void jwt_Add_Header(Vector strDrt) {
     .sz = newB64Size
   });
 }
-void jwt_AddSignature(Vector str, HttpString secret) {
+void jwt_AddSignature(Array str, HttpString secret) {
   HttpString newStr = {
     .buffer = str->buffer,
     .sz = str->size
@@ -7938,7 +7938,7 @@ void jwt_AddSignature(Vector str, HttpString secret) {
   }
 }
 HttpString jwt_Encode_t(JsonElement payload, HttpString secret, uint64_t iam, uint64_t expirationInMS) {
-  Vector response = vct_Init(sizeof(char));
+  Array response = vct_Init(sizeof(char));
   jwt_Add_Header(response);
   jwt_Add_Char(response, '.');
   json_Map_Add(payload, "iat", json_Integer_Create((int64_t)iam));
@@ -9462,7 +9462,7 @@ size_t sock_DoesConnectionExists(PSocketServer self, PConnection conn, uint8_t *
 }
 void sock_ClearPushedConnections(PSocketServer self) {
   Connection *connections = self->closeConnectionsQueue->buffer;
-  Vector indexes = vct_Init(sizeof(size_t));
+  Array indexes = vct_Init(sizeof(size_t));
   uint8_t found;
   for(size_t i = 0, c = self->closeConnectionsQueue->size; i < c; i++) {
     size_t connIndex = sock_DoesConnectionExists(self, &connections[i], &found);
@@ -9538,7 +9538,7 @@ PSocketMethod sock_Method_Create(void *method, void *mirrorBuffer) {
 void sock_Method_Delete(PSocketMethod self) {
   free(self);
 }
-void sock_ProcessWriteRequests_t(PSocketServer self, Vector markedForDeletionRequests) {
+void sock_ProcessWriteRequests_t(PSocketServer self, Array markedForDeletionRequests) {
   DataFragment *dataFragments = self->outputCommands->buffer;
   for(size_t i = 0, c = self->outputCommands->size; i < c; i++) {
     ssize_t response = send(dataFragments[i].conn.fd, dataFragments[i].data, dataFragments[i].size, MSG_DONTWAIT);
@@ -9553,10 +9553,10 @@ size_t sock_ConnectionCount(PSocketServer self) {
   return self->connections->size;
 }
 static inline void sock_ProcessWriteRequests(PSocketServer self) {
-  Vector markedForDeletionRequests = vct_Init(sizeof(size_t));
+  Array markedForDeletionRequests = vct_Init(sizeof(size_t));
   sock_ProcessWriteRequests_t(self, markedForDeletionRequests);
   sock_WriteBufferCleanup(self);
-  Vector prunnedArray = vct_RemoveElements(self->connections, markedForDeletionRequests);
+  Array prunnedArray = vct_RemoveElements(self->connections, markedForDeletionRequests);
   vct_Delete(self->connections);
   vct_Delete(markedForDeletionRequests);
   self->connections = prunnedArray;
@@ -9627,7 +9627,7 @@ void sock_Client_SendMessage(PDataFragment frag) {
   (void)!send(frag->conn.fd, frag->data, frag->size, MSG_DONTWAIT);
 }
 DataFragment sock_Client_Receive(PConnection conn) {
-  Vector dataToRead = vct_Init(sizeof(char));
+  Array dataToRead = vct_Init(sizeof(char));
   char bufferChunk[1024];
   ssize_t bytesRead = -1;
   while((bytesRead = recv(conn->fd, bufferChunk, sizeof(bufferChunk), 0)) && bytesRead != -1) {
@@ -9752,7 +9752,7 @@ void tf_ExecuteAfter(PTimeServer self, TimeMethod currentMethod, uint64_t afterM
 }
 static inline void tf_ExecuteFragMethods(PTimeServer self, uint64_t deltaMS) {
   TimeFragment *fragment = self->methods->buffer;
-  Vector fragmentsToRemove = vct_Init(sizeof(size_t));
+  Array fragmentsToRemove = vct_Init(sizeof(size_t));
   for(size_t i = 0, c = self->methods->size; i < c; i++) {
     fragment[i].executeAfter -= (int64_t)deltaMS;
     if(fragment[i].executeAfter <= 0) {
@@ -9761,7 +9761,7 @@ static inline void tf_ExecuteFragMethods(PTimeServer self, uint64_t deltaMS) {
       vct_Push(fragmentsToRemove, &i);
     }
   }
-  Vector cpyVector = vct_RemoveElements(self->methods, fragmentsToRemove);
+  Array cpyVector = vct_RemoveElements(self->methods, fragmentsToRemove);
   vct_Delete(self->methods);
   self->methods = cpyVector;
   vct_Delete(fragmentsToRemove);
@@ -9888,7 +9888,7 @@ void* trn_GetBuffer_t(PTrieNode self, void* key, uint32_t keySize, uint32_t posi
   }
   return ((void *)0);
 }
-void trh_GetValues_t(PTrieNode self, Vector values) {
+void trh_GetValues_t(PTrieNode self, Array values) {
   if(!self) {
     return ;
   }
@@ -9902,12 +9902,12 @@ void trh_GetValues_t(PTrieNode self, Vector values) {
     }
   }
 }
-Vector trh_GetValues(PTrieHash self, size_t valueSize) {
-  Vector response = vct_Init(valueSize);
+Array trh_GetValues(PTrieHash self, size_t valueSize) {
+  Array response = vct_Init(valueSize);
   trh_GetValues_t(self->parentNode, response);
   return response;
 }
-void trh_Key_Push(Vector currentKey, uint8_t value, size_t position) {
+void trh_Key_Push(Array currentKey, uint8_t value, size_t position) {
   if(!(position & 1)) {
     value <<= 4;
     vct_Push(currentKey, &value);
@@ -9919,7 +9919,7 @@ void trh_Key_Push(Vector currentKey, uint8_t value, size_t position) {
   }
   (*last) += value;
 }
-static inline void trh_Key_Pop(Vector currentKey, size_t position) {
+static inline void trh_Key_Pop(Array currentKey, size_t position) {
   if(!(position & 1)) {
     vct_Pop(currentKey);
   }
@@ -9931,7 +9931,7 @@ static inline void trh_Key_Pop(Vector currentKey, size_t position) {
     (*last) &= 0xF0;
   }
 }
-void trh_GetKeys_t(PTrieNode self, Vector keys, Vector currentKey, size_t position) {
+void trh_GetKeys_t(PTrieNode self, Array keys, Array currentKey, size_t position) {
   if(!self) {
     return ;
   }
@@ -9951,14 +9951,14 @@ void trh_GetKeys_t(PTrieNode self, Vector keys, Vector currentKey, size_t positi
     }
   }
 }
-Vector trh_GetKeys(PTrieHash self) {
-  Vector response = vct_Init(sizeof(Key));
-  Vector currentKey = vct_Init(sizeof(uint8_t));
+Array trh_GetKeys(PTrieHash self) {
+  Array response = vct_Init(sizeof(Key));
+  Array currentKey = vct_Init(sizeof(uint8_t));
   trh_GetKeys_t(self->parentNode, response, currentKey, 0);
   vct_Delete(currentKey);
   return response;
 }
-void trh_FreeKeys(Vector keys) {
+void trh_FreeKeys(Array keys) {
   Key *buffer = (Key *)keys->buffer;
   for(size_t i = 0, c = keys->size; i < c; i++) {
     free(buffer[i].key);
@@ -10065,12 +10065,12 @@ unsigned char *SHA384(const unsigned char *d, size_t n, unsigned char *md);
 unsigned char *SHA512(const unsigned char *d, size_t n, unsigned char *md);
        
 char *wbs_ToWebSocket(WebSocketObject self);
-Vector wbs_FromWebSocket(char *msg, size_t bufferSize);
+Array wbs_FromWebSocket(char *msg, size_t bufferSize);
 void wbs_Print(char *buffer);
 size_t wbs_FullMessageSize(char *buffer);
 char *wbs_NextMessageIterator(char *st, size_t maxMessageSize);
 uint8_t wbs_IsBufferValid(char *buffer, size_t sz);
-void wbs_Clear_FromWebSocket(Vector objects);
+void wbs_Clear_FromWebSocket(Array objects);
 char *wbs_Masked_ToWebSocket(WebSocketObject self);
 void wbs_MaskSwitch(char *buffer);
 char *wbs_Ping(WebSocketObject self);
@@ -10188,7 +10188,7 @@ static inline void wss_CloseConnections(PWebSocketServer self, Connection conn) 
 }
 void wss_ProcessTimeoutPingRequests(PWebSocketServer self, uint64_t deltaMS) {
   PingConnData *pings = self->pendingPingRequests->buffer;
-  Vector indexesToRemove = vct_Init(sizeof(size_t));
+  Array indexesToRemove = vct_Init(sizeof(size_t));
   for(size_t i = 0, c = self->pendingPingRequests->size; i < c; i++) {
     pings[i].remainingTime -= (int64_t)deltaMS;
     if(pings[i].remainingTime <= 0) {
@@ -10196,7 +10196,7 @@ void wss_ProcessTimeoutPingRequests(PWebSocketServer self, uint64_t deltaMS) {
       wss_CloseConnections(self, pings[i].conn);
     }
   }
-  Vector cpyVector = vct_RemoveElements(self->pendingPingRequests, indexesToRemove);
+  Array cpyVector = vct_RemoveElements(self->pendingPingRequests, indexesToRemove);
   vct_Delete(self->pendingPingRequests);
   self->pendingPingRequests = cpyVector;
   vct_Delete(indexesToRemove);
@@ -10297,7 +10297,7 @@ uint8_t wss_ProcessConnectionRequest(PWebSocketServer self, PDataFragment dt) {
   return 1;
 }
 uint8_t wss_ReceiveMessages(PWebSocketServer self, PDataFragment dt, PSocketMethod routine) {
-  Vector messages = wbs_FromWebSocket(dt->data, dt->size);
+  Array messages = wbs_FromWebSocket(dt->data, dt->size);
   if(!messages) {
     return 0;
   }
@@ -10661,15 +10661,15 @@ char *wbs_ExtractPayload(char *msg) {
   }
   return wbs_MaskedPayload(msg);
 }
-void wbs_Clear_FromWebSocket(Vector objects) {
+void wbs_Clear_FromWebSocket(Array objects) {
   vct_Delete(objects);
 }
-Vector wbs_FromWebSocket(char *msg, size_t bufferSize) {
+Array wbs_FromWebSocket(char *msg, size_t bufferSize) {
   if(!wbs_IsBufferValid(msg, bufferSize)) {
     return ((void *)0);
   }
   char *endBuffer = msg + bufferSize;
-  Vector buffer = vct_Init(sizeof(WebSocketObject));
+  Array buffer = vct_Init(sizeof(WebSocketObject));
   while(msg < endBuffer) {
     WebSocketObject obj = (WebSocketObject) {
       .buffer = wbs_ExtractPayload(msg),

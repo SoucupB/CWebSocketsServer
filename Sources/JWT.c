@@ -20,17 +20,17 @@ void jwt_FromBase64URLEncodedToNormal(HttpString str, uint8_t *response, size_t 
 static inline uint8_t jwt_CharValid(char chr);
 uint8_t jwt_IsJWTCorrectlyFormatted(HttpString str);
 
-static inline void jwt_Add_String(Vector strDrt, HttpString str) {
+static inline void jwt_Add_String(Array strDrt, HttpString str) {
   for(size_t i = 0, c = str.sz; i < c; i++) {
     vct_Push(strDrt, &str.buffer[i]);
   }
 }
 
-static inline void jwt_Add_Char(Vector strDrt, char chr) {
+static inline void jwt_Add_Char(Array strDrt, char chr) {
   vct_Push(strDrt, &chr);
 }
 
-static inline void jwt_Add_Header(Vector strDrt) {
+static inline void jwt_Add_Header(Array strDrt) {
   char *header = jwt_CreateHeader();
   size_t sz = strlen(header);
   size_t headerBase64Size = jwt_Base64_Size(sz);
@@ -46,7 +46,7 @@ static inline void jwt_Add_Header(Vector strDrt) {
   });
 }
 
-void jwt_AddSignature(Vector str, HttpString secret) {
+void jwt_AddSignature(Array str, HttpString secret) {
   HttpString newStr = {
     .buffer = str->buffer,
     .sz = str->size
@@ -62,7 +62,7 @@ void jwt_AddSignature(Vector str, HttpString secret) {
 }
 
 HttpString jwt_Encode_t(JsonElement payload, HttpString secret, uint64_t iam, uint64_t expirationInMS) {
-  Vector response = vct_Init(sizeof(char));
+  Array response = vct_Init(sizeof(char));
   jwt_Add_Header(response);
   jwt_Add_Char(response, '.');
   json_Map_Add(payload, "iat", json_Integer_Create((int64_t)iam));

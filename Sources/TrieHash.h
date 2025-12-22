@@ -21,6 +21,6 @@ void trh_Buffer_AddToIndex(PTrieHash self, uint32_t id, PVOID buffer, uint32_t b
 PVOID trh_Buffer_GetFromIndex(PTrieHash self, uint32_t id);
 void trh_Buffer_RemoveAtIndex(PTrieHash self, uint32_t id);
 
-Vector trh_GetValues(PTrieHash self, size_t valueSize);
-Vector trh_GetKeys(PTrieHash self);
-void trh_FreeKeys(Vector keys);
+Array trh_GetValues(PTrieHash self, size_t valueSize);
+Array trh_GetKeys(PTrieHash self);
+void trh_FreeKeys(Array keys);

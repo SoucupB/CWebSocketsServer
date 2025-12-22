@@ -123,7 +123,7 @@ static inline Hash http_Hash_Create() {
 
 Hash http_Hash_DeepCopy(Hash hash) {
   Hash newHash = http_Hash_Create();
-  Vector keys = trh_GetKeys(hash.hash);
+  Array keys = trh_GetKeys(hash.hash);
   Key *bff = keys->buffer;
   for(size_t i = 0, c = keys->size; i < c; i++) {
     HttpString value = http_Hash_GetValue(hash, bff[i].key, bff[i].keySize);
@@ -453,7 +453,7 @@ void http_Response_SetBody(PHttpResponse self, PHttpString buffer) {
   http_Response_SetBodySize(self, buffer->sz);
 }
 
-static inline size_t http_Response_Size(Hash headers, Vector headersArr) {
+static inline size_t http_Response_Size(Hash headers, Array headersArr) {
   size_t totalSize = 0;
   Key *headerBuffer = headersArr->buffer;
   for(size_t i = 0, c = headersArr->size; i < c; i++) {
@@ -466,7 +466,7 @@ static inline size_t http_Response_Size(Hash headers, Vector headersArr) {
   return totalSize;
 }
 
-char *http_FormatHeaders(Hash headers, Vector headersArr, char *buffer, size_t bufferSize) {
+char *http_FormatHeaders(Hash headers, Array headersArr, char *buffer, size_t bufferSize) {
   Key *headerBuffer = headersArr->buffer;
   for(size_t i = 0, c = headersArr->size; i < c; i++) {
     HttpString valueBuffer = http_Hash_GetValue(headers, headerBuffer[i].key, headerBuffer[i].keySize);
@@ -498,7 +498,7 @@ HttpString http_Response_ToString(PHttpResponse self) {
   char messageHeader[64] = {0};
   // this is bugged, needs fix.
   snprintf(messageHeader, sizeof(messageHeader), "%s %u %s\r\n", self->httpCode, self->response, http_Response_ResponseString(self));
-  Vector headersArr = trh_GetKeys(self->headers.hash);
+  Array headersArr = trh_GetKeys(self->headers.hash);
   size_t requestSize = http_Response_Size(self->headers, headersArr);
   size_t headerSizeCode = strlen(messageHeader);
   size_t bufferSize = headerSizeCode + requestSize + self->body.sz + 5;
@@ -523,21 +523,21 @@ void http_Response_SetDefault(PHttpResponse self) {
   http_Hash_Add(self->headers, "Connection", sizeof("Connection") - 1, "close", sizeof("close") - 1);
 }
 
-static inline void http_PushString(Vector str, HttpString buffer) {
+static inline void http_PushString(Array str, HttpString buffer) {
   char *bff = buffer.buffer;
   for(size_t i = 0, c = buffer.sz; i < c; i++) {
     vct_Push(str, &bff[i]);
   }
 }
 
-static inline void http_PushCharArray(Vector str, char *buffer) {
+static inline void http_PushCharArray(Array str, char *buffer) {
   for(size_t i = 0, c = strlen(buffer); i < c; i++) {
     vct_Push(str, &buffer[i]);
   }
 }
 
 
-void http_Request_AddTopString(PHttpRequest self, Vector str) {
+void http_Request_AddTopString(PHttpRequest self, Array str) {
   switch (self->url->method)
   {
     case GET: {
@@ -588,8 +588,8 @@ void http_Request_AddTopString(PHttpRequest self, Vector str) {
   http_PushCharArray(str, "\r\n");
 }
 
-void http_Request_PushHeaders(Hash header, Vector str) {
-  Vector headersArr = trh_GetKeys(header.hash);
+void http_Request_PushHeaders(Hash header, Array str) {
+  Array headersArr = trh_GetKeys(header.hash);
   Key *keys = headersArr->buffer;
   for(size_t i = 0, c = headersArr->size; i < c; i++) {
     HttpString valueBuffer = http_Hash_GetValue(header, keys[i].key, keys[i].keySize);
@@ -608,12 +608,12 @@ void http_Request_PushHeaders(Hash header, Vector str) {
   trh_FreeKeys(headersArr);
 }
 
-static inline void http_Request_PushBody(PHttpRequest self, Vector str) {
+static inline void http_Request_PushBody(PHttpRequest self, Array str) {
   http_PushString(str, self->body);
 }
 
 HttpString http_Request_ToString(PHttpRequest self) {
-  Vector response = vct_Init(sizeof(char));
+  Array response = vct_Init(sizeof(char));
   http_Request_AddTopString(self, response);
   http_Request_PushHeaders(self->headers, response);
   http_Request_PushBody(self, response);

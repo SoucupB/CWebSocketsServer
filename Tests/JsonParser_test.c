@@ -557,7 +557,7 @@ static void test_string_parse_array_data(void **state) {
     .endingBuffer = arr + strlen(arr)
   }, NULL);
   assert_int_not_equal(parseData.type, JSON_INVALID);
-  assert_int_equal(((Vector)parseData.value)->size, 6);
+  assert_int_equal(((Array)parseData.value)->size, 6);
   HttpString strResponse = json_Element_ToString(parseData);
   char *expected = "[1,2,4,\"dadf\",32,[1,4]]";
   assert_int_equal(strResponse.sz, strlen(expected));
@@ -573,7 +573,7 @@ static void test_string_parse_complex_composite_array_data(void **state) {
     .endingBuffer = arr + strlen(arr)
   }, NULL);
   assert_int_not_equal(parseData.type, JSON_INVALID);
-  assert_int_equal(((Vector)parseData.value)->size, 6);
+  assert_int_equal(((Array)parseData.value)->size, 6);
   HttpString strResponse = json_Element_ToString(parseData);
   char *expected = "[1,2,4,\"dadf\",32,[1,4,{\"azada\":33,\"zzz\":[11,3344,2]}]]";
   assert_int_equal(strResponse.sz, strlen(expected));

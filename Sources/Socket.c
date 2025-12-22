@@ -181,7 +181,7 @@ size_t sock_DoesConnectionExists(PSocketServer self, PConnection conn, uint8_t *
 
 void sock_ClearPushedConnections(PSocketServer self) {
   Connection *connections = self->closeConnectionsQueue->buffer;
-  Vector indexes = vct_Init(sizeof(size_t));
+  Array indexes = vct_Init(sizeof(size_t));
   uint8_t found;
   for(size_t i = 0, c = self->closeConnectionsQueue->size; i < c; i++) {
     size_t connIndex = sock_DoesConnectionExists(self, &connections[i], &found);
@@ -264,7 +264,7 @@ void sock_Method_Delete(PSocketMethod self) {
   free(self);
 }
 
-void sock_ProcessWriteRequests_t(PSocketServer self, Vector markedForDeletionRequests) {
+void sock_ProcessWriteRequests_t(PSocketServer self, Array markedForDeletionRequests) {
   DataFragment *dataFragments = self->outputCommands->buffer;
   for(size_t i = 0, c = self->outputCommands->size; i < c; i++) {
     ssize_t response = send(dataFragments[i].conn.fd, dataFragments[i].data, dataFragments[i].size, MSG_DONTWAIT);
@@ -281,10 +281,10 @@ size_t sock_ConnectionCount(PSocketServer self) {
 }
 
 static inline void sock_ProcessWriteRequests(PSocketServer self)  {
-  Vector markedForDeletionRequests = vct_Init(sizeof(size_t));
+  Array markedForDeletionRequests = vct_Init(sizeof(size_t));
   sock_ProcessWriteRequests_t(self, markedForDeletionRequests);
   sock_WriteBufferCleanup(self);
-  Vector prunnedArray = vct_RemoveElements(self->connections, markedForDeletionRequests);
+  Array prunnedArray = vct_RemoveElements(self->connections, markedForDeletionRequests);
   vct_Delete(self->connections);
   vct_Delete(markedForDeletionRequests);
   self->connections = prunnedArray;
@@ -365,7 +365,7 @@ void sock_Client_SendMessage(PDataFragment frag) {
 }
 
 DataFragment sock_Client_Receive(PConnection conn) {
-  Vector dataToRead = vct_Init(sizeof(char));
+  Array dataToRead = vct_Init(sizeof(char));
   char bufferChunk[1024];
   ssize_t bytesRead = -1;
   while((bytesRead = recv(conn->fd, bufferChunk, sizeof(bufferChunk), 0)) && bytesRead != -1) {

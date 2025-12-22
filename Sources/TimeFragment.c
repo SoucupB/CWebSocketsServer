@@ -31,7 +31,7 @@ void tf_ExecuteAfter(PTimeServer self, TimeMethod currentMethod, uint64_t afterM
 
 static inline void tf_ExecuteFragMethods(PTimeServer self, uint64_t deltaMS) {
   TimeFragment *fragment = self->methods->buffer;
-  Vector fragmentsToRemove = vct_Init(sizeof(size_t));
+  Array fragmentsToRemove = vct_Init(sizeof(size_t));
   for(size_t i = 0, c = self->methods->size; i < c; i++) {
     fragment[i].executeAfter -= (int64_t)deltaMS;
     if(fragment[i].executeAfter <= 0) {
@@ -40,7 +40,7 @@ static inline void tf_ExecuteFragMethods(PTimeServer self, uint64_t deltaMS) {
       vct_Push(fragmentsToRemove, &i);
     }
   }
-  Vector cpyVector = vct_RemoveElements(self->methods, fragmentsToRemove);
+  Array cpyVector = vct_RemoveElements(self->methods, fragmentsToRemove);
   vct_Delete(self->methods);
   self->methods = cpyVector;
   vct_Delete(fragmentsToRemove);

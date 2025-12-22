@@ -124,7 +124,7 @@ static void test_trie_hash_insertion_get_values_v1(void **state) {
   PTrieHash hash = trh_Create();
   uint32_t firstValue = 5;
   trh_Buffer_AddToIndex(hash, 1, &firstValue, sizeof(uint32_t));
-  Vector response = trh_GetValues(hash, sizeof(uint32_t));
+  Array response = trh_GetValues(hash, sizeof(uint32_t));
   uint32_t *values = response->buffer;
   assert_true(response->size == 1);
   assert_true(values[0] == 5);
@@ -138,7 +138,7 @@ static void test_trie_hash_insertion_get_values_v2(void **state) {
   for(size_t i = 0, c = sizeof(values) / sizeof(uint32_t); i < c; i++) {
     trh_Buffer_AddToIndex(hash, i, &values[i], sizeof(uint32_t));
   }
-  Vector response = trh_GetValues(hash, sizeof(uint32_t));
+  Array response = trh_GetValues(hash, sizeof(uint32_t));
   uint32_t *vecValues = response->buffer;
   assert_true(response->size == sizeof(values) / sizeof(uint32_t));
   for(size_t i = 0, c = response->size; i < c; i++) {
@@ -155,7 +155,7 @@ static void test_trie_hash_collect_integer_keys(void **state) {
   for(size_t i = 0, c = sizeof(values) / sizeof(uint32_t); i < c; i++) {
     trh_Buffer_AddToIndex(hash, values[i], &i, sizeof(size_t));
   }
-  Vector response = trh_GetKeys(hash);
+  Array response = trh_GetKeys(hash);
   Key *buffer = response->buffer;
   for(size_t i = 0, c = response->size; i < c; i++) {
     uint32_t *currentPointer = (uint32_t *)buffer[i].key;
@@ -173,7 +173,7 @@ static void test_trie_hash_collect_multiple_integer_keys(void **state) {
   for(size_t i = 0; i < count; i++) {
     trh_Buffer_AddToIndex64(hash, inputBuffer[i], &i, sizeof(size_t));
   }
-  Vector response = trh_GetKeys(hash);
+  Array response = trh_GetKeys(hash);
   Key *buffer = response->buffer;
   size_t *keyValues = malloc(sizeof(size_t) * count);
   for(size_t i = 0, c = response->size; i < c; i++) {
@@ -197,7 +197,7 @@ static void test_trie_hash_collect_string_keys(void **state) {
   for(size_t i = 0; i < count; i++) {
     trh_Add(hash, bufferInput[i], strlen(bufferInput[i]), &i, sizeof(size_t));
   }
-  Vector response = trh_GetKeys(hash);
+  Array response = trh_GetKeys(hash);
   Key *buffer = response->buffer;
   test_Util_TestStringEquivalency(bufferInput, buffer, count);
   trh_FreeKeys(response);

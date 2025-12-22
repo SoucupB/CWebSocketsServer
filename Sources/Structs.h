@@ -103,18 +103,18 @@ typedef struct TimeFragment_t {
   int64_t time;
 } TimeFragment;
 
-struct Vector_t {
+struct Array_t {
   void *buffer;
   size_t size;
   size_t capacity;
   size_t objSize;
 };
 
-typedef struct Vector_t *Vector;
+typedef struct Array_t *Array;
 
 typedef struct TimeServer_t {
-  Vector methods;
-  Vector loopMethods;
+  Array methods;
+  Array loopMethods;
 } TimeServer;
 
 typedef TimeServer *PTimeServer;
@@ -136,10 +136,10 @@ typedef struct SocketServer_t {
   int32_t maxActiveConnections;
   int32_t maxBytesPerReadConnection;
   Connection serverFD;
-  Vector connections;
-  Vector inputReads;
-  Vector outputCommands;
-  Vector closeConnectionsQueue;
+  Array connections;
+  Array inputReads;
+  Array outputCommands;
+  Array closeConnectionsQueue;
   PSocketMethod onConnectionRelease;
   PSocketMethod onConnectionAquire;
   PSocketMethod onReceiveMessage;
@@ -154,8 +154,8 @@ typedef struct WebSocketServer_t {
   PSocketMethod onReceiveMessage;
   PSocketMethod onRelease; // (*cMethod)(PConnection, void *)
   PrivateMethodsBundle methodsBundle;
-  Vector pendingConnections;
-  Vector pendingPingRequests;
+  Array pendingConnections;
+  Array pendingPingRequests;
   PTimeout timeServer;
 } WebSocketServer;
 
@@ -273,7 +273,7 @@ typedef struct HttpServer_t {
 typedef HttpServer *PHttpServer;
 
 typedef struct HttpRequestServer_t {
-  Vector requests;
+  Array requests;
   int64_t timeoutMS;
 } HttpRequestServer;
 

@@ -126,7 +126,7 @@ static inline void wss_CloseConnections(PWebSocketServer self, Connection conn) 
 
 void wss_ProcessTimeoutPingRequests(PWebSocketServer self, uint64_t deltaMS) {
   PingConnData *pings = self->pendingPingRequests->buffer;
-  Vector indexesToRemove = vct_Init(sizeof(size_t));
+  Array indexesToRemove = vct_Init(sizeof(size_t));
   for(size_t i = 0, c = self->pendingPingRequests->size; i < c; i++) {
     pings[i].remainingTime -= (int64_t)deltaMS;
     if(pings[i].remainingTime <= 0) {
@@ -134,7 +134,7 @@ void wss_ProcessTimeoutPingRequests(PWebSocketServer self, uint64_t deltaMS) {
       wss_CloseConnections(self, pings[i].conn);
     }
   }
-  Vector cpyVector = vct_RemoveElements(self->pendingPingRequests, indexesToRemove);
+  Array cpyVector = vct_RemoveElements(self->pendingPingRequests, indexesToRemove);
   vct_Delete(self->pendingPingRequests);
   self->pendingPingRequests = cpyVector;
   vct_Delete(indexesToRemove);
@@ -242,7 +242,7 @@ uint8_t wss_ProcessConnectionRequest(PWebSocketServer self, PDataFragment dt) {
 }
 
 uint8_t wss_ReceiveMessages(PWebSocketServer self, PDataFragment dt, PSocketMethod routine) {
-  Vector messages = wbs_FromWebSocket(dt->data, dt->size);
+  Array messages = wbs_FromWebSocket(dt->data, dt->size);
   if(!messages) {
     return 0;
   }

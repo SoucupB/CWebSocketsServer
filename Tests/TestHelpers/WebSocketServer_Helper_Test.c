@@ -125,7 +125,7 @@ void test_Wss_Util_Delete(PWebSocketServer self) {
 
 void test_Wss_Expect(PConnection conn, char *buffer, size_t sz) {
   DataFragment dt = sock_Client_Receive(conn);
-  Vector receivedData = wbs_FromWebSocket(dt.data, dt.size);
+  Array receivedData = wbs_FromWebSocket(dt.data, dt.size);
   assert_non_null(receivedData);
   WebSocketObject *objects = receivedData->buffer;
   uint8_t objectFound = 0;

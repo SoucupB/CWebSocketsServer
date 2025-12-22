@@ -116,7 +116,7 @@ PVOID trn_GetBuffer_t(PTrieNode self, PVOID key, uint32_t keySize, uint32_t posi
   return NULL;
 }
 
-void trh_GetValues_t(PTrieNode self, Vector values) {
+void trh_GetValues_t(PTrieNode self, Array values) {
   if(!self) {
     return ;
   }
@@ -131,13 +131,13 @@ void trh_GetValues_t(PTrieNode self, Vector values) {
   }
 }
 
-Vector trh_GetValues(PTrieHash self, size_t valueSize) {
-  Vector response = vct_Init(valueSize);
+Array trh_GetValues(PTrieHash self, size_t valueSize) {
+  Array response = vct_Init(valueSize);
   trh_GetValues_t(self->parentNode, response);
   return response;
 }
 
-void trh_Key_Push(Vector currentKey, uint8_t value, size_t position) {
+void trh_Key_Push(Array currentKey, uint8_t value, size_t position) {
   if(!(position & 1)) {
     value <<= 4;
     vct_Push(currentKey, &value);
@@ -150,7 +150,7 @@ void trh_Key_Push(Vector currentKey, uint8_t value, size_t position) {
   (*last) += value;
 }
 
-static inline void trh_Key_Pop(Vector currentKey, size_t position) {
+static inline void trh_Key_Pop(Array currentKey, size_t position) {
   if(!(position & 1)) {
     vct_Pop(currentKey);
   }
@@ -163,7 +163,7 @@ static inline void trh_Key_Pop(Vector currentKey, size_t position) {
   }
 }
 
-void trh_GetKeys_t(PTrieNode self, Vector keys, Vector currentKey, size_t position) {
+void trh_GetKeys_t(PTrieNode self, Array keys, Array currentKey, size_t position) {
   if(!self) {
     return ;
   }
@@ -185,15 +185,15 @@ void trh_GetKeys_t(PTrieNode self, Vector keys, Vector currentKey, size_t positi
   }
 }
 
-Vector trh_GetKeys(PTrieHash self) {
-  Vector response = vct_Init(sizeof(Key));
-  Vector currentKey = vct_Init(sizeof(uint8_t));
+Array trh_GetKeys(PTrieHash self) {
+  Array response = vct_Init(sizeof(Key));
+  Array currentKey = vct_Init(sizeof(uint8_t));
   trh_GetKeys_t(self->parentNode, response, currentKey, 0);
   vct_Delete(currentKey);
   return response;
 }
 
-void trh_FreeKeys(Vector keys) {
+void trh_FreeKeys(Array keys) {
   Key *buffer = (Key *)keys->buffer;
   for(size_t i = 0, c = keys->size; i < c; i++) {
     crm_Free(buffer[i].key);

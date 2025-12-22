@@ -8,9 +8,9 @@
 #include <ctype.h>
 #include <errno.h>
 
-void json_ToString_t(PJsonObject self, Vector str);
+void json_ToString_t(PJsonObject self, Array str);
 void json_DeleteArray(JsonElement element);
-void json_PushLeafValue(Vector str, JsonElement element);
+void json_PushLeafValue(Array str, JsonElement element);
 
 typedef struct TokenParser_t {
   char *startToken;
@@ -48,7 +48,7 @@ void json_Delete(PJsonObject self) {
   free(self);
 }
 
-static inline void json_PushString(Vector str, char *strC, size_t sz) {
+static inline void json_PushString(Array str, char *strC, size_t sz) {
   for(size_t i = 0; i < sz; i++) {
     vct_Push(str, &strC[i]);
   }
@@ -80,13 +80,13 @@ static inline TokenParser json_Parse_Invalid() {
   };
 }
 
-static inline void json_Element_PushInteger(Vector str, int64_t number) {
+static inline void json_Element_PushInteger(Array str, int64_t number) {
   char arr[21] = {0};
   snprintf(arr, sizeof(arr) - 1, "%ld", number);
   json_PushString(str, arr, strlen(arr));
 }
 
-static inline void json_Element_PushFloat(Vector str, float number) {
+static inline void json_Element_PushFloat(Array str, float number) {
   char arr[21] = {0};
   snprintf(arr, sizeof(arr) - 1, "%f", number);
   json_PushString(str, arr, strlen(arr));
@@ -98,7 +98,7 @@ static inline JsonElement json_Element_Invalid() {
   };
 }
 
-static inline void json_Element_PushString(Vector str, PHttpString value) {
+static inline void json_Element_PushString(Array str, PHttpString value) {
   vct_Push(str, &(char){'"'});
   char *bff = value->buffer;
   for(size_t i = 0, c = value->sz; i < c; i++) {
@@ -107,9 +107,9 @@ static inline void json_Element_PushString(Vector str, PHttpString value) {
   vct_Push(str, &(char){'"'});
 }
 
-void json_PushLeafArray(Vector str, JsonElement element) {
+void json_PushLeafArray(Array str, JsonElement element) {
   vct_Push(str, &(char){'['});
-  Vector currentVector = element.value;
+  Array currentVector = element.value;
   JsonElement *arrList = currentVector->buffer;
   for(size_t i = 0, c = currentVector->size; i < c; i++) {
     json_PushLeafValue(str, arrList[i]);
@@ -120,7 +120,7 @@ void json_PushLeafArray(Vector str, JsonElement element) {
   vct_Push(str, &(char){']'});
 }
 
-void json_PushLeafValue(Vector str, JsonElement element) {
+void json_PushLeafValue(Array str, JsonElement element) {
   switch (element.type)
   {
     case JSON_NULL: {
@@ -167,7 +167,7 @@ void json_PushLeafValue(Vector str, JsonElement element) {
   }
 }
 
-void json_PushLeafElement(Vector str, PHttpString key, JsonElement element, int8_t lastElement) {
+void json_PushLeafElement(Array str, PHttpString key, JsonElement element, int8_t lastElement) {
   vct_Push(str, &(char){'"'});
   char *bff = key->buffer;
   for(size_t i = 0, c = key->sz; i < c; i++) {
@@ -181,9 +181,9 @@ void json_PushLeafElement(Vector str, PHttpString key, JsonElement element, int8
   }
 }
 
-void json_ToString_t(PJsonObject self, Vector str) {
+void json_ToString_t(PJsonObject self, Array str) {
   vct_Push(str, &(char){'{'});
-  Vector keys = trh_GetKeys(self->hsh);
+  Array keys = trh_GetKeys(self->hsh);
   Key *keysBuffer = keys->buffer;
   for(size_t i = 0, c = keys->size; i < c; i++) {
     HttpString currentKey = {
@@ -199,7 +199,7 @@ void json_ToString_t(PJsonObject self, Vector str) {
 }
 
 HttpString json_ToString(PJsonObject self) {
-  Vector rsp = vct_Init(sizeof(char));
+  Array rsp = vct_Init(sizeof(char));
   json_ToString_t(self, rsp);
   HttpString response = {
     .buffer = rsp->buffer,
@@ -210,7 +210,7 @@ HttpString json_ToString(PJsonObject self) {
 }
 
 HttpString json_Element_ToString(JsonElement self) {
-  Vector responseString = vct_Init(sizeof(char));
+  Array responseString = vct_Init(sizeof(char));
   json_PushLeafValue(responseString, self);
   HttpString response = {
     .buffer = responseString->buffer,
@@ -250,7 +250,7 @@ void json_DeleteElement(JsonElement element) {
 }
 
 void json_DeleteArray(JsonElement element) {
-  Vector listArr = element.value;
+  Array listArr = element.value;
   JsonElement *arr = listArr->buffer;
   for(size_t i = 0, c = listArr->size; i < c; i++) {
     json_DeleteElement(arr[i]);
@@ -262,7 +262,7 @@ void json_RemoveSelfContainedData(PJsonObject self) {
   if(!self || !self->selfContained) {
     return ;
   }
-  Vector values = trh_GetValues(self->hsh, sizeof(JsonElement));
+  Array values = trh_GetValues(self->hsh, sizeof(JsonElement));
   JsonElement *elements = values->buffer;
   for(size_t i = 0, c = values->size; i < c; i++) {
     json_DeleteElement(elements[i]);
@@ -682,7 +682,7 @@ JsonElement json_Parser_Get_Array(TokenParser tck, PTokenParser next) {
   if(json_Parser_IsInvalid(nextTck)) {
     return json_Element_Invalid();
   }
-  Vector rspArray = vct_Init(sizeof(JsonElement));
+  Array rspArray = vct_Init(sizeof(JsonElement));
   JsonElement response = {
     .type = JSON_ARRAY,
     .value = rspArray
@@ -830,7 +830,7 @@ JsonElement json_Array_At(JsonElement arr, size_t index) {
   if(arr.type != JSON_ARRAY) {
     return json_Parser_Get_Invalid();
   }
-  Vector vct = arr.value;
+  Array vct = arr.value;
   if(index >= vct->size) {
     return json_Parser_Get_Invalid();
   }
@@ -839,7 +839,7 @@ JsonElement json_Array_At(JsonElement arr, size_t index) {
 
 size_t json_Array_Size(JsonElement arr) {
   assert(arr.type == JSON_ARRAY);
-  return ((Vector)arr.value)->size;
+  return ((Array)arr.value)->size;
 }
 
 int64_t json_Integer_Get(JsonElement arr) {

@@ -298,16 +298,16 @@ char *wbs_ExtractPayload(char *msg) {
   return wbs_MaskedPayload(msg);
 }
 
-void wbs_Clear_FromWebSocket(Vector objects) {
+void wbs_Clear_FromWebSocket(Array objects) {
   vct_Delete(objects);
 }
 
-Vector wbs_FromWebSocket(char *msg, size_t bufferSize) {
+Array wbs_FromWebSocket(char *msg, size_t bufferSize) {
   if(!wbs_IsBufferValid(msg, bufferSize)) {
     return NULL;
   }
   char *endBuffer = msg + bufferSize;
-  Vector buffer = vct_Init(sizeof(WebSocketObject));
+  Array buffer = vct_Init(sizeof(WebSocketObject));
   while(msg < endBuffer) {
     WebSocketObject obj = (WebSocketObject) {
       .buffer = wbs_ExtractPayload(msg),
