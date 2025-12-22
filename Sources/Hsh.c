@@ -6,14 +6,14 @@
 PTrieNode trn_Create();
 uint8_t trn_AddValues(PTrieNode self, PVOID key, uint32_t keySize, PVOID value, uint32_t valueSize, uint32_t position);
 
-PHsh trh_Create() {
+PHsh hsh_Create() {
   PHsh self = crm_Alloc(sizeof(Hsh));
   memset(self, 0, sizeof(Hsh));
   self->parentNode = trn_Create();
   return self;
 }
 
-void trh_Add(PHsh self, PVOID key, uint32_t keySize, PVOID value, uint32_t valueSize) {
+void hsh_Add(PHsh self, PVOID key, uint32_t keySize, PVOID value, uint32_t valueSize) {
   if(!trn_AddValues(self->parentNode, key, keySize, value, valueSize, 0)) {
     self->count++;
   }
@@ -27,7 +27,7 @@ PTrieNode trn_Create() {
   return self;
 }
 
-static inline void trh_FreeNode(PTrieNode self) {
+static inline void hsh_FreeNode(PTrieNode self) {
   crm_Free(self->nextNodes);
   crm_Free(self);
 }
@@ -42,7 +42,7 @@ void trn_DeleteNodes(PTrieNode self) {
   if(self->buffer) {
     crm_Free(self->buffer);
   }
-  trh_FreeNode(self);
+  hsh_FreeNode(self);
 }
 
 uint8_t trn_RemoveNode_t(PTrieNode self, PVOID key, uint32_t keySize, uint32_t position) {
@@ -68,34 +68,34 @@ uint8_t trn_RemoveNode_t(PTrieNode self, PVOID key, uint32_t keySize, uint32_t p
     node->count--;
     if(!node->count) {
       self->nextNodes[currentValue] = NULL;
-      trh_FreeNode(node);
+      hsh_FreeNode(node);
     }
   }
   return deleted;
 }
 
-void trh_Buffer_AddToIndex(PHsh self, uint32_t id, PVOID buffer, uint32_t bufferSize) {
-  trh_Add(self, &id, sizeof(uint32_t), buffer, bufferSize);
+void hsh_Buffer_AddToIndex(PHsh self, uint32_t id, PVOID buffer, uint32_t bufferSize) {
+  hsh_Add(self, &id, sizeof(uint32_t), buffer, bufferSize);
 }
 
-void trh_Buffer_AddToIndex64(PHsh self, uint64_t id, PVOID buffer, uint32_t bufferSize) {
-  trh_Add(self, &id, sizeof(uint64_t), buffer, bufferSize);
+void hsh_Buffer_AddToIndex64(PHsh self, uint64_t id, PVOID buffer, uint32_t bufferSize) {
+  hsh_Add(self, &id, sizeof(uint64_t), buffer, bufferSize);
 }
 
-PVOID trh_Buffer_GetFromIndex(PHsh self, uint32_t id) {
-  return trh_GetBuffer(self, &id, sizeof(uint32_t));
+PVOID hsh_Buffer_GetFromIndex(PHsh self, uint32_t id) {
+  return hsh_GetBuffer(self, &id, sizeof(uint32_t));
 }
 
-PVOID trh_Buffer_GetFromIndex64(PHsh self, uint64_t id) {
-  return trh_GetBuffer(self, &id, sizeof(uint64_t));
+PVOID hsh_Buffer_GetFromIndex64(PHsh self, uint64_t id) {
+  return hsh_GetBuffer(self, &id, sizeof(uint64_t));
 }
 
-void trh_Buffer_RemoveAtIndex(PHsh self, uint32_t id) {
-  trh_RemoveNode(self, &id, sizeof(uint32_t));
+void hsh_Buffer_RemoveAtIndex(PHsh self, uint32_t id) {
+  hsh_RemoveNode(self, &id, sizeof(uint32_t));
 }
 
-void trh_Buffer_RemoveAtIndex64(PHsh self, uint64_t id) {
-  trh_RemoveNode(self, &id, sizeof(uint64_t));
+void hsh_Buffer_RemoveAtIndex64(PHsh self, uint64_t id) {
+  hsh_RemoveNode(self, &id, sizeof(uint64_t));
 }
 
 PVOID trn_GetBuffer_t(PTrieNode self, PVOID key, uint32_t keySize, uint32_t position) {
@@ -116,7 +116,7 @@ PVOID trn_GetBuffer_t(PTrieNode self, PVOID key, uint32_t keySize, uint32_t posi
   return NULL;
 }
 
-void trh_GetValues_t(PTrieNode self, Array values) {
+void hsh_GetValues_t(PTrieNode self, Array values) {
   if(!self) {
     return ;
   }
@@ -126,18 +126,18 @@ void trh_GetValues_t(PTrieNode self, Array values) {
   PTrieNode *nextNodes = self->nextNodes;
   for(size_t i = 0; i < 16; i++) {
     if(nextNodes[i]) {
-      trh_GetValues_t(nextNodes[i], values);
+      hsh_GetValues_t(nextNodes[i], values);
     }
   }
 }
 
-Array trh_GetValues(PHsh self, size_t valueSize) {
+Array hsh_GetValues(PHsh self, size_t valueSize) {
   Array response = arr_Init(valueSize);
-  trh_GetValues_t(self->parentNode, response);
+  hsh_GetValues_t(self->parentNode, response);
   return response;
 }
 
-void trh_Key_Push(Array currentKey, uint8_t value, size_t position) {
+void hsh_Key_Push(Array currentKey, uint8_t value, size_t position) {
   if(!(position & 1)) {
     value <<= 4;
     arr_Push(currentKey, &value);
@@ -150,7 +150,7 @@ void trh_Key_Push(Array currentKey, uint8_t value, size_t position) {
   (*last) += value;
 }
 
-static inline void trh_Key_Pop(Array currentKey, size_t position) {
+static inline void hsh_Key_Pop(Array currentKey, size_t position) {
   if(!(position & 1)) {
     arr_Pop(currentKey);
   }
@@ -163,7 +163,7 @@ static inline void trh_Key_Pop(Array currentKey, size_t position) {
   }
 }
 
-void trh_GetKeys_t(PTrieNode self, Array keys, Array currentKey, size_t position) {
+void hsh_GetKeys_t(PTrieNode self, Array keys, Array currentKey, size_t position) {
   if(!self) {
     return ;
   }
@@ -178,22 +178,22 @@ void trh_GetKeys_t(PTrieNode self, Array keys, Array currentKey, size_t position
   PTrieNode *nextNodes = self->nextNodes;
   for(uint8_t i = 0; i < 16; i++) {
     if(nextNodes[i]) {
-      trh_Key_Push(currentKey, i, position);
-      trh_GetKeys_t(nextNodes[i], keys, currentKey, position + 1);
-      trh_Key_Pop(currentKey, position);
+      hsh_Key_Push(currentKey, i, position);
+      hsh_GetKeys_t(nextNodes[i], keys, currentKey, position + 1);
+      hsh_Key_Pop(currentKey, position);
     }
   }
 }
 
-Array trh_GetKeys(PHsh self) {
+Array hsh_GetKeys(PHsh self) {
   Array response = arr_Init(sizeof(Key));
   Array currentKey = arr_Init(sizeof(uint8_t));
-  trh_GetKeys_t(self->parentNode, response, currentKey, 0);
+  hsh_GetKeys_t(self->parentNode, response, currentKey, 0);
   arr_Delete(currentKey);
   return response;
 }
 
-void trh_FreeKeys(Array keys) {
+void hsh_FreeKeys(Array keys) {
   Key *buffer = (Key *)keys->buffer;
   for(size_t i = 0, c = keys->size; i < c; i++) {
     crm_Free(buffer[i].key);
@@ -201,11 +201,11 @@ void trh_FreeKeys(Array keys) {
   arr_Delete(keys);
 }
 
-PVOID trh_GetBuffer(PHsh self, PVOID key, uint32_t keySize) {
+PVOID hsh_GetBuffer(PHsh self, PVOID key, uint32_t keySize) {
   return trn_GetBuffer_t(self->parentNode, key, keySize, 0);
 }
 
-void trh_RemoveNode(PHsh self, PVOID key, uint32_t keySize) {
+void hsh_RemoveNode(PHsh self, PVOID key, uint32_t keySize) {
   if(trn_RemoveNode_t(self->parentNode, key, keySize, 0)) {
     self->count--;
   }
@@ -238,19 +238,19 @@ uint8_t trn_AddValues(PTrieNode self, PVOID key, uint32_t keySize, PVOID value, 
   return trn_AddValues(node, key, keySize, value, valueSize, position + 1);
 }
 
-void trh_Integer32_Insert(PHsh self, uint32_t key, uint32_t value) {
-  trh_Add(self, &key, sizeof(uint32_t), &value, sizeof(uint32_t));
+void hsh_Integer32_Insert(PHsh self, uint32_t key, uint32_t value) {
+  hsh_Add(self, &key, sizeof(uint32_t), &value, sizeof(uint32_t));
 }
 
-PVOID trh_Integer32_Get(PHsh self, uint32_t key) {
-  return trh_GetBuffer(self, &key, sizeof(uint32_t));
+PVOID hsh_Integer32_Get(PHsh self, uint32_t key) {
+  return hsh_GetBuffer(self, &key, sizeof(uint32_t));
 }
 
-void trh_Integer32_RemoveElement(PHsh self, uint32_t key) {
-  trh_RemoveNode(self, &key, sizeof(uint32_t));
+void hsh_Integer32_RemoveElement(PHsh self, uint32_t key) {
+  hsh_RemoveNode(self, &key, sizeof(uint32_t));
 }
 
-void trh_Delete(PHsh self) {
+void hsh_Delete(PHsh self) {
   trn_DeleteNodes(self->parentNode);
   crm_Free(self);
 }

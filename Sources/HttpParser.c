@@ -74,8 +74,8 @@ static inline void http_Meta_InitCodes(PHttpMetaData self) {
 }
 
 static inline void http_Hash_Add(Hash self, char *key, size_t keySize, char *value, size_t valueSize) {
-  trh_Add(self.hash, key, keySize, value, valueSize);
-  trh_Add(self.valuesSize, key, keySize, &valueSize, sizeof(size_t));
+  hsh_Add(self.hash, key, keySize, value, valueSize);
+  hsh_Add(self.valuesSize, key, keySize, &valueSize, sizeof(size_t));
 }
 
 char *http_Header_ParseLine(Hash self, char *endBuffer, PHttpString buffer) {
@@ -116,20 +116,20 @@ char *http_Header_ParseLine(Hash self, char *endBuffer, PHttpString buffer) {
 
 static inline Hash http_Hash_Create() {
   Hash hash;
-  hash.hash = trh_Create();
-  hash.valuesSize = trh_Create();
+  hash.hash = hsh_Create();
+  hash.valuesSize = hsh_Create();
   return hash;
 }
 
 Hash http_Hash_DeepCopy(Hash hash) {
   Hash newHash = http_Hash_Create();
-  Array keys = trh_GetKeys(hash.hash);
+  Array keys = hsh_GetKeys(hash.hash);
   Key *bff = keys->buffer;
   for(size_t i = 0, c = keys->size; i < c; i++) {
     HttpString value = http_Hash_GetValue(hash, bff[i].key, bff[i].keySize);
     http_Hash_Add(newHash, bff[i].key, bff[i].keySize, value.buffer, value.sz);
   }
-  trh_FreeKeys(keys);
+  hsh_FreeKeys(keys);
   return newHash;
 }
 
@@ -146,8 +146,8 @@ HttpString http_Request_GetValue(PHttpRequest self, char *buffer) {
 }
 
 HttpString http_Hash_GetValue(Hash self, char *buffer, size_t bufferLen) {
-  char *response = trh_GetBuffer(self.hash, buffer, bufferLen);
-  size_t *size = trh_GetBuffer(self.valuesSize, buffer, bufferLen);
+  char *response = hsh_GetBuffer(self.hash, buffer, bufferLen);
+  size_t *size = hsh_GetBuffer(self.valuesSize, buffer, bufferLen);
   return (HttpString){
     .buffer = response,
     .sz = size ? *size : 0
@@ -411,8 +411,8 @@ void http_URL_Free(PURL self) {
 }
 
 static inline void http_Hash_Delete(Hash self) {
-  trh_Delete(self.hash);
-  trh_Delete(self.valuesSize);
+  hsh_Delete(self.hash);
+  hsh_Delete(self.valuesSize);
 }
 
 void http_Metadata_Delete(PHttpMetaData self) {
@@ -498,7 +498,7 @@ HttpString http_Response_ToString(PHttpResponse self) {
   char messageHeader[64] = {0};
   // this is bugged, needs fix.
   snprintf(messageHeader, sizeof(messageHeader), "%s %u %s\r\n", self->httpCode, self->response, http_Response_ResponseString(self));
-  Array headersArr = trh_GetKeys(self->headers.hash);
+  Array headersArr = hsh_GetKeys(self->headers.hash);
   size_t requestSize = http_Response_Size(self->headers, headersArr);
   size_t headerSizeCode = strlen(messageHeader);
   size_t bufferSize = headerSizeCode + requestSize + self->body.sz + 5;
@@ -511,7 +511,7 @@ HttpString http_Response_ToString(PHttpResponse self) {
     memcpy(cpyBuffer, self->body.buffer, self->body.sz);
     cpyBuffer += self->body.sz;
   }
-  trh_FreeKeys(headersArr);
+  hsh_FreeKeys(headersArr);
   return (HttpString) {
     .buffer = buffer,
     .sz = (size_t)(cpyBuffer - buffer)
@@ -589,7 +589,7 @@ void http_Request_AddTopString(PHttpRequest self, Array str) {
 }
 
 void http_Request_PushHeaders(Hash header, Array str) {
-  Array headersArr = trh_GetKeys(header.hash);
+  Array headersArr = hsh_GetKeys(header.hash);
   Key *keys = headersArr->buffer;
   for(size_t i = 0, c = headersArr->size; i < c; i++) {
     HttpString valueBuffer = http_Hash_GetValue(header, keys[i].key, keys[i].keySize);
@@ -605,7 +605,7 @@ void http_Request_PushHeaders(Hash header, Array str) {
     });
   }
   http_PushCharArray(str, "\r\n");
-  trh_FreeKeys(headersArr);
+  hsh_FreeKeys(headersArr);
 }
 
 static inline void http_Request_PushBody(PHttpRequest self, Array str) {

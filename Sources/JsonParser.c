@@ -32,19 +32,19 @@ TokenParser json_Parser_Map(TokenParser tck);
 
 PJsonObject json_Create() {
   PJsonObject self = malloc(sizeof(JsonObject));
-  self->hsh = trh_Create();
+  self->hsh = hsh_Create();
   self->selfContained = 0;
   return self;
 }
 
 void json_Add(PJsonObject self, PHttpString key, JsonElement element) {
   assert(self->hsh);
-  trh_Add(self->hsh, key->buffer, key->sz, &element, sizeof(JsonElement));
+  hsh_Add(self->hsh, key->buffer, key->sz, &element, sizeof(JsonElement));
 }
 
 void json_Delete(PJsonObject self) {
   json_RemoveSelfContainedData(self);
-  trh_Delete(self->hsh);
+  hsh_Delete(self->hsh);
   free(self);
 }
 
@@ -183,14 +183,14 @@ void json_PushLeafElement(Array str, PHttpString key, JsonElement element, int8_
 
 void json_ToString_t(PJsonObject self, Array str) {
   arr_Push(str, &(char){'{'});
-  Array keys = trh_GetKeys(self->hsh);
+  Array keys = hsh_GetKeys(self->hsh);
   Key *keysBuffer = keys->buffer;
   for(size_t i = 0, c = keys->size; i < c; i++) {
     HttpString currentKey = {
       .buffer = keysBuffer[i].key,
       .sz = keysBuffer[i].keySize
     };
-    JsonElement *currentElement = trh_GetBuffer(self->hsh, currentKey.buffer, currentKey.sz);
+    JsonElement *currentElement = hsh_GetBuffer(self->hsh, currentKey.buffer, currentKey.sz);
     json_PushLeafElement(str, &currentKey, *currentElement, i == keys->size - 1);
     free(currentKey.buffer);
   }
@@ -262,7 +262,7 @@ void json_RemoveSelfContainedData(PJsonObject self) {
   if(!self || !self->selfContained) {
     return ;
   }
-  Array values = trh_GetValues(self->hsh, sizeof(JsonElement));
+  Array values = hsh_GetValues(self->hsh, sizeof(JsonElement));
   JsonElement *elements = values->buffer;
   for(size_t i = 0, c = values->size; i < c; i++) {
     json_DeleteElement(elements[i]);
@@ -812,7 +812,7 @@ JsonElement json_Map_Get(JsonElement jsonMap, HttpString str) {
   if(jsonMap.type != JSON_JSON) {
     return json_Parser_Get_Invalid();
   }
-  JsonElement *element = trh_GetBuffer(((PJsonObject)jsonMap.value)->hsh, str.buffer, str.sz);
+  JsonElement *element = hsh_GetBuffer(((PJsonObject)jsonMap.value)->hsh, str.buffer, str.sz);
   if(!element) {
     return json_Parser_Get_Invalid();
   }
