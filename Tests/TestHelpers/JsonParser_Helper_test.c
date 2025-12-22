@@ -44,13 +44,13 @@ JsonElement json_Helper_Json(PJsonObject obj) {
 
 JsonElement json_Helper_Array() {
   return (JsonElement){
-    .value = vct_Init(sizeof(JsonElement)),
+    .value = arr_Init(sizeof(JsonElement)),
     .type = JSON_ARRAY
   };
 }
 
 void json_Helper_Array_Push(JsonElement elemArr, JsonElement elem) {
-  vct_Push(elemArr.value, &elem);
+  arr_Push(elemArr.value, &elem);
 }
 
 JsonElement json_Helper_String(char *nmb) {

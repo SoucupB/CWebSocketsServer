@@ -128,7 +128,7 @@ static void test_trie_hash_insertion_get_values_v1(void **state) {
   uint32_t *values = response->buffer;
   assert_true(response->size == 1);
   assert_true(values[0] == 5);
-  vct_Delete(response);
+  arr_Delete(response);
   trh_Delete(hash);
 }
 
@@ -144,7 +144,7 @@ static void test_trie_hash_insertion_get_values_v2(void **state) {
   for(size_t i = 0, c = response->size; i < c; i++) {
     assert_true(vecValues[i] == values[i]);
   }
-  vct_Delete(response);
+  arr_Delete(response);
   trh_Delete(hash);
 }
 

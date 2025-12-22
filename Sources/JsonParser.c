@@ -50,7 +50,7 @@ void json_Delete(PJsonObject self) {
 
 static inline void json_PushString(Array str, char *strC, size_t sz) {
   for(size_t i = 0; i < sz; i++) {
-    vct_Push(str, &strC[i]);
+    arr_Push(str, &strC[i]);
   }
 }
 
@@ -99,25 +99,25 @@ static inline JsonElement json_Element_Invalid() {
 }
 
 static inline void json_Element_PushString(Array str, PHttpString value) {
-  vct_Push(str, &(char){'"'});
+  arr_Push(str, &(char){'"'});
   char *bff = value->buffer;
   for(size_t i = 0, c = value->sz; i < c; i++) {
-    vct_Push(str, &bff[i]);
+    arr_Push(str, &bff[i]);
   }
-  vct_Push(str, &(char){'"'});
+  arr_Push(str, &(char){'"'});
 }
 
 void json_PushLeafArray(Array str, JsonElement element) {
-  vct_Push(str, &(char){'['});
+  arr_Push(str, &(char){'['});
   Array currentVector = element.value;
   JsonElement *arrList = currentVector->buffer;
   for(size_t i = 0, c = currentVector->size; i < c; i++) {
     json_PushLeafValue(str, arrList[i]);
     if(i != c - 1) {
-      vct_Push(str, &(char){','});
+      arr_Push(str, &(char){','});
     }
   }
-  vct_Push(str, &(char){']'});
+  arr_Push(str, &(char){']'});
 }
 
 void json_PushLeafValue(Array str, JsonElement element) {
@@ -168,21 +168,21 @@ void json_PushLeafValue(Array str, JsonElement element) {
 }
 
 void json_PushLeafElement(Array str, PHttpString key, JsonElement element, int8_t lastElement) {
-  vct_Push(str, &(char){'"'});
+  arr_Push(str, &(char){'"'});
   char *bff = key->buffer;
   for(size_t i = 0, c = key->sz; i < c; i++) {
-    vct_Push(str, &bff[i]);
+    arr_Push(str, &bff[i]);
   }
-  vct_Push(str, &(char){'"'});
-  vct_Push(str, &(char){':'});
+  arr_Push(str, &(char){'"'});
+  arr_Push(str, &(char){':'});
   json_PushLeafValue(str, element);
   if(!lastElement) {
-    vct_Push(str, &(char){','});
+    arr_Push(str, &(char){','});
   }
 }
 
 void json_ToString_t(PJsonObject self, Array str) {
-  vct_Push(str, &(char){'{'});
+  arr_Push(str, &(char){'{'});
   Array keys = trh_GetKeys(self->hsh);
   Key *keysBuffer = keys->buffer;
   for(size_t i = 0, c = keys->size; i < c; i++) {
@@ -194,29 +194,29 @@ void json_ToString_t(PJsonObject self, Array str) {
     json_PushLeafElement(str, &currentKey, *currentElement, i == keys->size - 1);
     free(currentKey.buffer);
   }
-  vct_Push(str, &(char){'}'});
-  vct_Delete(keys);
+  arr_Push(str, &(char){'}'});
+  arr_Delete(keys);
 }
 
 HttpString json_ToString(PJsonObject self) {
-  Array rsp = vct_Init(sizeof(char));
+  Array rsp = arr_Init(sizeof(char));
   json_ToString_t(self, rsp);
   HttpString response = {
     .buffer = rsp->buffer,
     .sz = rsp->size
   };
-  vct_DeleteWOBuffer(rsp);
+  arr_DeleteWOBuffer(rsp);
   return response;
 }
 
 HttpString json_Element_ToString(JsonElement self) {
-  Array responseString = vct_Init(sizeof(char));
+  Array responseString = arr_Init(sizeof(char));
   json_PushLeafValue(responseString, self);
   HttpString response = {
     .buffer = responseString->buffer,
     .sz = responseString->size
   };
-  vct_DeleteWOBuffer(responseString);
+  arr_DeleteWOBuffer(responseString);
   return response;
 } 
 
@@ -255,7 +255,7 @@ void json_DeleteArray(JsonElement element) {
   for(size_t i = 0, c = listArr->size; i < c; i++) {
     json_DeleteElement(arr[i]);
   }
-  vct_Delete(listArr);
+  arr_Delete(listArr);
 }
 
 void json_RemoveSelfContainedData(PJsonObject self) {
@@ -267,7 +267,7 @@ void json_RemoveSelfContainedData(PJsonObject self) {
   for(size_t i = 0, c = values->size; i < c; i++) {
     json_DeleteElement(elements[i]);
   }
-  vct_Delete(values);
+  arr_Delete(values);
 }
 
 void json_Parser_RemoveFillers(PTokenParser tck) {
@@ -682,7 +682,7 @@ JsonElement json_Parser_Get_Array(TokenParser tck, PTokenParser next) {
   if(json_Parser_IsInvalid(nextTck)) {
     return json_Element_Invalid();
   }
-  Array rspArray = vct_Init(sizeof(JsonElement));
+  Array rspArray = arr_Init(sizeof(JsonElement));
   JsonElement response = {
     .type = JSON_ARRAY,
     .value = rspArray
@@ -696,7 +696,7 @@ JsonElement json_Parser_Get_Array(TokenParser tck, PTokenParser next) {
       if(json_Parser_Get_IsInvalid(currentElement)) {
         continue;
       }
-      vct_Push(rspArray, &currentElement);
+      arr_Push(rspArray, &currentElement);
       break;
     }
     TokenParser comma = json_Parser_Comma(cpyTck);

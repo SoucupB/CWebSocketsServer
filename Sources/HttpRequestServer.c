@@ -19,14 +19,14 @@ void httpS_Request_CleanHangingConnections(const PHttpRequestServer self) ;
 
 PHttpRequestServer httpS_Request_Create(int64_t timeoutMS) {
   PHttpRequestServer self = malloc(sizeof(HttpRequestServer));
-  self->requests = vct_Init(sizeof(RequestMetadata));
+  self->requests = arr_Init(sizeof(RequestMetadata));
   self->timeoutMS = timeoutMS;
   return self;
 }
 
 void httpS_Request_Delete(PHttpRequestServer self) {
   httpS_Request_CleanHangingConnections(self);
-  vct_Delete(self->requests);
+  arr_Delete(self->requests);
   free(self);
 }
 
@@ -36,7 +36,7 @@ void httpS_Request_Send(PHttpRequestServer self, RequestStruct request) {
     .metadata = request,
     .requestDateMS = tf_CurrentTimeMS()
   };
-  vct_Push(self->requests, &toAdd);
+  arr_Push(self->requests, &toAdd);
 }
 
 void httpS_Request_ProcessRequests(PHttpRequestServer self, PRequestMetadata data) {
@@ -114,21 +114,21 @@ void httpS_Request_CleanHangingConnections(const PHttpRequestServer self) {
 
 void httpS_Request_ProcessActiveRequests(PHttpRequestServer self, uint64_t deltaMS) {
   RequestMetadata *buffer = self->requests->buffer;
-  Array indexes = vct_Init(sizeof(size_t));
+  Array indexes = arr_Init(sizeof(size_t));
   for(size_t i = 0, c = self->requests->size; i < c; i++) {
     if(!buffer[i].conn) {
       continue;
     }
     if(httpS_Request_ProcessCurrentFragment(self, &buffer[i], deltaMS)) {
-      vct_Push(indexes, &i);
+      arr_Push(indexes, &i);
       sock_Client_Free(buffer[i].conn);
       buffer[i].conn = NULL;
     }
   }
   Array request = self->requests;
-  self->requests = vct_RemoveElements(self->requests, indexes);
-  vct_Delete(request);
-  vct_Delete(indexes);
+  self->requests = arr_RemoveElements(self->requests, indexes);
+  arr_Delete(request);
+  arr_Delete(indexes);
 }
 
 void httpS_Request_OnFrame(PHttpRequestServer self, uint64_t deltaMS) {

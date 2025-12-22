@@ -10,14 +10,14 @@ uint64_t tf_CurrentTimeMS() {
 
 PTimeServer tf_Create() {
   PTimeServer self = malloc(sizeof(TimeServer));
-  self->methods = vct_Init(sizeof(TimeFragment));
-  self->loopMethods = vct_Init(sizeof(TimeFragment));
+  self->methods = arr_Init(sizeof(TimeFragment));
+  self->loopMethods = arr_Init(sizeof(TimeFragment));
   return self;
 }
 
 void tf_Delete(PTimeServer self) {
-  vct_Delete(self->methods);
-  vct_Delete(self->loopMethods);
+  arr_Delete(self->methods);
+  arr_Delete(self->loopMethods);
   free(self);
 }
 
@@ -26,24 +26,24 @@ void tf_ExecuteAfter(PTimeServer self, TimeMethod currentMethod, uint64_t afterM
     .executeAfter = afterMS,
     .methodFragment = currentMethod
   };
-  vct_Push(self->methods, &fragment);
+  arr_Push(self->methods, &fragment);
 }
 
 static inline void tf_ExecuteFragMethods(PTimeServer self, uint64_t deltaMS) {
   TimeFragment *fragment = self->methods->buffer;
-  Array fragmentsToRemove = vct_Init(sizeof(size_t));
+  Array fragmentsToRemove = arr_Init(sizeof(size_t));
   for(size_t i = 0, c = self->methods->size; i < c; i++) {
     fragment[i].executeAfter -= (int64_t)deltaMS;
     if(fragment[i].executeAfter <= 0) {
       void (*method)(void *) = fragment[i].methodFragment.method;
       method(fragment[i].methodFragment.buffer);
-      vct_Push(fragmentsToRemove, &i);
+      arr_Push(fragmentsToRemove, &i);
     }
   }
-  Array cpyVector = vct_RemoveElements(self->methods, fragmentsToRemove);
-  vct_Delete(self->methods);
+  Array cpyVector = arr_RemoveElements(self->methods, fragmentsToRemove);
+  arr_Delete(self->methods);
   self->methods = cpyVector;
-  vct_Delete(fragmentsToRemove);
+  arr_Delete(fragmentsToRemove);
 }
 
 static inline void tf_ExecuteLoopMethods(PTimeServer self, uint64_t deltaMS) {
@@ -64,7 +64,7 @@ void tf_ExecuteLoop(PTimeServer self, TimeMethod currentMethod, uint64_t afterMS
     .methodFragment = currentMethod,
     .time = afterMS
   };
-  vct_Push(self->loopMethods, &fragment);
+  arr_Push(self->loopMethods, &fragment);
 }
 
 void tf_OnFrame(PTimeServer self, uint64_t deltaMS) {

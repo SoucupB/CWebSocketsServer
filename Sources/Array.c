@@ -8,7 +8,7 @@
 #define crm_Free free
 #define crm_Realloc realloc
 
-Array vct_Init(size_t size) {
+Array arr_Init(size_t size) {
   Array self = (Array)crm_Alloc(sizeof(struct Array_t));
   self->buffer = crm_Alloc(size);
   self->size = 0;
@@ -17,7 +17,7 @@ Array vct_Init(size_t size) {
   return self;
 }
 
-Array vct_InitWithCapacity(size_t size, size_t count) {
+Array arr_InitWithCapacity(size_t size, size_t count) {
   Array self = crm_Alloc(sizeof(struct Array_t));
   self->buffer = crm_Alloc(size * count);
   self->size = 0;
@@ -26,7 +26,7 @@ Array vct_InitWithCapacity(size_t size, size_t count) {
   return self;
 }
 
-Array vct_InitWithSize(size_t objSize, size_t count) {
+Array arr_InitWithSize(size_t objSize, size_t count) {
   Array self = crm_Alloc(sizeof(struct Array_t));
   self->buffer = crm_Alloc(objSize * count);
   self->size = count;
@@ -40,7 +40,7 @@ void copyData(Array self, void *buffer) {
   self->size++;
 }
 
-void vct_Push(Array self, void *buffer) {
+void arr_Push(Array self, void *buffer) {
   if(self->size >= self->capacity) {
     self->capacity <<= 1;
     self->buffer = crm_Realloc(self->buffer, self->capacity * self->objSize);
@@ -48,7 +48,7 @@ void vct_Push(Array self, void *buffer) {
   copyData(self, buffer);
 }
 
-void vct_RemoveElement(Array self, size_t index) {
+void arr_RemoveElement(Array self, size_t index) {
   assert(self->size != 0);
   if(index >= self->size) {
     return ;
@@ -60,31 +60,31 @@ void vct_RemoveElement(Array self, size_t index) {
   self->size--;
 }
 
-void vct_Delete(Array self) {
+void arr_Delete(Array self) {
   crm_Free(self->buffer);
   crm_Free(self);
 }
 
-void vct_DeleteWOBuffer(Array self) {
+void arr_DeleteWOBuffer(Array self) {
   crm_Free(self);
 }
 
-char *vct_Last(Array self) {
+char *arr_Last(Array self) {
   if(!self->size) {
     return NULL;
   }
   return self->buffer + (self->size - 1) * self->objSize;
 }
 
-void vct_Pop(Array self) {
+void arr_Pop(Array self) {
   if(!self->size) {
     return ;
   }
   self->size--;
 }
 
-Array vct_RemoveElements(Array payload, Array indexes) {
-  Array indexesCount = vct_InitWithSize(sizeof(uint8_t), payload->size);
+Array arr_RemoveElements(Array payload, Array indexes) {
+  Array indexesCount = arr_InitWithSize(sizeof(uint8_t), payload->size);
   memset(indexesCount->buffer, 0, sizeof(uint8_t) * payload->size);
 
   size_t *indexesBuffer = indexes->buffer;
@@ -95,23 +95,23 @@ Array vct_RemoveElements(Array payload, Array indexes) {
       aparitionCount[indexesBuffer[i]] = 1;
     }
   }
-  Array payloadWithMissingElements = vct_Init(payload->objSize);
+  Array payloadWithMissingElements = arr_Init(payload->objSize);
   for(size_t i = 0, c = payload->size; i < c; i++) {
     if(!aparitionCount[i]) {
-      vct_Push(payloadWithMissingElements, payload->buffer + i * payload->objSize);
+      arr_Push(payloadWithMissingElements, payload->buffer + i * payload->objSize);
     }
   }
-  vct_Delete(indexesCount);
+  arr_Delete(indexesCount);
   return payloadWithMissingElements;
 }
 
-void vct_RemoveElementsWithReplacing(Array *self, Array indexes) {
-  Array deleted = vct_RemoveElements(*self, indexes);
-  vct_Delete(*self);
+void arr_RemoveElementsWithReplacing(Array *self, Array indexes) {
+  Array deleted = arr_RemoveElements(*self, indexes);
+  arr_Delete(*self);
   *self = deleted;
 }
 
-int64_t vct_Find(Array payload, void *element) {
+int64_t arr_Find(Array payload, void *element) {
   void *startingPointer = payload->buffer;
   size_t objSize = payload->objSize;
   for(size_t i = 0, c = payload->size; i < c; i++) {
@@ -122,6 +122,6 @@ int64_t vct_Find(Array payload, void *element) {
   return -1;
 }
 
-void vct_Clear(Array self) {
+void arr_Clear(Array self) {
   self->size = 0;
 }

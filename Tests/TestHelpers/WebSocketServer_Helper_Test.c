@@ -137,5 +137,5 @@ void test_Wss_Expect(PConnection conn, char *buffer, size_t sz) {
   }
   assert_true(objectFound);
   free(dt.data);
-  vct_Delete(receivedData);
+  arr_Delete(receivedData);
 }

@@ -36,8 +36,8 @@ PWebSocketServer wss_Create(uint16_t port) {
   PWebSocketServer self = malloc(sizeof(WebSocketServer));
   memset(self, 0, sizeof(WebSocketServer));
   self->socketServer = sock_Create(port);
-  self->pendingConnections = vct_Init(sizeof(Connection));
-  self->pendingPingRequests = vct_Init(sizeof(PingConnData));
+  self->pendingConnections = arr_Init(sizeof(Connection));
+  self->pendingPingRequests = arr_Init(sizeof(PingConnData));
   wss_SetMethods(self);
   return self;
 }
@@ -56,9 +56,9 @@ void _wss_LoopPingPong(void *buffer) {
       .remainingTime = self->timeServer->timeout / 2,
       .payload = _wss_Rand()
     };
-    vct_Push(self->pendingPingRequests, &pingDt);
+    arr_Push(self->pendingPingRequests, &pingDt);
     char *pingRequest = wbs_ToWebSocket((WebSocketObject) {
-      .buffer = (char *)&((PingConnData *)vct_Last(self->pendingPingRequests))->payload,
+      .buffer = (char *)&((PingConnData *)arr_Last(self->pendingPingRequests))->payload,
       .sz = sizeof(uint64_t),
       .opcode = OPCODE_PING
     });
@@ -126,18 +126,18 @@ static inline void wss_CloseConnections(PWebSocketServer self, Connection conn) 
 
 void wss_ProcessTimeoutPingRequests(PWebSocketServer self, uint64_t deltaMS) {
   PingConnData *pings = self->pendingPingRequests->buffer;
-  Array indexesToRemove = vct_Init(sizeof(size_t));
+  Array indexesToRemove = arr_Init(sizeof(size_t));
   for(size_t i = 0, c = self->pendingPingRequests->size; i < c; i++) {
     pings[i].remainingTime -= (int64_t)deltaMS;
     if(pings[i].remainingTime <= 0) {
-      vct_Push(indexesToRemove, &i);
+      arr_Push(indexesToRemove, &i);
       wss_CloseConnections(self, pings[i].conn);
     }
   }
-  Array cpyVector = vct_RemoveElements(self->pendingPingRequests, indexesToRemove);
-  vct_Delete(self->pendingPingRequests);
+  Array cpyVector = arr_RemoveElements(self->pendingPingRequests, indexesToRemove);
+  arr_Delete(self->pendingPingRequests);
   self->pendingPingRequests = cpyVector;
-  vct_Delete(indexesToRemove);
+  arr_Delete(indexesToRemove);
 }
 
 void wss_Delete(PWebSocketServer self) {
@@ -145,8 +145,8 @@ void wss_Delete(PWebSocketServer self) {
   sock_Method_Delete(self->methodsBundle._onConnect);
   sock_Method_Delete(self->methodsBundle._onRelease);
   wss_Tf_Delete(self);
-  vct_Delete(self->pendingConnections);
-  vct_Delete(self->pendingPingRequests);
+  arr_Delete(self->pendingConnections);
+  arr_Delete(self->pendingPingRequests);
   sock_Delete(self->socketServer);
   free(self);
 }
@@ -271,7 +271,7 @@ uint8_t wss_ReceiveMessages(PWebSocketServer self, PDataFragment dt, PSocketMeth
     void (*cMethod)(PDataFragment, void *) = routine->method;
     cMethod(&responseDt, routine->mirrorBuffer);
   }
-  vct_Delete(messages);
+  arr_Delete(messages);
   return validConnection;
 }
 
@@ -296,7 +296,7 @@ static inline uint8_t wss_RemovePingRequest(PWebSocketServer self, PDataFragment
   PingConnData *pingBuffer = self->pendingPingRequests->buffer;
   for(size_t i = 0, c = self->pendingPingRequests->size; i < c; i++) {
     if(dt->size == sizeof(uint64_t) && pingBuffer[i].payload == *(uint64_t *)dt->data) {
-      vct_RemoveElement(self->pendingPingRequests, i);
+      arr_RemoveElement(self->pendingPingRequests, i);
       return 1;
     }
   }
@@ -318,7 +318,7 @@ void _wss_OnReceive(PDataFragment dt, void *buffer) {
     wss_ProcessWsRequests(self, dt, self->onReceiveMessage);
     return ;
   }
-  vct_RemoveElement(self->pendingConnections, connIndex);
+  arr_RemoveElement(self->pendingConnections, connIndex);
   if(!wss_ProcessConnectionRequest(self, dt)) {
     sock_PushCloseConnections(self->socketServer, &dt->conn);
     return ;
@@ -335,7 +335,7 @@ size_t wss_ConnectionsCount(PWebSocketServer self) {
 
 void _wss_OnConnect(Connection connection, void *buffer) {
   PWebSocketServer self = buffer;
-  vct_Push(self->pendingConnections, &connection);
+  arr_Push(self->pendingConnections, &connection);
 }
 
 static inline void wss_RunCloseConnRoutine(PWebSocketServer self, Connection conn) {
@@ -350,7 +350,7 @@ void _wss_OnRelease(Connection conn, void *buffer) {
   uint8_t found;
   size_t connIndex = wss_FindConnectionOnThePull(self, &conn, &found);
   if(found) {
-    vct_RemoveElement(self->pendingConnections, connIndex);
+    arr_RemoveElement(self->pendingConnections, connIndex);
     return ;
   }
   wss_RunCloseConnRoutine(self, conn);

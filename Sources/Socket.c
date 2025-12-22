@@ -34,13 +34,13 @@ void sigpipe_handler(int signum) {
 PSocketServer sock_Create(uint16_t port) {
   PSocketServer server = malloc(sizeof(SocketServer));
   memset(server, 0, sizeof(SocketServer));
-  server->connections = vct_Init(sizeof(Connection));
+  server->connections = arr_Init(sizeof(Connection));
   server->port = port;
   server->maxActiveConnections = 16;
   server->maxBytesPerReadConnection = 1024 * 1024 * 10; /* 10 megabytes of reading per socket of total bytes */
-  server->inputReads = vct_Init(sizeof(DataFragment));
-  server->outputCommands = vct_Init(sizeof(DataFragment));
-  server->closeConnectionsQueue = vct_Init(sizeof(Connection));
+  server->inputReads = arr_Init(sizeof(DataFragment));
+  server->outputCommands = arr_Init(sizeof(DataFragment));
+  server->closeConnectionsQueue = arr_Init(sizeof(Connection));
   if(!_sock_StartConnections(server)) {
     sock_Delete(server);
     return NULL;
@@ -51,7 +51,7 @@ PSocketServer sock_Create(uint16_t port) {
 void _sock_CloseConnection(void *buffer) {
   PCloseConnStruct conn = buffer;
   close(conn->conn.fd);
-  vct_RemoveElement(conn->self->connections, conn->index);
+  arr_RemoveElement(conn->self->connections, conn->index);
   free(buffer);
 }
 
@@ -83,7 +83,7 @@ void sock_Write_Push(PSocketServer self, DataFragment *dt) {
   }
   DataFragment newDt = *dt;
   newDt.data = memory;
-  vct_Push(self->outputCommands, &newDt);
+  arr_Push(self->outputCommands, &newDt);
 }
 
 Connection sock_InvalidConnection() {
@@ -159,12 +159,12 @@ static inline ssize_t sock_FindConnIndex(PSocketServer self, PConnection conn) {
 void sock_CloseConnection(PSocketServer self, size_t index) {
   Connection conn = ((Connection *)self->connections->buffer)[index];
   close(conn.fd);
-  vct_RemoveElement(self->connections, index);
+  arr_RemoveElement(self->connections, index);
 }
 
 // This method will not trigger a release callback.
 void sock_PushCloseConnections(PSocketServer self, PConnection conn) {
-  vct_Push(self->closeConnectionsQueue, conn);
+  arr_Push(self->closeConnectionsQueue, conn);
 }
 
 size_t sock_DoesConnectionExists(PSocketServer self, PConnection conn, uint8_t *found) {
@@ -181,18 +181,18 @@ size_t sock_DoesConnectionExists(PSocketServer self, PConnection conn, uint8_t *
 
 void sock_ClearPushedConnections(PSocketServer self) {
   Connection *connections = self->closeConnectionsQueue->buffer;
-  Array indexes = vct_Init(sizeof(size_t));
+  Array indexes = arr_Init(sizeof(size_t));
   uint8_t found;
   for(size_t i = 0, c = self->closeConnectionsQueue->size; i < c; i++) {
     size_t connIndex = sock_DoesConnectionExists(self, &connections[i], &found);
     if(found) {
       close(connections[i].fd);
-      vct_Push(indexes, &connIndex);
+      arr_Push(indexes, &connIndex);
     }
   }
-  vct_RemoveElementsWithReplacing(&self->connections, indexes);
-  vct_Delete(indexes);
-  vct_Clear(self->closeConnectionsQueue);
+  arr_RemoveElementsWithReplacing(&self->connections, indexes);
+  arr_Delete(indexes);
+  arr_Clear(self->closeConnectionsQueue);
 }
 
 static inline void sock_OnReceiveMessage(PSocketServer self, Connection *conn, size_t index) {
@@ -239,7 +239,7 @@ static inline void sock_AcceptConnectionsRoutine(PSocketServer self) {
     .fd = connfd
   };
   sock_PushCloseConnMethod(self, currentCon, self->connections->size);
-  vct_Push(self->connections, &currentCon);
+  arr_Push(self->connections, &currentCon);
   sock_ExecuteMetaMethod(&currentCon, self->onConnectionAquire);
 }
 
@@ -250,7 +250,7 @@ static inline void sock_WriteBufferCleanup(PSocketServer self) {
       free(dataFragments[i].data);
     }
   }
-  vct_Clear(self->outputCommands);
+  arr_Clear(self->outputCommands);
 }
 
 PSocketMethod sock_Method_Create(void *method, void *mirrorBuffer) {
@@ -269,7 +269,7 @@ void sock_ProcessWriteRequests_t(PSocketServer self, Array markedForDeletionRequ
   for(size_t i = 0, c = self->outputCommands->size; i < c; i++) {
     ssize_t response = send(dataFragments[i].conn.fd, dataFragments[i].data, dataFragments[i].size, MSG_DONTWAIT);
     if(response < 0) {
-      vct_Push(markedForDeletionRequests, &i);
+      arr_Push(markedForDeletionRequests, &i);
       sock_ExecuteMetaMethod(&dataFragments[i].conn, self->onConnectionRelease);
       close(dataFragments[i].conn.fd);
     }
@@ -281,12 +281,12 @@ size_t sock_ConnectionCount(PSocketServer self) {
 }
 
 static inline void sock_ProcessWriteRequests(PSocketServer self)  {
-  Array markedForDeletionRequests = vct_Init(sizeof(size_t));
+  Array markedForDeletionRequests = arr_Init(sizeof(size_t));
   sock_ProcessWriteRequests_t(self, markedForDeletionRequests);
   sock_WriteBufferCleanup(self);
-  Array prunnedArray = vct_RemoveElements(self->connections, markedForDeletionRequests);
-  vct_Delete(self->connections);
-  vct_Delete(markedForDeletionRequests);
+  Array prunnedArray = arr_RemoveElements(self->connections, markedForDeletionRequests);
+  arr_Delete(self->connections);
+  arr_Delete(markedForDeletionRequests);
   self->connections = prunnedArray;
 }
 
@@ -295,8 +295,8 @@ static inline void sock_ClearConnections(PSocketServer self) {
   for(size_t i = 0, c = self->connections->size; i < c; i++) {
     close(conn[i].fd);
   }
-  vct_Delete(self->closeConnectionsQueue);
-  vct_Delete(self->connections);
+  arr_Delete(self->closeConnectionsQueue);
+  arr_Delete(self->connections);
 }
 
 PConnection sock_FindConnectionByIndex(PSocketServer self, size_t index) {
@@ -365,12 +365,12 @@ void sock_Client_SendMessage(PDataFragment frag) {
 }
 
 DataFragment sock_Client_Receive(PConnection conn) {
-  Array dataToRead = vct_Init(sizeof(char));
+  Array dataToRead = arr_Init(sizeof(char));
   char bufferChunk[1024];
   ssize_t bytesRead = -1;
   while((bytesRead = recv(conn->fd, bufferChunk, sizeof(bufferChunk), 0)) && bytesRead != -1) {
     for(size_t i = 0; i < bytesRead; i++) {
-      vct_Push(dataToRead, &bufferChunk[i]);
+      arr_Push(dataToRead, &bufferChunk[i]);
     }
   }
   DataFragment fragment = {
@@ -379,7 +379,7 @@ DataFragment sock_Client_Receive(PConnection conn) {
     .persistent = 0,
     .size = dataToRead->size
   };
-  vct_DeleteWOBuffer(dataToRead);
+  arr_DeleteWOBuffer(dataToRead);
   return fragment;
 }
 
@@ -409,11 +409,11 @@ static inline void sock_Delete_OutputCommands(PSocketServer self) {
       free(dataFragments[i].data);
     }
   }
-  vct_Delete(self->outputCommands);
+  arr_Delete(self->outputCommands);
 }
 
 void sock_Delete(PSocketServer self) {
-  vct_Delete(self->inputReads);
+  arr_Delete(self->inputReads);
   sock_ClearConnections(self);
   sock_Delete_OutputCommands(self);
   close(self->serverFD.fd);

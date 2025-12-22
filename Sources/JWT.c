@@ -22,12 +22,12 @@ uint8_t jwt_IsJWTCorrectlyFormatted(HttpString str);
 
 static inline void jwt_Add_String(Array strDrt, HttpString str) {
   for(size_t i = 0, c = str.sz; i < c; i++) {
-    vct_Push(strDrt, &str.buffer[i]);
+    arr_Push(strDrt, &str.buffer[i]);
   }
 }
 
 static inline void jwt_Add_Char(Array strDrt, char chr) {
-  vct_Push(strDrt, &chr);
+  arr_Push(strDrt, &chr);
 }
 
 static inline void jwt_Add_Header(Array strDrt) {
@@ -57,12 +57,12 @@ void jwt_AddSignature(Array str, HttpString secret) {
   jwt_HMAC(newStr, secret, hmacResult, &newB64Size);
   jwt_Add_Char(str, '.');
   for(size_t i = 0; i < newB64Size; i++) {
-    vct_Push(str, &hmacResult[i]);
+    arr_Push(str, &hmacResult[i]);
   }
 }
 
 HttpString jwt_Encode_t(JsonElement payload, HttpString secret, uint64_t iam, uint64_t expirationInMS) {
-  Array response = vct_Init(sizeof(char));
+  Array response = arr_Init(sizeof(char));
   jwt_Add_Header(response);
   jwt_Add_Char(response, '.');
   json_Map_Add(payload, "iat", json_Integer_Create((int64_t)iam));
@@ -79,7 +79,7 @@ HttpString jwt_Encode_t(JsonElement payload, HttpString secret, uint64_t iam, ui
   jwt_AddSignature(response, secret);
   char *bff = response->buffer;
   size_t sz = response->size;
-  vct_DeleteWOBuffer(response);
+  arr_DeleteWOBuffer(response);
   free(payloadString.buffer);
   return (HttpString){
     .buffer = bff,

@@ -526,13 +526,13 @@ void http_Response_SetDefault(PHttpResponse self) {
 static inline void http_PushString(Array str, HttpString buffer) {
   char *bff = buffer.buffer;
   for(size_t i = 0, c = buffer.sz; i < c; i++) {
-    vct_Push(str, &bff[i]);
+    arr_Push(str, &bff[i]);
   }
 }
 
 static inline void http_PushCharArray(Array str, char *buffer) {
   for(size_t i = 0, c = strlen(buffer); i < c; i++) {
-    vct_Push(str, &buffer[i]);
+    arr_Push(str, &buffer[i]);
   }
 }
 
@@ -613,7 +613,7 @@ static inline void http_Request_PushBody(PHttpRequest self, Array str) {
 }
 
 HttpString http_Request_ToString(PHttpRequest self) {
-  Array response = vct_Init(sizeof(char));
+  Array response = arr_Init(sizeof(char));
   http_Request_AddTopString(self, response);
   http_Request_PushHeaders(self->headers, response);
   http_Request_PushBody(self, response);
@@ -621,7 +621,7 @@ HttpString http_Request_ToString(PHttpRequest self) {
     .buffer = response->buffer,
     .sz = response->size
   };
-  vct_DeleteWOBuffer(response);
+  arr_DeleteWOBuffer(response);
   return rsp;
 }
 

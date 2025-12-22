@@ -888,19 +888,19 @@ typedef struct RequestStruct_t {
   PSocketMethod onSuccess;
   PSocketMethod onFailure;
 } RequestStruct;
-Array vct_Init(size_t size);
-Array vct_InitWithCapacity(size_t size, size_t count);
-void vct_Push(Array self, void *buffer);
-void vct_Delete(Array self);
-void vct_DeleteWOBuffer(Array self);
-void vct_Clear(Array self);
-void vct_RemoveElement(Array payload, size_t index);
-Array vct_RemoveElements(Array payload, Array indexes);
-int64_t vct_Find(Array payload, void *element);
-Array vct_InitWithSize(size_t objSize, size_t count);
-char *vct_Last(Array self);
-void vct_Pop(Array self);
-void vct_RemoveElementsWithReplacing(Array *self, Array indexes);
+Array arr_Init(size_t size);
+Array arr_InitWithCapacity(size_t size, size_t count);
+void arr_Push(Array self, void *buffer);
+void arr_Delete(Array self);
+void arr_DeleteWOBuffer(Array self);
+void arr_Clear(Array self);
+void arr_RemoveElement(Array payload, size_t index);
+Array arr_RemoveElements(Array payload, Array indexes);
+int64_t arr_Find(Array payload, void *element);
+Array arr_InitWithSize(size_t objSize, size_t count);
+char *arr_Last(Array self);
+void arr_Pop(Array self);
+void arr_RemoveElementsWithReplacing(Array *self, Array indexes);
 
 extern void *memcpy (void *__restrict __dest, const void *__restrict __src,
        size_t __n) __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__nonnull__ (1, 2)));
@@ -1513,7 +1513,7 @@ extern void __assert_perror_fail (int __errnum, const char *__file,
 extern void __assert (const char *__assertion, const char *__file, int __line)
      __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__noreturn__));
 
-Array vct_Init(size_t size) {
+Array arr_Init(size_t size) {
   Array self = (Array)malloc(sizeof(struct Array_t));
   self->buffer = malloc(size);
   self->size = 0;
@@ -1521,7 +1521,7 @@ Array vct_Init(size_t size) {
   self->objSize = size;
   return self;
 }
-Array vct_InitWithCapacity(size_t size, size_t count) {
+Array arr_InitWithCapacity(size_t size, size_t count) {
   Array self = malloc(sizeof(struct Array_t));
   self->buffer = malloc(size * count);
   self->size = 0;
@@ -1529,7 +1529,7 @@ Array vct_InitWithCapacity(size_t size, size_t count) {
   self->objSize = size;
   return self;
 }
-Array vct_InitWithSize(size_t objSize, size_t count) {
+Array arr_InitWithSize(size_t objSize, size_t count) {
   Array self = malloc(sizeof(struct Array_t));
   self->buffer = malloc(objSize * count);
   self->size = count;
@@ -1541,14 +1541,14 @@ void copyData(Array self, void *buffer) {
   memcpy(self->buffer + (self->size * self->objSize), buffer, self->objSize);
   self->size++;
 }
-void vct_Push(Array self, void *buffer) {
+void arr_Push(Array self, void *buffer) {
   if(self->size >= self->capacity) {
     self->capacity <<= 1;
     self->buffer = realloc(self->buffer, self->capacity * self->objSize);
   }
   copyData(self, buffer);
 }
-void vct_RemoveElement(Array self, size_t index) {
+void arr_RemoveElement(Array self, size_t index) {
   ((void) sizeof ((self->size != 0) ? 1 : 0), __extension__ ({ if (self->size != 0) ; else __assert_fail ("self->size != 0", "bin/svv.c", 52, __extension__ __PRETTY_FUNCTION__); }));
   if(index >= self->size) {
     return ;
@@ -1559,27 +1559,27 @@ void vct_RemoveElement(Array self, size_t index) {
   }
   self->size--;
 }
-void vct_Delete(Array self) {
+void arr_Delete(Array self) {
   free(self->buffer);
   free(self);
 }
-void vct_DeleteWOBuffer(Array self) {
+void arr_DeleteWOBuffer(Array self) {
   free(self);
 }
-char *vct_Last(Array self) {
+char *arr_Last(Array self) {
   if(!self->size) {
     return ((void *)0);
   }
   return self->buffer + (self->size - 1) * self->objSize;
 }
-void vct_Pop(Array self) {
+void arr_Pop(Array self) {
   if(!self->size) {
     return ;
   }
   self->size--;
 }
-Array vct_RemoveElements(Array payload, Array indexes) {
-  Array indexesCount = vct_InitWithSize(sizeof(uint8_t), payload->size);
+Array arr_RemoveElements(Array payload, Array indexes) {
+  Array indexesCount = arr_InitWithSize(sizeof(uint8_t), payload->size);
   memset(indexesCount->buffer, 0, sizeof(uint8_t) * payload->size);
   size_t *indexesBuffer = indexes->buffer;
   uint8_t *aparitionCount = indexesCount->buffer;
@@ -1588,21 +1588,21 @@ Array vct_RemoveElements(Array payload, Array indexes) {
       aparitionCount[indexesBuffer[i]] = 1;
     }
   }
-  Array payloadWithMissingElements = vct_Init(payload->objSize);
+  Array payloadWithMissingElements = arr_Init(payload->objSize);
   for(size_t i = 0, c = payload->size; i < c; i++) {
     if(!aparitionCount[i]) {
-      vct_Push(payloadWithMissingElements, payload->buffer + i * payload->objSize);
+      arr_Push(payloadWithMissingElements, payload->buffer + i * payload->objSize);
     }
   }
-  vct_Delete(indexesCount);
+  arr_Delete(indexesCount);
   return payloadWithMissingElements;
 }
-void vct_RemoveElementsWithReplacing(Array *self, Array indexes) {
-  Array deleted = vct_RemoveElements(*self, indexes);
-  vct_Delete(*self);
+void arr_RemoveElementsWithReplacing(Array *self, Array indexes) {
+  Array deleted = arr_RemoveElements(*self, indexes);
+  arr_Delete(*self);
   *self = deleted;
 }
-int64_t vct_Find(Array payload, void *element) {
+int64_t arr_Find(Array payload, void *element) {
   void *startingPointer = payload->buffer;
   size_t objSize = payload->objSize;
   for(size_t i = 0, c = payload->size; i < c; i++) {
@@ -1612,7 +1612,7 @@ int64_t vct_Find(Array payload, void *element) {
   }
   return -1;
 }
-void vct_Clear(Array self) {
+void arr_Clear(Array self) {
   self->size = 0;
 }
        
@@ -2553,12 +2553,12 @@ void http_Response_SetDefault(PHttpResponse self) {
 static inline void http_PushString(Array str, HttpString buffer) {
   char *bff = buffer.buffer;
   for(size_t i = 0, c = buffer.sz; i < c; i++) {
-    vct_Push(str, &bff[i]);
+    arr_Push(str, &bff[i]);
   }
 }
 static inline void http_PushCharArray(Array str, char *buffer) {
   for(size_t i = 0, c = strlen(buffer); i < c; i++) {
-    vct_Push(str, &buffer[i]);
+    arr_Push(str, &buffer[i]);
   }
 }
 void http_Request_AddTopString(PHttpRequest self, Array str) {
@@ -2634,7 +2634,7 @@ static inline void http_Request_PushBody(PHttpRequest self, Array str) {
   http_PushString(str, self->body);
 }
 HttpString http_Request_ToString(PHttpRequest self) {
-  Array response = vct_Init(sizeof(char));
+  Array response = arr_Init(sizeof(char));
   http_Request_AddTopString(self, response);
   http_Request_PushHeaders(self->headers, response);
   http_Request_PushBody(self, response);
@@ -2642,7 +2642,7 @@ HttpString http_Request_ToString(PHttpRequest self) {
     .buffer = response->buffer,
     .sz = response->size
   };
-  vct_DeleteWOBuffer(response);
+  arr_DeleteWOBuffer(response);
   return rsp;
 }
 HttpString http_Request_GetPath(PHttpRequest self) {
@@ -2868,13 +2868,13 @@ HttpString sock_Client_ReceiveWithErrors(PConnection conn);
 void httpS_Request_CleanHangingConnections(const PHttpRequestServer self) ;
 PHttpRequestServer httpS_Request_Create(int64_t timeoutMS) {
   PHttpRequestServer self = malloc(sizeof(HttpRequestServer));
-  self->requests = vct_Init(sizeof(RequestMetadata));
+  self->requests = arr_Init(sizeof(RequestMetadata));
   self->timeoutMS = timeoutMS;
   return self;
 }
 void httpS_Request_Delete(PHttpRequestServer self) {
   httpS_Request_CleanHangingConnections(self);
-  vct_Delete(self->requests);
+  arr_Delete(self->requests);
   free(self);
 }
 void httpS_Request_Send(PHttpRequestServer self, RequestStruct request) {
@@ -2883,7 +2883,7 @@ void httpS_Request_Send(PHttpRequestServer self, RequestStruct request) {
     .metadata = request,
     .requestDateMS = tf_CurrentTimeMS()
   };
-  vct_Push(self->requests, &toAdd);
+  arr_Push(self->requests, &toAdd);
 }
 void httpS_Request_ProcessRequests(PHttpRequestServer self, PRequestMetadata data) {
   DataFragment frag = {
@@ -2954,21 +2954,21 @@ void httpS_Request_CleanHangingConnections(const PHttpRequestServer self) {
 }
 void httpS_Request_ProcessActiveRequests(PHttpRequestServer self, uint64_t deltaMS) {
   RequestMetadata *buffer = self->requests->buffer;
-  Array indexes = vct_Init(sizeof(size_t));
+  Array indexes = arr_Init(sizeof(size_t));
   for(size_t i = 0, c = self->requests->size; i < c; i++) {
     if(!buffer[i].conn) {
       continue;
     }
     if(httpS_Request_ProcessCurrentFragment(self, &buffer[i], deltaMS)) {
-      vct_Push(indexes, &i);
+      arr_Push(indexes, &i);
       sock_Client_Free(buffer[i].conn);
       buffer[i].conn = ((void *)0);
     }
   }
   Array request = self->requests;
-  self->requests = vct_RemoveElements(self->requests, indexes);
-  vct_Delete(request);
-  vct_Delete(indexes);
+  self->requests = arr_RemoveElements(self->requests, indexes);
+  arr_Delete(request);
+  arr_Delete(indexes);
 }
 void httpS_Request_OnFrame(PHttpRequestServer self, uint64_t deltaMS) {
   httpS_Request_ProcessPendingRequests(self);
@@ -3125,7 +3125,7 @@ void json_Delete(PJsonObject self) {
 }
 static inline void json_PushString(Array str, char *strC, size_t sz) {
   for(size_t i = 0; i < sz; i++) {
-    vct_Push(str, &strC[i]);
+    arr_Push(str, &strC[i]);
   }
 }
 static inline size_t json_Parser_CurrentSize(PTokenParser tck) {
@@ -3165,24 +3165,24 @@ static inline JsonElement json_Element_Invalid() {
   };
 }
 static inline void json_Element_PushString(Array str, PHttpString value) {
-  vct_Push(str, &(char){'"'});
+  arr_Push(str, &(char){'"'});
   char *bff = value->buffer;
   for(size_t i = 0, c = value->sz; i < c; i++) {
-    vct_Push(str, &bff[i]);
+    arr_Push(str, &bff[i]);
   }
-  vct_Push(str, &(char){'"'});
+  arr_Push(str, &(char){'"'});
 }
 void json_PushLeafArray(Array str, JsonElement element) {
-  vct_Push(str, &(char){'['});
+  arr_Push(str, &(char){'['});
   Array currentVector = element.value;
   JsonElement *arrList = currentVector->buffer;
   for(size_t i = 0, c = currentVector->size; i < c; i++) {
     json_PushLeafValue(str, arrList[i]);
     if(i != c - 1) {
-      vct_Push(str, &(char){','});
+      arr_Push(str, &(char){','});
     }
   }
-  vct_Push(str, &(char){']'});
+  arr_Push(str, &(char){']'});
 }
 void json_PushLeafValue(Array str, JsonElement element) {
   switch (element.type)
@@ -3231,20 +3231,20 @@ void json_PushLeafValue(Array str, JsonElement element) {
   }
 }
 void json_PushLeafElement(Array str, PHttpString key, JsonElement element, int8_t lastElement) {
-  vct_Push(str, &(char){'"'});
+  arr_Push(str, &(char){'"'});
   char *bff = key->buffer;
   for(size_t i = 0, c = key->sz; i < c; i++) {
-    vct_Push(str, &bff[i]);
+    arr_Push(str, &bff[i]);
   }
-  vct_Push(str, &(char){'"'});
-  vct_Push(str, &(char){':'});
+  arr_Push(str, &(char){'"'});
+  arr_Push(str, &(char){':'});
   json_PushLeafValue(str, element);
   if(!lastElement) {
-    vct_Push(str, &(char){','});
+    arr_Push(str, &(char){','});
   }
 }
 void json_ToString_t(PJsonObject self, Array str) {
-  vct_Push(str, &(char){'{'});
+  arr_Push(str, &(char){'{'});
   Array keys = trh_GetKeys(self->hsh);
   Key *keysBuffer = keys->buffer;
   for(size_t i = 0, c = keys->size; i < c; i++) {
@@ -3256,27 +3256,27 @@ void json_ToString_t(PJsonObject self, Array str) {
     json_PushLeafElement(str, &currentKey, *currentElement, i == keys->size - 1);
     free(currentKey.buffer);
   }
-  vct_Push(str, &(char){'}'});
-  vct_Delete(keys);
+  arr_Push(str, &(char){'}'});
+  arr_Delete(keys);
 }
 HttpString json_ToString(PJsonObject self) {
-  Array rsp = vct_Init(sizeof(char));
+  Array rsp = arr_Init(sizeof(char));
   json_ToString_t(self, rsp);
   HttpString response = {
     .buffer = rsp->buffer,
     .sz = rsp->size
   };
-  vct_DeleteWOBuffer(rsp);
+  arr_DeleteWOBuffer(rsp);
   return response;
 }
 HttpString json_Element_ToString(JsonElement self) {
-  Array responseString = vct_Init(sizeof(char));
+  Array responseString = arr_Init(sizeof(char));
   json_PushLeafValue(responseString, self);
   HttpString response = {
     .buffer = responseString->buffer,
     .sz = responseString->size
   };
-  vct_DeleteWOBuffer(responseString);
+  arr_DeleteWOBuffer(responseString);
   return response;
 }
 void json_DeleteElement(JsonElement element) {
@@ -3313,7 +3313,7 @@ void json_DeleteArray(JsonElement element) {
   for(size_t i = 0, c = listArr->size; i < c; i++) {
     json_DeleteElement(arr[i]);
   }
-  vct_Delete(listArr);
+  arr_Delete(listArr);
 }
 void json_RemoveSelfContainedData(PJsonObject self) {
   if(!self || !self->selfContained) {
@@ -3324,7 +3324,7 @@ void json_RemoveSelfContainedData(PJsonObject self) {
   for(size_t i = 0, c = values->size; i < c; i++) {
     json_DeleteElement(elements[i]);
   }
-  vct_Delete(values);
+  arr_Delete(values);
 }
 void json_Parser_RemoveFillers(PTokenParser tck) {
   size_t sz = json_Parser_CurrentSize(tck);
@@ -3709,7 +3709,7 @@ JsonElement json_Parser_Get_Array(TokenParser tck, PTokenParser next) {
   if(json_Parser_IsInvalid(nextTck)) {
     return json_Element_Invalid();
   }
-  Array rspArray = vct_Init(sizeof(JsonElement));
+  Array rspArray = arr_Init(sizeof(JsonElement));
   JsonElement response = {
     .type = JSON_ARRAY,
     .value = rspArray
@@ -3723,7 +3723,7 @@ JsonElement json_Parser_Get_Array(TokenParser tck, PTokenParser next) {
       if(json_Parser_Get_IsInvalid(currentElement)) {
         continue;
       }
-      vct_Push(rspArray, &currentElement);
+      arr_Push(rspArray, &currentElement);
       break;
     }
     TokenParser comma = json_Parser_Comma(cpyTck);
@@ -7902,11 +7902,11 @@ static inline uint8_t jwt_CharValid(char chr);
 uint8_t jwt_IsJWTCorrectlyFormatted(HttpString str);
 static inline void jwt_Add_String(Array strDrt, HttpString str) {
   for(size_t i = 0, c = str.sz; i < c; i++) {
-    vct_Push(strDrt, &str.buffer[i]);
+    arr_Push(strDrt, &str.buffer[i]);
   }
 }
 static inline void jwt_Add_Char(Array strDrt, char chr) {
-  vct_Push(strDrt, &chr);
+  arr_Push(strDrt, &chr);
 }
 static inline void jwt_Add_Header(Array strDrt) {
   char *header = jwt_CreateHeader();
@@ -7934,11 +7934,11 @@ void jwt_AddSignature(Array str, HttpString secret) {
   jwt_HMAC(newStr, secret, hmacResult, &newB64Size);
   jwt_Add_Char(str, '.');
   for(size_t i = 0; i < newB64Size; i++) {
-    vct_Push(str, &hmacResult[i]);
+    arr_Push(str, &hmacResult[i]);
   }
 }
 HttpString jwt_Encode_t(JsonElement payload, HttpString secret, uint64_t iam, uint64_t expirationInMS) {
-  Array response = vct_Init(sizeof(char));
+  Array response = arr_Init(sizeof(char));
   jwt_Add_Header(response);
   jwt_Add_Char(response, '.');
   json_Map_Add(payload, "iat", json_Integer_Create((int64_t)iam));
@@ -7955,7 +7955,7 @@ HttpString jwt_Encode_t(JsonElement payload, HttpString secret, uint64_t iam, ui
   jwt_AddSignature(response, secret);
   char *bff = response->buffer;
   size_t sz = response->size;
-  vct_DeleteWOBuffer(response);
+  arr_DeleteWOBuffer(response);
   free(payloadString.buffer);
   return (HttpString){
     .buffer = bff,
@@ -9330,13 +9330,13 @@ void sigpipe_handler(int signum) {
 PSocketServer sock_Create(uint16_t port) {
   PSocketServer server = malloc(sizeof(SocketServer));
   memset(server, 0, sizeof(SocketServer));
-  server->connections = vct_Init(sizeof(Connection));
+  server->connections = arr_Init(sizeof(Connection));
   server->port = port;
   server->maxActiveConnections = 16;
   server->maxBytesPerReadConnection = 1024 * 1024 * 10;
-  server->inputReads = vct_Init(sizeof(DataFragment));
-  server->outputCommands = vct_Init(sizeof(DataFragment));
-  server->closeConnectionsQueue = vct_Init(sizeof(Connection));
+  server->inputReads = arr_Init(sizeof(DataFragment));
+  server->outputCommands = arr_Init(sizeof(DataFragment));
+  server->closeConnectionsQueue = arr_Init(sizeof(Connection));
   if(!_sock_StartConnections(server)) {
     sock_Delete(server);
     return ((void *)0);
@@ -9346,7 +9346,7 @@ PSocketServer sock_Create(uint16_t port) {
 void _sock_CloseConnection(void *buffer) {
   PCloseConnStruct conn = buffer;
   close(conn->conn.fd);
-  vct_RemoveElement(conn->self->connections, conn->index);
+  arr_RemoveElement(conn->self->connections, conn->index);
   free(buffer);
 }
 void sock_PushCloseConnMethod(PSocketServer self, Connection conn, size_t index) {
@@ -9375,7 +9375,7 @@ void sock_Write_Push(PSocketServer self, DataFragment *dt) {
   }
   DataFragment newDt = *dt;
   newDt.data = memory;
-  vct_Push(self->outputCommands, &newDt);
+  arr_Push(self->outputCommands, &newDt);
 }
 Connection sock_InvalidConnection() {
   return (Connection) {
@@ -9444,10 +9444,10 @@ static inline ssize_t sock_FindConnIndex(PSocketServer self, PConnection conn) {
 void sock_CloseConnection(PSocketServer self, size_t index) {
   Connection conn = ((Connection *)self->connections->buffer)[index];
   close(conn.fd);
-  vct_RemoveElement(self->connections, index);
+  arr_RemoveElement(self->connections, index);
 }
 void sock_PushCloseConnections(PSocketServer self, PConnection conn) {
-  vct_Push(self->closeConnectionsQueue, conn);
+  arr_Push(self->closeConnectionsQueue, conn);
 }
 size_t sock_DoesConnectionExists(PSocketServer self, PConnection conn, uint8_t *found) {
   *found = 0;
@@ -9462,18 +9462,18 @@ size_t sock_DoesConnectionExists(PSocketServer self, PConnection conn, uint8_t *
 }
 void sock_ClearPushedConnections(PSocketServer self) {
   Connection *connections = self->closeConnectionsQueue->buffer;
-  Array indexes = vct_Init(sizeof(size_t));
+  Array indexes = arr_Init(sizeof(size_t));
   uint8_t found;
   for(size_t i = 0, c = self->closeConnectionsQueue->size; i < c; i++) {
     size_t connIndex = sock_DoesConnectionExists(self, &connections[i], &found);
     if(found) {
       close(connections[i].fd);
-      vct_Push(indexes, &connIndex);
+      arr_Push(indexes, &connIndex);
     }
   }
-  vct_RemoveElementsWithReplacing(&self->connections, indexes);
-  vct_Delete(indexes);
-  vct_Clear(self->closeConnectionsQueue);
+  arr_RemoveElementsWithReplacing(&self->connections, indexes);
+  arr_Delete(indexes);
+  arr_Clear(self->closeConnectionsQueue);
 }
 static inline void sock_OnReceiveMessage(PSocketServer self, Connection *conn, size_t index) {
   size_t count = 0;
@@ -9517,7 +9517,7 @@ static inline void sock_AcceptConnectionsRoutine(PSocketServer self) {
     .fd = connfd
   };
   sock_PushCloseConnMethod(self, currentCon, self->connections->size);
-  vct_Push(self->connections, &currentCon);
+  arr_Push(self->connections, &currentCon);
   sock_ExecuteMetaMethod(&currentCon, self->onConnectionAquire);
 }
 static inline void sock_WriteBufferCleanup(PSocketServer self) {
@@ -9527,7 +9527,7 @@ static inline void sock_WriteBufferCleanup(PSocketServer self) {
       free(dataFragments[i].data);
     }
   }
-  vct_Clear(self->outputCommands);
+  arr_Clear(self->outputCommands);
 }
 PSocketMethod sock_Method_Create(void *method, void *mirrorBuffer) {
   PSocketMethod self = malloc(sizeof(SocketMethod));
@@ -9543,7 +9543,7 @@ void sock_ProcessWriteRequests_t(PSocketServer self, Array markedForDeletionRequ
   for(size_t i = 0, c = self->outputCommands->size; i < c; i++) {
     ssize_t response = send(dataFragments[i].conn.fd, dataFragments[i].data, dataFragments[i].size, MSG_DONTWAIT);
     if(response < 0) {
-      vct_Push(markedForDeletionRequests, &i);
+      arr_Push(markedForDeletionRequests, &i);
       sock_ExecuteMetaMethod(&dataFragments[i].conn, self->onConnectionRelease);
       close(dataFragments[i].conn.fd);
     }
@@ -9553,12 +9553,12 @@ size_t sock_ConnectionCount(PSocketServer self) {
   return self->connections->size;
 }
 static inline void sock_ProcessWriteRequests(PSocketServer self) {
-  Array markedForDeletionRequests = vct_Init(sizeof(size_t));
+  Array markedForDeletionRequests = arr_Init(sizeof(size_t));
   sock_ProcessWriteRequests_t(self, markedForDeletionRequests);
   sock_WriteBufferCleanup(self);
-  Array prunnedArray = vct_RemoveElements(self->connections, markedForDeletionRequests);
-  vct_Delete(self->connections);
-  vct_Delete(markedForDeletionRequests);
+  Array prunnedArray = arr_RemoveElements(self->connections, markedForDeletionRequests);
+  arr_Delete(self->connections);
+  arr_Delete(markedForDeletionRequests);
   self->connections = prunnedArray;
 }
 static inline void sock_ClearConnections(PSocketServer self) {
@@ -9566,8 +9566,8 @@ static inline void sock_ClearConnections(PSocketServer self) {
   for(size_t i = 0, c = self->connections->size; i < c; i++) {
     close(conn[i].fd);
   }
-  vct_Delete(self->closeConnectionsQueue);
-  vct_Delete(self->connections);
+  arr_Delete(self->closeConnectionsQueue);
+  arr_Delete(self->connections);
 }
 PConnection sock_FindConnectionByIndex(PSocketServer self, size_t index) {
   if(index >= self->connections->size) {
@@ -9627,12 +9627,12 @@ void sock_Client_SendMessage(PDataFragment frag) {
   (void)!send(frag->conn.fd, frag->data, frag->size, MSG_DONTWAIT);
 }
 DataFragment sock_Client_Receive(PConnection conn) {
-  Array dataToRead = vct_Init(sizeof(char));
+  Array dataToRead = arr_Init(sizeof(char));
   char bufferChunk[1024];
   ssize_t bytesRead = -1;
   while((bytesRead = recv(conn->fd, bufferChunk, sizeof(bufferChunk), 0)) && bytesRead != -1) {
     for(size_t i = 0; i < bytesRead; i++) {
-      vct_Push(dataToRead, &bufferChunk[i]);
+      arr_Push(dataToRead, &bufferChunk[i]);
     }
   }
   DataFragment fragment = {
@@ -9641,7 +9641,7 @@ DataFragment sock_Client_Receive(PConnection conn) {
     .persistent = 0,
     .size = dataToRead->size
   };
-  vct_DeleteWOBuffer(dataToRead);
+  arr_DeleteWOBuffer(dataToRead);
   return fragment;
 }
 HttpString sock_Client_ReceiveWithErrors(PConnection conn) {
@@ -9668,10 +9668,10 @@ static inline void sock_Delete_OutputCommands(PSocketServer self) {
       free(dataFragments[i].data);
     }
   }
-  vct_Delete(self->outputCommands);
+  arr_Delete(self->outputCommands);
 }
 void sock_Delete(PSocketServer self) {
-  vct_Delete(self->inputReads);
+  arr_Delete(self->inputReads);
   sock_ClearConnections(self);
   sock_Delete_OutputCommands(self);
   close(self->serverFD.fd);
@@ -9734,13 +9734,13 @@ uint64_t tf_CurrentTimeMS() {
 }
 PTimeServer tf_Create() {
   PTimeServer self = malloc(sizeof(TimeServer));
-  self->methods = vct_Init(sizeof(TimeFragment));
-  self->loopMethods = vct_Init(sizeof(TimeFragment));
+  self->methods = arr_Init(sizeof(TimeFragment));
+  self->loopMethods = arr_Init(sizeof(TimeFragment));
   return self;
 }
 void tf_Delete(PTimeServer self) {
-  vct_Delete(self->methods);
-  vct_Delete(self->loopMethods);
+  arr_Delete(self->methods);
+  arr_Delete(self->loopMethods);
   free(self);
 }
 void tf_ExecuteAfter(PTimeServer self, TimeMethod currentMethod, uint64_t afterMS) {
@@ -9748,23 +9748,23 @@ void tf_ExecuteAfter(PTimeServer self, TimeMethod currentMethod, uint64_t afterM
     .executeAfter = afterMS,
     .methodFragment = currentMethod
   };
-  vct_Push(self->methods, &fragment);
+  arr_Push(self->methods, &fragment);
 }
 static inline void tf_ExecuteFragMethods(PTimeServer self, uint64_t deltaMS) {
   TimeFragment *fragment = self->methods->buffer;
-  Array fragmentsToRemove = vct_Init(sizeof(size_t));
+  Array fragmentsToRemove = arr_Init(sizeof(size_t));
   for(size_t i = 0, c = self->methods->size; i < c; i++) {
     fragment[i].executeAfter -= (int64_t)deltaMS;
     if(fragment[i].executeAfter <= 0) {
       void (*method)(void *) = fragment[i].methodFragment.method;
       method(fragment[i].methodFragment.buffer);
-      vct_Push(fragmentsToRemove, &i);
+      arr_Push(fragmentsToRemove, &i);
     }
   }
-  Array cpyVector = vct_RemoveElements(self->methods, fragmentsToRemove);
-  vct_Delete(self->methods);
+  Array cpyVector = arr_RemoveElements(self->methods, fragmentsToRemove);
+  arr_Delete(self->methods);
   self->methods = cpyVector;
-  vct_Delete(fragmentsToRemove);
+  arr_Delete(fragmentsToRemove);
 }
 static inline void tf_ExecuteLoopMethods(PTimeServer self, uint64_t deltaMS) {
   TimeFragment *fragment = self->loopMethods->buffer;
@@ -9783,7 +9783,7 @@ void tf_ExecuteLoop(PTimeServer self, TimeMethod currentMethod, uint64_t afterMS
     .methodFragment = currentMethod,
     .time = afterMS
   };
-  vct_Push(self->loopMethods, &fragment);
+  arr_Push(self->loopMethods, &fragment);
 }
 void tf_OnFrame(PTimeServer self, uint64_t deltaMS) {
   tf_ExecuteFragMethods(self, deltaMS);
@@ -9893,7 +9893,7 @@ void trh_GetValues_t(PTrieNode self, Array values) {
     return ;
   }
   if(self->buffer) {
-    vct_Push(values, self->buffer);
+    arr_Push(values, self->buffer);
   }
   PTrieNode *nextNodes = self->nextNodes;
   for(size_t i = 0; i < 16; i++) {
@@ -9903,17 +9903,17 @@ void trh_GetValues_t(PTrieNode self, Array values) {
   }
 }
 Array trh_GetValues(PTrieHash self, size_t valueSize) {
-  Array response = vct_Init(valueSize);
+  Array response = arr_Init(valueSize);
   trh_GetValues_t(self->parentNode, response);
   return response;
 }
 void trh_Key_Push(Array currentKey, uint8_t value, size_t position) {
   if(!(position & 1)) {
     value <<= 4;
-    vct_Push(currentKey, &value);
+    arr_Push(currentKey, &value);
     return ;
   }
-  uint8_t *last = (uint8_t *)vct_Last(currentKey);
+  uint8_t *last = (uint8_t *)arr_Last(currentKey);
   if(!last) {
     return ;
   }
@@ -9921,10 +9921,10 @@ void trh_Key_Push(Array currentKey, uint8_t value, size_t position) {
 }
 static inline void trh_Key_Pop(Array currentKey, size_t position) {
   if(!(position & 1)) {
-    vct_Pop(currentKey);
+    arr_Pop(currentKey);
   }
   else {
-    uint8_t *last = (uint8_t *)vct_Last(currentKey);
+    uint8_t *last = (uint8_t *)arr_Last(currentKey);
     if(!last) {
       return ;
     }
@@ -9940,7 +9940,7 @@ void trh_GetKeys_t(PTrieNode self, Array keys, Array currentKey, size_t position
     key.keySize = currentKey->size;
     key.key = malloc(key.keySize);
     memcpy(key.key, currentKey->buffer, key.keySize);
-    vct_Push(keys, &key);
+    arr_Push(keys, &key);
   }
   PTrieNode *nextNodes = self->nextNodes;
   for(uint8_t i = 0; i < 16; i++) {
@@ -9952,10 +9952,10 @@ void trh_GetKeys_t(PTrieNode self, Array keys, Array currentKey, size_t position
   }
 }
 Array trh_GetKeys(PTrieHash self) {
-  Array response = vct_Init(sizeof(Key));
-  Array currentKey = vct_Init(sizeof(uint8_t));
+  Array response = arr_Init(sizeof(Key));
+  Array currentKey = arr_Init(sizeof(uint8_t));
   trh_GetKeys_t(self->parentNode, response, currentKey, 0);
-  vct_Delete(currentKey);
+  arr_Delete(currentKey);
   return response;
 }
 void trh_FreeKeys(Array keys) {
@@ -9963,7 +9963,7 @@ void trh_FreeKeys(Array keys) {
   for(size_t i = 0, c = keys->size; i < c; i++) {
     free(buffer[i].key);
   }
-  vct_Delete(keys);
+  arr_Delete(keys);
 }
 void* trh_GetBuffer(PTrieHash self, void* key, uint32_t keySize) {
   return trn_GetBuffer_t(self->parentNode, key, keySize, 0);
@@ -10105,8 +10105,8 @@ PWebSocketServer wss_Create(uint16_t port) {
   PWebSocketServer self = malloc(sizeof(WebSocketServer));
   memset(self, 0, sizeof(WebSocketServer));
   self->socketServer = sock_Create(port);
-  self->pendingConnections = vct_Init(sizeof(Connection));
-  self->pendingPingRequests = vct_Init(sizeof(PingConnData));
+  self->pendingConnections = arr_Init(sizeof(Connection));
+  self->pendingPingRequests = arr_Init(sizeof(PingConnData));
   wss_SetMethods(self);
   return self;
 }
@@ -10124,9 +10124,9 @@ void _wss_LoopPingPong(void *buffer) {
       .remainingTime = self->timeServer->timeout / 2,
       .payload = _wss_Rand()
     };
-    vct_Push(self->pendingPingRequests, &pingDt);
+    arr_Push(self->pendingPingRequests, &pingDt);
     char *pingRequest = wbs_ToWebSocket((WebSocketObject) {
-      .buffer = (char *)&((PingConnData *)vct_Last(self->pendingPingRequests))->payload,
+      .buffer = (char *)&((PingConnData *)arr_Last(self->pendingPingRequests))->payload,
       .sz = sizeof(uint64_t),
       .opcode = OPCODE_PING
     });
@@ -10188,26 +10188,26 @@ static inline void wss_CloseConnections(PWebSocketServer self, Connection conn) 
 }
 void wss_ProcessTimeoutPingRequests(PWebSocketServer self, uint64_t deltaMS) {
   PingConnData *pings = self->pendingPingRequests->buffer;
-  Array indexesToRemove = vct_Init(sizeof(size_t));
+  Array indexesToRemove = arr_Init(sizeof(size_t));
   for(size_t i = 0, c = self->pendingPingRequests->size; i < c; i++) {
     pings[i].remainingTime -= (int64_t)deltaMS;
     if(pings[i].remainingTime <= 0) {
-      vct_Push(indexesToRemove, &i);
+      arr_Push(indexesToRemove, &i);
       wss_CloseConnections(self, pings[i].conn);
     }
   }
-  Array cpyVector = vct_RemoveElements(self->pendingPingRequests, indexesToRemove);
-  vct_Delete(self->pendingPingRequests);
+  Array cpyVector = arr_RemoveElements(self->pendingPingRequests, indexesToRemove);
+  arr_Delete(self->pendingPingRequests);
   self->pendingPingRequests = cpyVector;
-  vct_Delete(indexesToRemove);
+  arr_Delete(indexesToRemove);
 }
 void wss_Delete(PWebSocketServer self) {
   sock_Method_Delete(self->methodsBundle._onReceive);
   sock_Method_Delete(self->methodsBundle._onConnect);
   sock_Method_Delete(self->methodsBundle._onRelease);
   wss_Tf_Delete(self);
-  vct_Delete(self->pendingConnections);
-  vct_Delete(self->pendingPingRequests);
+  arr_Delete(self->pendingConnections);
+  arr_Delete(self->pendingPingRequests);
   sock_Delete(self->socketServer);
   free(self);
 }
@@ -10326,7 +10326,7 @@ uint8_t wss_ReceiveMessages(PWebSocketServer self, PDataFragment dt, PSocketMeth
     void (*cMethod)(PDataFragment, void *) = routine->method;
     cMethod(&responseDt, routine->mirrorBuffer);
   }
-  vct_Delete(messages);
+  arr_Delete(messages);
   return validConnection;
 }
 static inline void wss_ProcessReleaseMethod(PWebSocketServer self, PDataFragment dt, PSocketMethod routine) {
@@ -10348,7 +10348,7 @@ static inline uint8_t wss_RemovePingRequest(PWebSocketServer self, PDataFragment
   PingConnData *pingBuffer = self->pendingPingRequests->buffer;
   for(size_t i = 0, c = self->pendingPingRequests->size; i < c; i++) {
     if(dt->size == sizeof(uint64_t) && pingBuffer[i].payload == *(uint64_t *)dt->data) {
-      vct_RemoveElement(self->pendingPingRequests, i);
+      arr_RemoveElement(self->pendingPingRequests, i);
       return 1;
     }
   }
@@ -10368,7 +10368,7 @@ void _wss_OnReceive(PDataFragment dt, void *buffer) {
     wss_ProcessWsRequests(self, dt, self->onReceiveMessage);
     return ;
   }
-  vct_RemoveElement(self->pendingConnections, connIndex);
+  arr_RemoveElement(self->pendingConnections, connIndex);
   if(!wss_ProcessConnectionRequest(self, dt)) {
     sock_PushCloseConnections(self->socketServer, &dt->conn);
     return ;
@@ -10383,7 +10383,7 @@ size_t wss_ConnectionsCount(PWebSocketServer self) {
 }
 void _wss_OnConnect(Connection connection, void *buffer) {
   PWebSocketServer self = buffer;
-  vct_Push(self->pendingConnections, &connection);
+  arr_Push(self->pendingConnections, &connection);
 }
 static inline void wss_RunCloseConnRoutine(PWebSocketServer self, Connection conn) {
   if(self->onRelease) {
@@ -10396,7 +10396,7 @@ void _wss_OnRelease(Connection conn, void *buffer) {
   uint8_t found;
   size_t connIndex = wss_FindConnectionOnThePull(self, &conn, &found);
   if(found) {
-    vct_RemoveElement(self->pendingConnections, connIndex);
+    arr_RemoveElement(self->pendingConnections, connIndex);
     return ;
   }
   wss_RunCloseConnRoutine(self, conn);
@@ -10662,14 +10662,14 @@ char *wbs_ExtractPayload(char *msg) {
   return wbs_MaskedPayload(msg);
 }
 void wbs_Clear_FromWebSocket(Array objects) {
-  vct_Delete(objects);
+  arr_Delete(objects);
 }
 Array wbs_FromWebSocket(char *msg, size_t bufferSize) {
   if(!wbs_IsBufferValid(msg, bufferSize)) {
     return ((void *)0);
   }
   char *endBuffer = msg + bufferSize;
-  Array buffer = vct_Init(sizeof(WebSocketObject));
+  Array buffer = arr_Init(sizeof(WebSocketObject));
   while(msg < endBuffer) {
     WebSocketObject obj = (WebSocketObject) {
       .buffer = wbs_ExtractPayload(msg),
@@ -10680,7 +10680,7 @@ Array wbs_FromWebSocket(char *msg, size_t bufferSize) {
       wbs_Clear_FromWebSocket(buffer);
       return ((void *)0);
     }
-    vct_Push(buffer, &obj);
+    arr_Push(buffer, &obj);
     msg += wbs_FullMessageSize(msg);
   }
   return buffer;
