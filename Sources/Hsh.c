@@ -1,4 +1,4 @@
-#include "TrieHash.h"
+#include "Hsh.h"
 #include <string.h>
 #include "Array.h"
 #include "TimeFragment.h"

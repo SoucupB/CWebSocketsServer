@@ -4,7 +4,7 @@
 #include <stdio.h>
 #include <ctype.h>
 #include "Array.h"
-#include "TrieHash.h"
+#include "Hsh.h"
 #include "String.h"
 
 static inline PHttpMetaData http_InitMetadata();

@@ -1,5 +1,5 @@
 #include "JsonParser.h"
-#include "TrieHash.h"
+#include "Hsh.h"
 #include <stdlib.h>
 #include <assert.h>
 #include "Array.h"

@@ -7,7 +7,7 @@
 #include <stdint.h>
 #include <unistd.h>
 #include <string.h>
-#include "TrieHash.h"
+#include "Hsh.h"
 #include "TimeFragment.h"
 #include "TrieHash_Helper_test.h"
 

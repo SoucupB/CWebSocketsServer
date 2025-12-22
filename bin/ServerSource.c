@@ -1983,6 +1983,254 @@ void *fmp_Alloc(PFixedMemoryPool self) {
   return fmp_NormalMem(self);
 }
        
+PTrieHash trh_Create();
+void trh_Add(PTrieHash self, void* key, uint32_t keySize, void* value, uint32_t valueSize);
+void trh_Delete(PTrieHash self);
+void trh_RemoveNode(PTrieHash self, void* key, uint32_t keySize);
+void* trh_GetBuffer(PTrieHash self, void* key, uint32_t keySize);
+void trh_Integer32_Insert(PTrieHash self, uint32_t key, uint32_t value);
+void* trh_Integer32_Get(PTrieHash self, uint32_t key);
+void trh_Integer32_RemoveElement(PTrieHash self, uint32_t key);
+void trh_Buffer_AddToIndex64(PTrieHash self, uint64_t id, void* buffer, uint32_t bufferSize);
+void* trh_Buffer_GetFromIndex64(PTrieHash self, uint64_t id);
+void trh_Buffer_RemoveAtIndex64(PTrieHash self, uint64_t id);
+void trh_Buffer_AddToIndex(PTrieHash self, uint32_t id, void* buffer, uint32_t bufferSize);
+void* trh_Buffer_GetFromIndex(PTrieHash self, uint32_t id);
+void trh_Buffer_RemoveAtIndex(PTrieHash self, uint32_t id);
+Array trh_GetValues(PTrieHash self, size_t valueSize);
+Array trh_GetKeys(PTrieHash self);
+void trh_FreeKeys(Array keys);
+       
+PTimeServer tf_Create();
+void tf_OnFrame(PTimeServer self, uint64_t deltaMS);
+void tf_Delete(PTimeServer self);
+void tf_ExecuteAfter(PTimeServer self, TimeMethod currentMethod, uint64_t afterMS);
+void tf_ExecuteLoop(PTimeServer self, TimeMethod currentMethod, uint64_t afterMS);
+uint64_t tf_CurrentTimeMS();
+PTrieNode trn_Create();
+uint8_t trn_AddValues(PTrieNode self, void* key, uint32_t keySize, void* value, uint32_t valueSize, uint32_t position);
+PTrieHash trh_Create() {
+  PTrieHash self = malloc(sizeof(TrieHash));
+  memset(self, 0, sizeof(TrieHash));
+  self->parentNode = trn_Create();
+  return self;
+}
+void trh_Add(PTrieHash self, void* key, uint32_t keySize, void* value, uint32_t valueSize) {
+  if(!trn_AddValues(self->parentNode, key, keySize, value, valueSize, 0)) {
+    self->count++;
+  }
+}
+PTrieNode trn_Create() {
+  PTrieNode self = malloc(sizeof(TrieNode));
+  memset(self, 0, sizeof(TrieNode));
+  self->nextNodes = malloc(sizeof(PTrieNode) * 16);
+  memset(self->nextNodes, 0, sizeof(PTrieNode) * 16);
+  return self;
+}
+static inline void trh_FreeNode(PTrieNode self) {
+  free(self->nextNodes);
+  free(self);
+}
+void trn_DeleteNodes(PTrieNode self) {
+  for(uint8_t i = 0; i < 16; i++) {
+    if(self->nextNodes[i]) {
+      trn_DeleteNodes(self->nextNodes[i]);
+      self->nextNodes[i] = ((void *)0);
+    }
+  }
+  if(self->buffer) {
+    free(self->buffer);
+  }
+  trh_FreeNode(self);
+}
+uint8_t trn_RemoveNode_t(PTrieNode self, void* key, uint32_t keySize, uint32_t position) {
+  if(position >= (keySize << 1)) {
+    if(self->buffer) {
+      free(self->buffer);
+      self->buffer = ((void *)0);
+      return 1;
+    }
+    return 0;
+  }
+  uint8_t currentValue;
+  if(position & 1) {
+    currentValue = (((uint8_t *)key)[(position >> 1)] & 15);
+  }
+  else {
+    currentValue = (((uint8_t *)key)[(position >> 1)] >> 4);
+  }
+  PTrieNode node = self->nextNodes[currentValue];
+  uint8_t deleted = 0;
+  if(node) {
+    deleted = trn_RemoveNode_t(node, key, keySize, position + 1);
+    node->count--;
+    if(!node->count) {
+      self->nextNodes[currentValue] = ((void *)0);
+      trh_FreeNode(node);
+    }
+  }
+  return deleted;
+}
+void trh_Buffer_AddToIndex(PTrieHash self, uint32_t id, void* buffer, uint32_t bufferSize) {
+  trh_Add(self, &id, sizeof(uint32_t), buffer, bufferSize);
+}
+void trh_Buffer_AddToIndex64(PTrieHash self, uint64_t id, void* buffer, uint32_t bufferSize) {
+  trh_Add(self, &id, sizeof(uint64_t), buffer, bufferSize);
+}
+void* trh_Buffer_GetFromIndex(PTrieHash self, uint32_t id) {
+  return trh_GetBuffer(self, &id, sizeof(uint32_t));
+}
+void* trh_Buffer_GetFromIndex64(PTrieHash self, uint64_t id) {
+  return trh_GetBuffer(self, &id, sizeof(uint64_t));
+}
+void trh_Buffer_RemoveAtIndex(PTrieHash self, uint32_t id) {
+  trh_RemoveNode(self, &id, sizeof(uint32_t));
+}
+void trh_Buffer_RemoveAtIndex64(PTrieHash self, uint64_t id) {
+  trh_RemoveNode(self, &id, sizeof(uint64_t));
+}
+void* trn_GetBuffer_t(PTrieNode self, void* key, uint32_t keySize, uint32_t position) {
+  if(position >= (keySize << 1)) {
+    return self->buffer;
+  }
+  uint8_t currentValue;
+  if(position & 1) {
+    currentValue = (((uint8_t *)key)[(position >> 1)] & 15);
+  }
+  else {
+    currentValue = (((uint8_t *)key)[(position >> 1)] >> 4);
+  }
+  PTrieNode node = self->nextNodes[currentValue];
+  if(node) {
+    return trn_GetBuffer_t(node, key, keySize, position + 1);
+  }
+  return ((void *)0);
+}
+void trh_GetValues_t(PTrieNode self, Array values) {
+  if(!self) {
+    return ;
+  }
+  if(self->buffer) {
+    arr_Push(values, self->buffer);
+  }
+  PTrieNode *nextNodes = self->nextNodes;
+  for(size_t i = 0; i < 16; i++) {
+    if(nextNodes[i]) {
+      trh_GetValues_t(nextNodes[i], values);
+    }
+  }
+}
+Array trh_GetValues(PTrieHash self, size_t valueSize) {
+  Array response = arr_Init(valueSize);
+  trh_GetValues_t(self->parentNode, response);
+  return response;
+}
+void trh_Key_Push(Array currentKey, uint8_t value, size_t position) {
+  if(!(position & 1)) {
+    value <<= 4;
+    arr_Push(currentKey, &value);
+    return ;
+  }
+  uint8_t *last = (uint8_t *)arr_Last(currentKey);
+  if(!last) {
+    return ;
+  }
+  (*last) += value;
+}
+static inline void trh_Key_Pop(Array currentKey, size_t position) {
+  if(!(position & 1)) {
+    arr_Pop(currentKey);
+  }
+  else {
+    uint8_t *last = (uint8_t *)arr_Last(currentKey);
+    if(!last) {
+      return ;
+    }
+    (*last) &= 0xF0;
+  }
+}
+void trh_GetKeys_t(PTrieNode self, Array keys, Array currentKey, size_t position) {
+  if(!self) {
+    return ;
+  }
+  if(self->buffer) {
+    Key key;
+    key.keySize = currentKey->size;
+    key.key = malloc(key.keySize);
+    memcpy(key.key, currentKey->buffer, key.keySize);
+    arr_Push(keys, &key);
+  }
+  PTrieNode *nextNodes = self->nextNodes;
+  for(uint8_t i = 0; i < 16; i++) {
+    if(nextNodes[i]) {
+      trh_Key_Push(currentKey, i, position);
+      trh_GetKeys_t(nextNodes[i], keys, currentKey, position + 1);
+      trh_Key_Pop(currentKey, position);
+    }
+  }
+}
+Array trh_GetKeys(PTrieHash self) {
+  Array response = arr_Init(sizeof(Key));
+  Array currentKey = arr_Init(sizeof(uint8_t));
+  trh_GetKeys_t(self->parentNode, response, currentKey, 0);
+  arr_Delete(currentKey);
+  return response;
+}
+void trh_FreeKeys(Array keys) {
+  Key *buffer = (Key *)keys->buffer;
+  for(size_t i = 0, c = keys->size; i < c; i++) {
+    free(buffer[i].key);
+  }
+  arr_Delete(keys);
+}
+void* trh_GetBuffer(PTrieHash self, void* key, uint32_t keySize) {
+  return trn_GetBuffer_t(self->parentNode, key, keySize, 0);
+}
+void trh_RemoveNode(PTrieHash self, void* key, uint32_t keySize) {
+  if(trn_RemoveNode_t(self->parentNode, key, keySize, 0)) {
+    self->count--;
+  }
+}
+uint8_t trn_AddValues(PTrieNode self, void* key, uint32_t keySize, void* value, uint32_t valueSize, uint32_t position) {
+  if(position >= (keySize << 1)) {
+    void* lastBuffer = self->buffer;
+    self->buffer = malloc(valueSize);
+    memcpy(self->buffer, value, valueSize);
+    if(lastBuffer) {
+      free(lastBuffer);
+      return 0;
+    }
+    return 1;
+  }
+  uint8_t currentValue;
+  if(position & 1) {
+    currentValue = (((uint8_t *)key)[(position >> 1)] & 15);
+  }
+  else {
+    currentValue = (((uint8_t *)key)[(position >> 1)] >> 4);
+  }
+  PTrieNode node = self->nextNodes[currentValue];
+  if(!node) {
+    node = trn_Create();
+    self->nextNodes[currentValue] = node;
+  }
+  node->count++;
+  return trn_AddValues(node, key, keySize, value, valueSize, position + 1);
+}
+void trh_Integer32_Insert(PTrieHash self, uint32_t key, uint32_t value) {
+  trh_Add(self, &key, sizeof(uint32_t), &value, sizeof(uint32_t));
+}
+void* trh_Integer32_Get(PTrieHash self, uint32_t key) {
+  return trh_GetBuffer(self, &key, sizeof(uint32_t));
+}
+void trh_Integer32_RemoveElement(PTrieHash self, uint32_t key) {
+  trh_RemoveNode(self, &key, sizeof(uint32_t));
+}
+void trh_Delete(PTrieHash self) {
+  trn_DeleteNodes(self->parentNode);
+  free(self);
+}
+       
 PHttpRequest http_Request_Parse(char *buffer, size_t sz);
 HttpString http_Request_ToString(PHttpRequest self);
 HttpString http_Request_GetValue(PHttpRequest self, char *buffer);
@@ -2071,24 +2319,6 @@ extern int tolower_l (int __c, locale_t __l) __attribute__ ((__nothrow__ , __lea
 extern int __toupper_l (int __c, locale_t __l) __attribute__ ((__nothrow__ , __leaf__));
 extern int toupper_l (int __c, locale_t __l) __attribute__ ((__nothrow__ , __leaf__));
 
-       
-PTrieHash trh_Create();
-void trh_Add(PTrieHash self, void* key, uint32_t keySize, void* value, uint32_t valueSize);
-void trh_Delete(PTrieHash self);
-void trh_RemoveNode(PTrieHash self, void* key, uint32_t keySize);
-void* trh_GetBuffer(PTrieHash self, void* key, uint32_t keySize);
-void trh_Integer32_Insert(PTrieHash self, uint32_t key, uint32_t value);
-void* trh_Integer32_Get(PTrieHash self, uint32_t key);
-void trh_Integer32_RemoveElement(PTrieHash self, uint32_t key);
-void trh_Buffer_AddToIndex64(PTrieHash self, uint64_t id, void* buffer, uint32_t bufferSize);
-void* trh_Buffer_GetFromIndex64(PTrieHash self, uint64_t id);
-void trh_Buffer_RemoveAtIndex64(PTrieHash self, uint64_t id);
-void trh_Buffer_AddToIndex(PTrieHash self, uint32_t id, void* buffer, uint32_t bufferSize);
-void* trh_Buffer_GetFromIndex(PTrieHash self, uint32_t id);
-void trh_Buffer_RemoveAtIndex(PTrieHash self, uint32_t id);
-Array trh_GetValues(PTrieHash self, size_t valueSize);
-Array trh_GetKeys(PTrieHash self);
-void trh_FreeKeys(Array keys);
        
 HttpString string_DeepCopy(HttpString str);
 static inline PHttpMetaData http_InitMetadata();
@@ -2846,13 +3076,6 @@ void httpS_Request_OnFrame(PHttpRequestServer self, uint64_t deltaMS);
 void httpS_Request_Send(PHttpRequestServer self, RequestStruct request);
 RequestStruct httpS_Request_StructInit(HttpString ip, uint16_t port);
        
-PTimeServer tf_Create();
-void tf_OnFrame(PTimeServer self, uint64_t deltaMS);
-void tf_Delete(PTimeServer self);
-void tf_ExecuteAfter(PTimeServer self, TimeMethod currentMethod, uint64_t afterMS);
-void tf_ExecuteLoop(PTimeServer self, TimeMethod currentMethod, uint64_t afterMS);
-uint64_t tf_CurrentTimeMS();
-       
 PConnection sock_Client_Connect(uint16_t port, char *ip);
 void sock_Client_SendMessage(PDataFragment frag);
 void sock_Client_Free(PConnection conn);
@@ -3115,7 +3338,7 @@ PJsonObject json_Create() {
   return self;
 }
 void json_Add(PJsonObject self, PHttpString key, JsonElement element) {
-  ((void) sizeof ((self->hsh) ? 1 : 0), __extension__ ({ if (self->hsh) ; else __assert_fail ("self->hsh", "bin/svv.c", 1632, __extension__ __PRETTY_FUNCTION__); }));
+  ((void) sizeof ((self->hsh) ? 1 : 0), __extension__ ({ if (self->hsh) ; else __assert_fail ("self->hsh", "bin/svv.c", 1888, __extension__ __PRETTY_FUNCTION__); }));
   trh_Add(self->hsh, key->buffer, key->sz, &element, sizeof(JsonElement));
 }
 void json_Delete(PJsonObject self) {
@@ -3208,17 +3431,17 @@ void json_PushLeafValue(Array str, JsonElement element) {
       break;
     }
     case JSON_INTEGER: {
-      ((void) sizeof ((element.value) ? 1 : 0), __extension__ ({ if (element.value) ; else __assert_fail ("element.value", "bin/svv.c", 1738, __extension__ __PRETTY_FUNCTION__); }));
+      ((void) sizeof ((element.value) ? 1 : 0), __extension__ ({ if (element.value) ; else __assert_fail ("element.value", "bin/svv.c", 1994, __extension__ __PRETTY_FUNCTION__); }));
       json_Element_PushInteger(str, *(int64_t *)element.value);
       break;
     }
     case JSON_NUMBER: {
-      ((void) sizeof ((element.value) ? 1 : 0), __extension__ ({ if (element.value) ; else __assert_fail ("element.value", "bin/svv.c", 1743, __extension__ __PRETTY_FUNCTION__); }));
+      ((void) sizeof ((element.value) ? 1 : 0), __extension__ ({ if (element.value) ; else __assert_fail ("element.value", "bin/svv.c", 1999, __extension__ __PRETTY_FUNCTION__); }));
       json_Element_PushFloat(str, *(float *)element.value);
       break;
     }
     case JSON_STRING: {
-      ((void) sizeof ((element.value) ? 1 : 0), __extension__ ({ if (element.value) ; else __assert_fail ("element.value", "bin/svv.c", 1748, __extension__ __PRETTY_FUNCTION__); }));
+      ((void) sizeof ((element.value) ? 1 : 0), __extension__ ({ if (element.value) ; else __assert_fail ("element.value", "bin/svv.c", 2004, __extension__ __PRETTY_FUNCTION__); }));
       json_Element_PushString(str, element.value);
       break;
     }
@@ -3395,7 +3618,7 @@ TokenParser json_Parser_Null(TokenParser tck) {
   return tck;
 }
 void json_Map_Add(JsonElement map, char *key, JsonElement element) {
-  ((void) sizeof ((map.type == JSON_JSON) ? 1 : 0), __extension__ ({ if (map.type == JSON_JSON) ; else __assert_fail ("map.type == JSON_JSON", "bin/svv.c", 1939, __extension__ __PRETTY_FUNCTION__); }));
+  ((void) sizeof ((map.type == JSON_JSON) ? 1 : 0), __extension__ ({ if (map.type == JSON_JSON) ; else __assert_fail ("map.type == JSON_JSON", "bin/svv.c", 2195, __extension__ __PRETTY_FUNCTION__); }));
   HttpString str = {
     .buffer = key,
     .sz = strlen(key)
@@ -3856,15 +4079,15 @@ JsonElement json_Array_At(JsonElement arr, size_t index) {
   return ((JsonElement *)vct->buffer)[index];
 }
 size_t json_Array_Size(JsonElement arr) {
-  ((void) sizeof ((arr.type == JSON_ARRAY) ? 1 : 0), __extension__ ({ if (arr.type == JSON_ARRAY) ; else __assert_fail ("arr.type == JSON_ARRAY", "bin/svv.c", 2432, __extension__ __PRETTY_FUNCTION__); }));
+  ((void) sizeof ((arr.type == JSON_ARRAY) ? 1 : 0), __extension__ ({ if (arr.type == JSON_ARRAY) ; else __assert_fail ("arr.type == JSON_ARRAY", "bin/svv.c", 2688, __extension__ __PRETTY_FUNCTION__); }));
   return ((Array)arr.value)->size;
 }
 int64_t json_Integer_Get(JsonElement arr) {
-  ((void) sizeof ((arr.type == JSON_INTEGER) ? 1 : 0), __extension__ ({ if (arr.type == JSON_INTEGER) ; else __assert_fail ("arr.type == JSON_INTEGER", "bin/svv.c", 2437, __extension__ __PRETTY_FUNCTION__); }));
+  ((void) sizeof ((arr.type == JSON_INTEGER) ? 1 : 0), __extension__ ({ if (arr.type == JSON_INTEGER) ; else __assert_fail ("arr.type == JSON_INTEGER", "bin/svv.c", 2693, __extension__ __PRETTY_FUNCTION__); }));
   return *((int64_t *)arr.value);
 }
 float json_Number_Get(JsonElement arr) {
-  ((void) sizeof ((arr.type == JSON_NUMBER) ? 1 : 0), __extension__ ({ if (arr.type == JSON_NUMBER) ; else __assert_fail ("arr.type == JSON_NUMBER", "bin/svv.c", 2442, __extension__ __PRETTY_FUNCTION__); }));
+  ((void) sizeof ((arr.type == JSON_NUMBER) ? 1 : 0), __extension__ ({ if (arr.type == JSON_NUMBER) ; else __assert_fail ("arr.type == JSON_NUMBER", "bin/svv.c", 2698, __extension__ __PRETTY_FUNCTION__); }));
   return *((float *)arr.value);
 }
        
@@ -9364,7 +9587,7 @@ void sock_PushCloseConnMethod(PSocketServer self, Connection conn, size_t index)
   tf_ExecuteAfter(self->timeServer.timeServer, timeFragment, self->timeServer.timeout);
 }
 void sock_SetMaxConnections(PSocketServer self, int32_t maxActiveConnections) {
-  ((void) sizeof ((maxActiveConnections < 1024) ? 1 : 0), __extension__ ({ if (maxActiveConnections < 1024) ; else __assert_fail ("maxActiveConnections < MAX_CONNECTIONS_PER_SERVER", "bin/svv.c", 2887, __extension__ __PRETTY_FUNCTION__); }));
+  ((void) sizeof ((maxActiveConnections < 1024) ? 1 : 0), __extension__ ({ if (maxActiveConnections < 1024) ; else __assert_fail ("maxActiveConnections < MAX_CONNECTIONS_PER_SERVER", "bin/svv.c", 3143, __extension__ __PRETTY_FUNCTION__); }));
   self->maxActiveConnections = maxActiveConnections;
 }
 void sock_Write_Push(PSocketServer self, DataFragment *dt) {
@@ -9788,229 +10011,6 @@ void tf_ExecuteLoop(PTimeServer self, TimeMethod currentMethod, uint64_t afterMS
 void tf_OnFrame(PTimeServer self, uint64_t deltaMS) {
   tf_ExecuteFragMethods(self, deltaMS);
   tf_ExecuteLoopMethods(self, deltaMS);
-}
-PTrieNode trn_Create();
-uint8_t trn_AddValues(PTrieNode self, void* key, uint32_t keySize, void* value, uint32_t valueSize, uint32_t position);
-PTrieHash trh_Create() {
-  PTrieHash self = malloc(sizeof(TrieHash));
-  memset(self, 0, sizeof(TrieHash));
-  self->parentNode = trn_Create();
-  return self;
-}
-void trh_Add(PTrieHash self, void* key, uint32_t keySize, void* value, uint32_t valueSize) {
-  if(!trn_AddValues(self->parentNode, key, keySize, value, valueSize, 0)) {
-    self->count++;
-  }
-}
-PTrieNode trn_Create() {
-  PTrieNode self = malloc(sizeof(TrieNode));
-  memset(self, 0, sizeof(TrieNode));
-  self->nextNodes = malloc(sizeof(PTrieNode) * 16);
-  memset(self->nextNodes, 0, sizeof(PTrieNode) * 16);
-  return self;
-}
-static inline void trh_FreeNode(PTrieNode self) {
-  free(self->nextNodes);
-  free(self);
-}
-void trn_DeleteNodes(PTrieNode self) {
-  for(uint8_t i = 0; i < 16; i++) {
-    if(self->nextNodes[i]) {
-      trn_DeleteNodes(self->nextNodes[i]);
-      self->nextNodes[i] = ((void *)0);
-    }
-  }
-  if(self->buffer) {
-    free(self->buffer);
-  }
-  trh_FreeNode(self);
-}
-uint8_t trn_RemoveNode_t(PTrieNode self, void* key, uint32_t keySize, uint32_t position) {
-  if(position >= (keySize << 1)) {
-    if(self->buffer) {
-      free(self->buffer);
-      self->buffer = ((void *)0);
-      return 1;
-    }
-    return 0;
-  }
-  uint8_t currentValue;
-  if(position & 1) {
-    currentValue = (((uint8_t *)key)[(position >> 1)] & 15);
-  }
-  else {
-    currentValue = (((uint8_t *)key)[(position >> 1)] >> 4);
-  }
-  PTrieNode node = self->nextNodes[currentValue];
-  uint8_t deleted = 0;
-  if(node) {
-    deleted = trn_RemoveNode_t(node, key, keySize, position + 1);
-    node->count--;
-    if(!node->count) {
-      self->nextNodes[currentValue] = ((void *)0);
-      trh_FreeNode(node);
-    }
-  }
-  return deleted;
-}
-void trh_Buffer_AddToIndex(PTrieHash self, uint32_t id, void* buffer, uint32_t bufferSize) {
-  trh_Add(self, &id, sizeof(uint32_t), buffer, bufferSize);
-}
-void trh_Buffer_AddToIndex64(PTrieHash self, uint64_t id, void* buffer, uint32_t bufferSize) {
-  trh_Add(self, &id, sizeof(uint64_t), buffer, bufferSize);
-}
-void* trh_Buffer_GetFromIndex(PTrieHash self, uint32_t id) {
-  return trh_GetBuffer(self, &id, sizeof(uint32_t));
-}
-void* trh_Buffer_GetFromIndex64(PTrieHash self, uint64_t id) {
-  return trh_GetBuffer(self, &id, sizeof(uint64_t));
-}
-void trh_Buffer_RemoveAtIndex(PTrieHash self, uint32_t id) {
-  trh_RemoveNode(self, &id, sizeof(uint32_t));
-}
-void trh_Buffer_RemoveAtIndex64(PTrieHash self, uint64_t id) {
-  trh_RemoveNode(self, &id, sizeof(uint64_t));
-}
-void* trn_GetBuffer_t(PTrieNode self, void* key, uint32_t keySize, uint32_t position) {
-  if(position >= (keySize << 1)) {
-    return self->buffer;
-  }
-  uint8_t currentValue;
-  if(position & 1) {
-    currentValue = (((uint8_t *)key)[(position >> 1)] & 15);
-  }
-  else {
-    currentValue = (((uint8_t *)key)[(position >> 1)] >> 4);
-  }
-  PTrieNode node = self->nextNodes[currentValue];
-  if(node) {
-    return trn_GetBuffer_t(node, key, keySize, position + 1);
-  }
-  return ((void *)0);
-}
-void trh_GetValues_t(PTrieNode self, Array values) {
-  if(!self) {
-    return ;
-  }
-  if(self->buffer) {
-    arr_Push(values, self->buffer);
-  }
-  PTrieNode *nextNodes = self->nextNodes;
-  for(size_t i = 0; i < 16; i++) {
-    if(nextNodes[i]) {
-      trh_GetValues_t(nextNodes[i], values);
-    }
-  }
-}
-Array trh_GetValues(PTrieHash self, size_t valueSize) {
-  Array response = arr_Init(valueSize);
-  trh_GetValues_t(self->parentNode, response);
-  return response;
-}
-void trh_Key_Push(Array currentKey, uint8_t value, size_t position) {
-  if(!(position & 1)) {
-    value <<= 4;
-    arr_Push(currentKey, &value);
-    return ;
-  }
-  uint8_t *last = (uint8_t *)arr_Last(currentKey);
-  if(!last) {
-    return ;
-  }
-  (*last) += value;
-}
-static inline void trh_Key_Pop(Array currentKey, size_t position) {
-  if(!(position & 1)) {
-    arr_Pop(currentKey);
-  }
-  else {
-    uint8_t *last = (uint8_t *)arr_Last(currentKey);
-    if(!last) {
-      return ;
-    }
-    (*last) &= 0xF0;
-  }
-}
-void trh_GetKeys_t(PTrieNode self, Array keys, Array currentKey, size_t position) {
-  if(!self) {
-    return ;
-  }
-  if(self->buffer) {
-    Key key;
-    key.keySize = currentKey->size;
-    key.key = malloc(key.keySize);
-    memcpy(key.key, currentKey->buffer, key.keySize);
-    arr_Push(keys, &key);
-  }
-  PTrieNode *nextNodes = self->nextNodes;
-  for(uint8_t i = 0; i < 16; i++) {
-    if(nextNodes[i]) {
-      trh_Key_Push(currentKey, i, position);
-      trh_GetKeys_t(nextNodes[i], keys, currentKey, position + 1);
-      trh_Key_Pop(currentKey, position);
-    }
-  }
-}
-Array trh_GetKeys(PTrieHash self) {
-  Array response = arr_Init(sizeof(Key));
-  Array currentKey = arr_Init(sizeof(uint8_t));
-  trh_GetKeys_t(self->parentNode, response, currentKey, 0);
-  arr_Delete(currentKey);
-  return response;
-}
-void trh_FreeKeys(Array keys) {
-  Key *buffer = (Key *)keys->buffer;
-  for(size_t i = 0, c = keys->size; i < c; i++) {
-    free(buffer[i].key);
-  }
-  arr_Delete(keys);
-}
-void* trh_GetBuffer(PTrieHash self, void* key, uint32_t keySize) {
-  return trn_GetBuffer_t(self->parentNode, key, keySize, 0);
-}
-void trh_RemoveNode(PTrieHash self, void* key, uint32_t keySize) {
-  if(trn_RemoveNode_t(self->parentNode, key, keySize, 0)) {
-    self->count--;
-  }
-}
-uint8_t trn_AddValues(PTrieNode self, void* key, uint32_t keySize, void* value, uint32_t valueSize, uint32_t position) {
-  if(position >= (keySize << 1)) {
-    void* lastBuffer = self->buffer;
-    self->buffer = malloc(valueSize);
-    memcpy(self->buffer, value, valueSize);
-    if(lastBuffer) {
-      free(lastBuffer);
-      return 0;
-    }
-    return 1;
-  }
-  uint8_t currentValue;
-  if(position & 1) {
-    currentValue = (((uint8_t *)key)[(position >> 1)] & 15);
-  }
-  else {
-    currentValue = (((uint8_t *)key)[(position >> 1)] >> 4);
-  }
-  PTrieNode node = self->nextNodes[currentValue];
-  if(!node) {
-    node = trn_Create();
-    self->nextNodes[currentValue] = node;
-  }
-  node->count++;
-  return trn_AddValues(node, key, keySize, value, valueSize, position + 1);
-}
-void trh_Integer32_Insert(PTrieHash self, uint32_t key, uint32_t value) {
-  trh_Add(self, &key, sizeof(uint32_t), &value, sizeof(uint32_t));
-}
-void* trh_Integer32_Get(PTrieHash self, uint32_t key) {
-  return trh_GetBuffer(self, &key, sizeof(uint32_t));
-}
-void trh_Integer32_RemoveElement(PTrieHash self, uint32_t key) {
-  trh_RemoveNode(self, &key, sizeof(uint32_t));
-}
-void trh_Delete(PTrieHash self) {
-  trn_DeleteNodes(self->parentNode);
-  free(self);
 }
         
 typedef struct SHAstate_st {

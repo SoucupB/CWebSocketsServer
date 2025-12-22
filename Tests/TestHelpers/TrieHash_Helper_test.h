@@ -2,7 +2,7 @@
 #include "Structs.h"
 #include <stddef.h>
 #include <stdint.h>
-#include "TrieHash.h"
+#include "Hsh.h"
 
 size_t *test_Util_CreateBuffer(size_t size);
 size_t test_Util_RandomElement();
