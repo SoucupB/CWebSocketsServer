@@ -2,7 +2,7 @@
 #include "TrieHash.h"
 #include <stdlib.h>
 #include <assert.h>
-#include "Vector.h"
+#include "Array.h"
 #include <string.h>
 #include <stdio.h>
 #include <ctype.h>

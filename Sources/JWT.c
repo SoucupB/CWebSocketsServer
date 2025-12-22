@@ -4,7 +4,7 @@
 #include "TimeFragment.h"
 #include "JsonParser.h"
 #include <string.h>
-#include "Vector.h"
+#include "Array.h"
 #include <unistd.h>
 
 #define MAXIMUM_JWT_SIZE 1024 * 1024 * 10

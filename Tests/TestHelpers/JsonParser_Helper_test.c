@@ -1,7 +1,7 @@
 #include "JsonParser_Helper_test.h"
 #include "JsonParser.h"
 #include <stdlib.h>
-#include "Vector.h"
+#include "Array.h"
 
 HttpString json_Helper_Add(char *buffer) {
   HttpString response = {

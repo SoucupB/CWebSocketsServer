@@ -3,7 +3,7 @@
 #include <string.h>
 #include <stdio.h>
 #include <ctype.h>
-#include "Vector.h"
+#include "Array.h"
 #include "TrieHash.h"
 #include "String.h"
 

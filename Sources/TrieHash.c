@@ -1,6 +1,6 @@
 #include "TrieHash.h"
 #include <string.h>
-#include "Vector.h"
+#include "Array.h"
 #include "TimeFragment.h"
 
 PTrieNode trn_Create();

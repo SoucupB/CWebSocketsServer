@@ -1,6 +1,6 @@
 {
   "files.associations": {
-    "vector.h": "c",
+    "Array.h": "c",
     "cstdint": "c",
     "ostream": "c",
     "locale": "c",

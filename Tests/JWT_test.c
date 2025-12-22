@@ -2,7 +2,7 @@
 #include <stdlib.h>
 #include <setjmp.h>
 #include "cmocka.h"
-#include "Vector.h"
+#include "Array.h"
 #include <stdio.h>
 #include <stdint.h>
 #include <unistd.h>

@@ -1,518 +1,6 @@
        
-typedef long int ptrdiff_t;
 typedef long unsigned int size_t;
 typedef int wchar_t;
-typedef struct {
-  long long __max_align_ll __attribute__((__aligned__(__alignof__(long long))));
-  long double __max_align_ld __attribute__((__aligned__(__alignof__(long double))));
-} max_align_t;
-typedef unsigned char __u_char;
-typedef unsigned short int __u_short;
-typedef unsigned int __u_int;
-typedef unsigned long int __u_long;
-typedef signed char __int8_t;
-typedef unsigned char __uint8_t;
-typedef signed short int __int16_t;
-typedef unsigned short int __uint16_t;
-typedef signed int __int32_t;
-typedef unsigned int __uint32_t;
-typedef signed long int __int64_t;
-typedef unsigned long int __uint64_t;
-typedef __int8_t __int_least8_t;
-typedef __uint8_t __uint_least8_t;
-typedef __int16_t __int_least16_t;
-typedef __uint16_t __uint_least16_t;
-typedef __int32_t __int_least32_t;
-typedef __uint32_t __uint_least32_t;
-typedef __int64_t __int_least64_t;
-typedef __uint64_t __uint_least64_t;
-typedef long int __quad_t;
-typedef unsigned long int __u_quad_t;
-typedef long int __intmax_t;
-typedef unsigned long int __uintmax_t;
-typedef unsigned long int __dev_t;
-typedef unsigned int __uid_t;
-typedef unsigned int __gid_t;
-typedef unsigned long int __ino_t;
-typedef unsigned long int __ino64_t;
-typedef unsigned int __mode_t;
-typedef unsigned long int __nlink_t;
-typedef long int __off_t;
-typedef long int __off64_t;
-typedef int __pid_t;
-typedef struct { int __val[2]; } __fsid_t;
-typedef long int __clock_t;
-typedef unsigned long int __rlim_t;
-typedef unsigned long int __rlim64_t;
-typedef unsigned int __id_t;
-typedef long int __time_t;
-typedef unsigned int __useconds_t;
-typedef long int __suseconds_t;
-typedef long int __suseconds64_t;
-typedef int __daddr_t;
-typedef int __key_t;
-typedef int __clockid_t;
-typedef void * __timer_t;
-typedef long int __blksize_t;
-typedef long int __blkcnt_t;
-typedef long int __blkcnt64_t;
-typedef unsigned long int __fsblkcnt_t;
-typedef unsigned long int __fsblkcnt64_t;
-typedef unsigned long int __fsfilcnt_t;
-typedef unsigned long int __fsfilcnt64_t;
-typedef long int __fsword_t;
-typedef long int __ssize_t;
-typedef long int __syscall_slong_t;
-typedef unsigned long int __syscall_ulong_t;
-typedef __off64_t __loff_t;
-typedef char *__caddr_t;
-typedef long int __intptr_t;
-typedef unsigned int __socklen_t;
-typedef int __sig_atomic_t;
-typedef __int8_t int8_t;
-typedef __int16_t int16_t;
-typedef __int32_t int32_t;
-typedef __int64_t int64_t;
-typedef __uint8_t uint8_t;
-typedef __uint16_t uint16_t;
-typedef __uint32_t uint32_t;
-typedef __uint64_t uint64_t;
-typedef __int_least8_t int_least8_t;
-typedef __int_least16_t int_least16_t;
-typedef __int_least32_t int_least32_t;
-typedef __int_least64_t int_least64_t;
-typedef __uint_least8_t uint_least8_t;
-typedef __uint_least16_t uint_least16_t;
-typedef __uint_least32_t uint_least32_t;
-typedef __uint_least64_t uint_least64_t;
-typedef signed char int_fast8_t;
-typedef long int int_fast16_t;
-typedef long int int_fast32_t;
-typedef long int int_fast64_t;
-typedef unsigned char uint_fast8_t;
-typedef unsigned long int uint_fast16_t;
-typedef unsigned long int uint_fast32_t;
-typedef unsigned long int uint_fast64_t;
-typedef long int intptr_t;
-typedef unsigned long int uintptr_t;
-typedef __intmax_t intmax_t;
-typedef __uintmax_t uintmax_t;
-       
-struct WebSocketServer_t;
-typedef struct WebSocketServer_t WebSocketServer;
-typedef WebSocketServer *PWebSocketServer;
-typedef enum {
-  OPCODE_CONTINUATION_FRAME = 0x0,
-  OPCODE_TEXT_FRAME = 0x1,
-  OPCODE_BINARY = 0x2,
-  OPCODE_CONNECTION_CLOSE = 0x8,
-  OPCODE_PING = 0x9,
-  OPCODE_PONG = 0xA
-} Opcode;
-typedef struct Auth_t {
-  uint8_t bff[8];
-} Auth;
-typedef Auth *PAuth;
-typedef struct EventBuffer_t {
-  char *buffer;
-  uint32_t size;
-} EventBuffer;
-typedef EventBuffer *PEventBuffer;
-typedef struct EventMessage_t {
-  uint8_t isAuthed;
-  uint32_t headerCode;
-  Auth uniqueCode;
-  EventBuffer str;
-} EventMessage;
-typedef struct WebSocketObject_t {
-  char *buffer;
-  size_t sz;
-  uint8_t opcode;
-} WebSocketObject;
-typedef WebSocketObject *PWebSocketObject;
-typedef EventMessage *PEventMessage;
-typedef struct SocketMethod_t {
-  void *method;
-  void *mirrorBuffer;
-} SocketMethod;
-typedef struct Connection_t {
-  int32_t fd;
-} Connection;
-typedef struct DataFragment_t {
-  uint32_t size;
-  uint8_t persistent;
-  Connection conn;
-  char *data;
-} DataFragment;
-typedef SocketMethod *PSocketMethod;
-typedef Connection *PConnection;
-typedef DataFragment *PDataFragment;
-typedef struct EventServer_t {
-  PWebSocketServer wsServer;
-  PSocketMethod onReceive;
-  PSocketMethod onClose;
-} EventServer;
-typedef struct ResponseObject_t {
-  EventMessage metaData;
-  PConnection conn;
-} ResponseObject;
-typedef ResponseObject *PResponseObject;
-typedef EventServer *PEventServer;
-typedef struct PrivateMethodsBundle_t {
-  PSocketMethod _onConnect;
-  PSocketMethod _onReceive;
-  PSocketMethod _onRelease;
-} PrivateMethodsBundle;
-typedef struct TimeMethod_t {
-  void *method;
-  void *buffer;
-} TimeMethod;
-typedef struct TimeFragment_t {
-  TimeMethod methodFragment;
-  int64_t executeAfter;
-  int64_t time;
-} TimeFragment;
-struct Vector_t {
-  void *buffer;
-  size_t size;
-  size_t capacity;
-  size_t objSize;
-};
-typedef struct Vector_t *Vector;
-typedef struct TimeServer_t {
-  Vector methods;
-  Vector loopMethods;
-} TimeServer;
-typedef TimeServer *PTimeServer;
-typedef struct Timeout_t {
-  uint64_t timeout;
-  PTimeServer server;
-} Timeout;
-typedef Timeout *PTimeout;
-typedef struct Timers_t {
-  PTimeServer timeServer;
-  int64_t timeout;
-} Timers;
-typedef struct SocketServer_t {
-  uint16_t port;
-  int32_t maxActiveConnections;
-  int32_t maxBytesPerReadConnection;
-  Connection serverFD;
-  Vector connections;
-  Vector inputReads;
-  Vector outputCommands;
-  Vector closeConnectionsQueue;
-  PSocketMethod onConnectionRelease;
-  PSocketMethod onConnectionAquire;
-  PSocketMethod onReceiveMessage;
-  Timers timeServer;
-} SocketServer;
-typedef SocketServer *PSocketServer;
-typedef struct WebSocketServer_t {
-  PSocketServer socketServer;
-  PSocketMethod onConnect;
-  PSocketMethod onReceiveMessage;
-  PSocketMethod onRelease;
-  PrivateMethodsBundle methodsBundle;
-  Vector pendingConnections;
-  Vector pendingPingRequests;
-  PTimeout timeServer;
-} WebSocketServer;
-typedef WebSocketServer *PWebSocketServer;
-typedef enum {
-  GET,
-  POST,
-  PUT,
-  PATCH,
-  DELETE
-} HttpAction;
-typedef struct HttpString_t {
-  char *buffer;
-  size_t sz;
-} HttpString;
-typedef HttpString *PHttpString;
-typedef struct URL_t {
-  HttpString path;
-  char httpType[16];
-  HttpAction method;
-} URL;
-typedef URL *PURL;
-typedef struct HttpMetaData_t {
-  HttpString codes[10];
-  size_t actionsSz;
-} HttpMetaData;
-typedef HttpMetaData *PHttpMetaData;
-typedef struct TrieNode_t *PTrieNode;
-typedef struct TrieHash_t {
-  uint32_t count;
-  PTrieNode parentNode;
-} TrieHash;
-typedef TrieHash *PTrieHash;
-typedef struct TrieNode_t {
-  uint32_t count;
-  void *buffer;
-  PTrieNode *nextNodes;
-} TrieNode;
-typedef struct Key_t {
-  char *key;
-  uint32_t keySize;
-} Key;
-typedef struct Hash_t {
-  PTrieHash hash;
-  PTrieHash valuesSize;
-} Hash;
-typedef struct HttpRequest_t {
-  Hash headers;
-  PURL url;
-  HttpString body;
-  char *_endBuffer;
-  PHttpMetaData metadata;
-} HttpRequest;
-typedef HttpRequest *PHttpRequest;
-typedef struct HttpResponse_t {
-  char *httpCode;
-  Hash headers;
-  HttpString body;
-  uint16_t response;
-} HttpResponse;
-typedef HttpResponse *PHttpResponse;
-typedef enum {
-  JSON_INVALID,
-  JSON_NULL,
-  JSON_INTEGER,
-  JSON_NUMBER,
-  JSON_STRING,
-  JSON_BOOLEAN,
-  JSON_JSON,
-  JSON_ARRAY
-} JsonType;
-typedef enum {
-  RESPONSE_TIMEOUT,
-  RESPONSE_PARSE_ERROR
-} RequestError;
-typedef struct JsonElement_t {
-  void *value;
-  JsonType type;
-} JsonElement;
-typedef JsonElement *PJsonElement;
-typedef struct JsonObject_t {
-  PTrieHash hsh;
-  uint8_t selfContained;
-} JsonObject;
-typedef JsonObject *PJsonObject;
-typedef struct HttpServer_t {
-  PSocketServer server;
-  PSocketMethod onReceive;
-} HttpServer;
-typedef HttpServer *PHttpServer;
-typedef struct HttpRequestServer_t {
-  Vector requests;
-  int64_t timeoutMS;
-} HttpRequestServer;
-typedef HttpRequestServer *PHttpRequestServer;
-typedef struct RequestStruct_t {
-  uint16_t port;
-  char ip[17];
-  HttpString query;
-  PSocketMethod onSuccess;
-  PSocketMethod onFailure;
-} RequestStruct;
-EventBuffer evm_New_Transform(const PEventMessage self);
-EventBuffer evm_Reuse_Transform(const PEventMessage self, char *buffer);
-EventMessage evm_Parse(EventBuffer buffer, uint8_t *valid);
-uint32_t evm_Out_Public_TotalSize(PEventMessage self);
-
-extern void *memcpy (void *__restrict __dest, const void *__restrict __src,
-       size_t __n) __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__nonnull__ (1, 2)));
-extern void *memmove (void *__dest, const void *__src, size_t __n)
-     __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__nonnull__ (1, 2)));
-extern void *memccpy (void *__restrict __dest, const void *__restrict __src,
-        int __c, size_t __n)
-    __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__nonnull__ (1, 2))) __attribute__ ((__access__ (__write_only__, 1, 4)));
-extern void *memset (void *__s, int __c, size_t __n) __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__nonnull__ (1)));
-extern int memcmp (const void *__s1, const void *__s2, size_t __n)
-     __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__pure__)) __attribute__ ((__nonnull__ (1, 2)));
-extern int __memcmpeq (const void *__s1, const void *__s2, size_t __n)
-     __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__pure__)) __attribute__ ((__nonnull__ (1, 2)));
-extern void *memchr (const void *__s, int __c, size_t __n)
-      __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__pure__)) __attribute__ ((__nonnull__ (1)));
-extern char *strcpy (char *__restrict __dest, const char *__restrict __src)
-     __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__nonnull__ (1, 2)));
-extern char *strncpy (char *__restrict __dest,
-        const char *__restrict __src, size_t __n)
-     __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__nonnull__ (1, 2)));
-extern char *strcat (char *__restrict __dest, const char *__restrict __src)
-     __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__nonnull__ (1, 2)));
-extern char *strncat (char *__restrict __dest, const char *__restrict __src,
-        size_t __n) __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__nonnull__ (1, 2)));
-extern int strcmp (const char *__s1, const char *__s2)
-     __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__pure__)) __attribute__ ((__nonnull__ (1, 2)));
-extern int strncmp (const char *__s1, const char *__s2, size_t __n)
-     __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__pure__)) __attribute__ ((__nonnull__ (1, 2)));
-extern int strcoll (const char *__s1, const char *__s2)
-     __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__pure__)) __attribute__ ((__nonnull__ (1, 2)));
-extern size_t strxfrm (char *__restrict __dest,
-         const char *__restrict __src, size_t __n)
-    __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__nonnull__ (2))) __attribute__ ((__access__ (__write_only__, 1, 3)));
-struct __locale_struct
-{
-  struct __locale_data *__locales[13];
-  const unsigned short int *__ctype_b;
-  const int *__ctype_tolower;
-  const int *__ctype_toupper;
-  const char *__names[13];
-};
-typedef struct __locale_struct *__locale_t;
-typedef __locale_t locale_t;
-extern int strcoll_l (const char *__s1, const char *__s2, locale_t __l)
-     __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__pure__)) __attribute__ ((__nonnull__ (1, 2, 3)));
-extern size_t strxfrm_l (char *__dest, const char *__src, size_t __n,
-    locale_t __l) __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__nonnull__ (2, 4)))
-     __attribute__ ((__access__ (__write_only__, 1, 3)));
-extern char *strdup (const char *__s)
-     __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__malloc__)) __attribute__ ((__nonnull__ (1)));
-extern char *strndup (const char *__string, size_t __n)
-     __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__malloc__)) __attribute__ ((__nonnull__ (1)));
-extern char *strchr (const char *__s, int __c)
-     __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__pure__)) __attribute__ ((__nonnull__ (1)));
-extern char *strrchr (const char *__s, int __c)
-     __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__pure__)) __attribute__ ((__nonnull__ (1)));
-extern size_t strcspn (const char *__s, const char *__reject)
-     __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__pure__)) __attribute__ ((__nonnull__ (1, 2)));
-extern size_t strspn (const char *__s, const char *__accept)
-     __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__pure__)) __attribute__ ((__nonnull__ (1, 2)));
-extern char *strpbrk (const char *__s, const char *__accept)
-     __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__pure__)) __attribute__ ((__nonnull__ (1, 2)));
-extern char *strstr (const char *__haystack, const char *__needle)
-     __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__pure__)) __attribute__ ((__nonnull__ (1, 2)));
-extern char *strtok (char *__restrict __s, const char *__restrict __delim)
-     __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__nonnull__ (2)));
-extern char *__strtok_r (char *__restrict __s,
-    const char *__restrict __delim,
-    char **__restrict __save_ptr)
-     __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__nonnull__ (2, 3)));
-extern char *strtok_r (char *__restrict __s, const char *__restrict __delim,
-         char **__restrict __save_ptr)
-     __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__nonnull__ (2, 3)));
-extern size_t strlen (const char *__s)
-     __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__pure__)) __attribute__ ((__nonnull__ (1)));
-extern size_t strnlen (const char *__string, size_t __maxlen)
-     __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__pure__)) __attribute__ ((__nonnull__ (1)));
-extern char *strerror (int __errnum) __attribute__ ((__nothrow__ , __leaf__));
-extern int strerror_r (int __errnum, char *__buf, size_t __buflen) __asm__ ("" "__xpg_strerror_r") __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__nonnull__ (2)))
-    __attribute__ ((__access__ (__write_only__, 2, 3)));
-extern char *strerror_l (int __errnum, locale_t __l) __attribute__ ((__nothrow__ , __leaf__));
-
-extern int bcmp (const void *__s1, const void *__s2, size_t __n)
-     __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__pure__)) __attribute__ ((__nonnull__ (1, 2)));
-extern void bcopy (const void *__src, void *__dest, size_t __n)
-  __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__nonnull__ (1, 2)));
-extern void bzero (void *__s, size_t __n) __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__nonnull__ (1)));
-extern char *index (const char *__s, int __c)
-     __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__pure__)) __attribute__ ((__nonnull__ (1)));
-extern char *rindex (const char *__s, int __c)
-     __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__pure__)) __attribute__ ((__nonnull__ (1)));
-extern int ffs (int __i) __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__const__));
-extern int ffsl (long int __l) __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__const__));
-__extension__ extern int ffsll (long long int __ll)
-     __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__const__));
-extern int strcasecmp (const char *__s1, const char *__s2)
-     __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__pure__)) __attribute__ ((__nonnull__ (1, 2)));
-extern int strncasecmp (const char *__s1, const char *__s2, size_t __n)
-     __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__pure__)) __attribute__ ((__nonnull__ (1, 2)));
-extern int strcasecmp_l (const char *__s1, const char *__s2, locale_t __loc)
-     __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__pure__)) __attribute__ ((__nonnull__ (1, 2, 3)));
-extern int strncasecmp_l (const char *__s1, const char *__s2,
-     size_t __n, locale_t __loc)
-     __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__pure__)) __attribute__ ((__nonnull__ (1, 2, 4)));
-
-extern __inline __attribute__ ((__always_inline__)) __attribute__ ((__gnu_inline__)) __attribute__ ((__artificial__)) void
-__attribute__ ((__nothrow__ , __leaf__)) bcopy (const void *__src, void *__dest, size_t __len)
-{
-  (void) __builtin___memmove_chk (__dest, __src, __len,
-      __builtin_object_size (__dest, 0));
-}
-extern __inline __attribute__ ((__always_inline__)) __attribute__ ((__gnu_inline__)) __attribute__ ((__artificial__)) void
-__attribute__ ((__nothrow__ , __leaf__)) bzero (void *__dest, size_t __len)
-{
-  (void) __builtin___memset_chk (__dest, '\0', __len,
-     __builtin_object_size (__dest, 0));
-}
-extern void explicit_bzero (void *__s, size_t __n) __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__nonnull__ (1)))
-    __attribute__ ((__access__ (__write_only__, 1, 2)));
-extern char *strsep (char **__restrict __stringp,
-       const char *__restrict __delim)
-     __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__nonnull__ (1, 2)));
-extern char *strsignal (int __sig) __attribute__ ((__nothrow__ , __leaf__));
-extern char *__stpcpy (char *__restrict __dest, const char *__restrict __src)
-     __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__nonnull__ (1, 2)));
-extern char *stpcpy (char *__restrict __dest, const char *__restrict __src)
-     __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__nonnull__ (1, 2)));
-extern char *__stpncpy (char *__restrict __dest,
-   const char *__restrict __src, size_t __n)
-     __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__nonnull__ (1, 2)));
-extern char *stpncpy (char *__restrict __dest,
-        const char *__restrict __src, size_t __n)
-     __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__nonnull__ (1, 2)));
-extern __inline __attribute__ ((__always_inline__)) __attribute__ ((__gnu_inline__)) __attribute__ ((__artificial__)) void *
-__attribute__ ((__nothrow__ , __leaf__)) memcpy (void *__restrict __dest, const void *__restrict __src, size_t __len)
-{
-  return __builtin___memcpy_chk (__dest, __src, __len,
-     __builtin_object_size (__dest, 0));
-}
-extern __inline __attribute__ ((__always_inline__)) __attribute__ ((__gnu_inline__)) __attribute__ ((__artificial__)) void *
-__attribute__ ((__nothrow__ , __leaf__)) memmove (void *__dest, const void *__src, size_t __len)
-{
-  return __builtin___memmove_chk (__dest, __src, __len,
-      __builtin_object_size (__dest, 0));
-}
-extern __inline __attribute__ ((__always_inline__)) __attribute__ ((__gnu_inline__)) __attribute__ ((__artificial__)) void *
-__attribute__ ((__nothrow__ , __leaf__)) memset (void *__dest, int __ch, size_t __len)
-{
-  return __builtin___memset_chk (__dest, __ch, __len,
-     __builtin_object_size (__dest, 0));
-}
-void __explicit_bzero_chk (void *__dest, size_t __len, size_t __destlen)
-  __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__nonnull__ (1))) __attribute__ ((__access__ (__write_only__, 1, 2)));
-extern __inline __attribute__ ((__always_inline__)) __attribute__ ((__gnu_inline__)) __attribute__ ((__artificial__)) void
-__attribute__ ((__nothrow__ , __leaf__)) explicit_bzero (void *__dest, size_t __len)
-{
-  __explicit_bzero_chk (__dest, __len, __builtin_object_size (__dest, 0));
-}
-extern __inline __attribute__ ((__always_inline__)) __attribute__ ((__gnu_inline__)) __attribute__ ((__artificial__)) char *
-__attribute__ ((__nothrow__ , __leaf__)) strcpy (char *__restrict __dest, const char *__restrict __src)
-{
-  return __builtin___strcpy_chk (__dest, __src, __builtin_object_size (__dest, 2 > 1));
-}
-extern __inline __attribute__ ((__always_inline__)) __attribute__ ((__gnu_inline__)) __attribute__ ((__artificial__)) char *
-__attribute__ ((__nothrow__ , __leaf__)) stpcpy (char *__restrict __dest, const char *__restrict __src)
-{
-  return __builtin___stpcpy_chk (__dest, __src, __builtin_object_size (__dest, 2 > 1));
-}
-extern __inline __attribute__ ((__always_inline__)) __attribute__ ((__gnu_inline__)) __attribute__ ((__artificial__)) char *
-__attribute__ ((__nothrow__ , __leaf__)) strncpy (char *__restrict __dest, const char *__restrict __src, size_t __len)
-{
-  return __builtin___strncpy_chk (__dest, __src, __len,
-      __builtin_object_size (__dest, 2 > 1));
-}
-extern __inline __attribute__ ((__always_inline__)) __attribute__ ((__gnu_inline__)) __attribute__ ((__artificial__)) char *
-__attribute__ ((__nothrow__ , __leaf__)) stpncpy (char *__dest, const char *__src, size_t __n)
-{
-  return __builtin___stpncpy_chk (__dest, __src, __n,
-      __builtin_object_size (__dest, 2 > 1));
-}
-extern __inline __attribute__ ((__always_inline__)) __attribute__ ((__gnu_inline__)) __attribute__ ((__artificial__)) char *
-__attribute__ ((__nothrow__ , __leaf__)) strcat (char *__restrict __dest, const char *__restrict __src)
-{
-  return __builtin___strcat_chk (__dest, __src, __builtin_object_size (__dest, 2 > 1));
-}
-extern __inline __attribute__ ((__always_inline__)) __attribute__ ((__gnu_inline__)) __attribute__ ((__artificial__)) char *
-__attribute__ ((__nothrow__ , __leaf__)) strncat (char *__restrict __dest, const char *__restrict __src, size_t __len)
-{
-  return __builtin___strncat_chk (__dest, __src, __len,
-      __builtin_object_size (__dest, 2 > 1));
-}
-
 
 typedef struct
   {
@@ -587,6 +75,69 @@ extern char *l64a (long int __n) __attribute__ ((__nothrow__ , __leaf__)) __attr
 extern long int a64l (const char *__s)
      __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__pure__)) __attribute__ ((__nonnull__ (1))) __attribute__ ((__warn_unused_result__));
 
+typedef unsigned char __u_char;
+typedef unsigned short int __u_short;
+typedef unsigned int __u_int;
+typedef unsigned long int __u_long;
+typedef signed char __int8_t;
+typedef unsigned char __uint8_t;
+typedef signed short int __int16_t;
+typedef unsigned short int __uint16_t;
+typedef signed int __int32_t;
+typedef unsigned int __uint32_t;
+typedef signed long int __int64_t;
+typedef unsigned long int __uint64_t;
+typedef __int8_t __int_least8_t;
+typedef __uint8_t __uint_least8_t;
+typedef __int16_t __int_least16_t;
+typedef __uint16_t __uint_least16_t;
+typedef __int32_t __int_least32_t;
+typedef __uint32_t __uint_least32_t;
+typedef __int64_t __int_least64_t;
+typedef __uint64_t __uint_least64_t;
+typedef long int __quad_t;
+typedef unsigned long int __u_quad_t;
+typedef long int __intmax_t;
+typedef unsigned long int __uintmax_t;
+typedef unsigned long int __dev_t;
+typedef unsigned int __uid_t;
+typedef unsigned int __gid_t;
+typedef unsigned long int __ino_t;
+typedef unsigned long int __ino64_t;
+typedef unsigned int __mode_t;
+typedef unsigned long int __nlink_t;
+typedef long int __off_t;
+typedef long int __off64_t;
+typedef int __pid_t;
+typedef struct { int __val[2]; } __fsid_t;
+typedef long int __clock_t;
+typedef unsigned long int __rlim_t;
+typedef unsigned long int __rlim64_t;
+typedef unsigned int __id_t;
+typedef long int __time_t;
+typedef unsigned int __useconds_t;
+typedef long int __suseconds_t;
+typedef long int __suseconds64_t;
+typedef int __daddr_t;
+typedef int __key_t;
+typedef int __clockid_t;
+typedef void * __timer_t;
+typedef long int __blksize_t;
+typedef long int __blkcnt_t;
+typedef long int __blkcnt64_t;
+typedef unsigned long int __fsblkcnt_t;
+typedef unsigned long int __fsblkcnt64_t;
+typedef unsigned long int __fsfilcnt_t;
+typedef unsigned long int __fsfilcnt64_t;
+typedef long int __fsword_t;
+typedef long int __ssize_t;
+typedef long int __syscall_slong_t;
+typedef unsigned long int __syscall_ulong_t;
+typedef __off64_t __loff_t;
+typedef char *__caddr_t;
+typedef long int __intptr_t;
+typedef unsigned int __socklen_t;
+typedef int __sig_atomic_t;
 typedef __u_char u_char;
 typedef __u_short u_short;
 typedef __u_int u_int;
@@ -615,6 +166,10 @@ typedef __timer_t timer_t;
 typedef unsigned long int ulong;
 typedef unsigned short int ushort;
 typedef unsigned int uint;
+typedef __int8_t int8_t;
+typedef __int16_t int16_t;
+typedef __int32_t int32_t;
+typedef __int64_t int64_t;
 typedef __uint8_t u_int8_t;
 typedef __uint16_t u_int16_t;
 typedef __uint32_t u_int32_t;
@@ -1084,256 +639,459 @@ __attribute__ ((__nothrow__ , __leaf__)) wcstombs (char *__restrict __dst, const
   return ((((__typeof (__len)) 0 < (__typeof (__len)) -1 || (__builtin_constant_p (__len) && (__len) > 0)) && __builtin_constant_p ((((long unsigned int) (__len)) <= (__builtin_object_size (__dst, 2 > 1)) / (sizeof (char)))) && (((long unsigned int) (__len)) <= (__builtin_object_size (__dst, 2 > 1)) / (sizeof (char)))) ? __wcstombs_alias (__dst, __src, __len) : ((((__typeof (__len)) 0 < (__typeof (__len)) -1 || (__builtin_constant_p (__len) && (__len) > 0)) && __builtin_constant_p ((((long unsigned int) (__len)) <= (__builtin_object_size (__dst, 2 > 1)) / (sizeof (char)))) && !(((long unsigned int) (__len)) <= (__builtin_object_size (__dst, 2 > 1)) / (sizeof (char)))) ? __wcstombs_chk_warn (__dst, __src, __len, __builtin_object_size (__dst, 2 > 1)) : __wcstombs_chk (__dst, __src, __len, __builtin_object_size (__dst, 2 > 1))));
 }
 
-static inline uint8_t evm_Out_IsAuthed(const PEventMessage self) {
-  return self->isAuthed;
-}
-static inline char *evm_Out_PayloadSizePointer(const PEventMessage self, char *buffer) {
-  return buffer;
-}
-static inline char *evm_Out_HeaderPointer(const PEventMessage self, char *buffer) {
-  return buffer + sizeof(self->str.size);
-}
-static inline char *evm_Out_HeaderAuthPointer(const PEventMessage self, char *buffer) {
-  if(!evm_Out_IsAuthed(self)) {
-    return ((void *)0);
-  }
-  return evm_Out_HeaderPointer(self, buffer) + sizeof(self->headerCode);
-}
-static inline char *evm_Out_PayloadPointer(const PEventMessage self, char *buffer) {
-  if(!evm_Out_IsAuthed(self)) {
-    return evm_Out_HeaderPointer(self, buffer) + sizeof(self->headerCode);
-  }
-  return evm_Out_HeaderPointer(self, buffer) + sizeof(self->headerCode) + sizeof(Auth);
-}
-static inline char *evm_In_SizePointer(char *buffer) {
-  return buffer;
-}
-static inline char *evm_In_HeaderPointer(char *buffer) {
-  return evm_In_SizePointer(buffer) + sizeof(uint32_t);
-}
-static inline uint32_t evm_In_Size(char *buffer) {
-  return *(uint32_t *)evm_In_SizePointer(buffer);
-}
-static inline uint32_t evm_In_Header(char *buffer) {
-  return *(uint32_t *)evm_In_HeaderPointer(buffer);
-}
-static inline uint32_t evm_In_HeaderCode(char *buffer) {
-  return (evm_In_Header(buffer) & 0xFFFFFF);
-}
-static inline uint8_t evm_In_HeaderIsAuth(char *buffer) {
-  return (evm_In_Header(buffer) & (1<<24)) != 0;
-}
-static inline char *evm_In_AuthPointer(char *buffer) {
-  if(!evm_In_HeaderIsAuth(buffer)) {
-    return ((void *)0);
-  }
-  return evm_In_HeaderPointer(buffer) + sizeof(uint32_t);
-}
-static inline char *evm_In_PayloadPointer(char *buffer) {
-  return evm_In_HeaderPointer(buffer) + ((size_t)evm_In_AuthPointer(buffer) != 0) * sizeof(Auth) + sizeof(uint32_t);
-}
-static inline char *evm_In_EndPointer(char *buffer) {
-  return evm_In_PayloadPointer(buffer) + evm_In_Size(buffer);
-}
-static inline uint32_t evm_Out_TotalSize(const PEventMessage self) {
-  return self->str.size + sizeof(self->headerCode) + sizeof(self->str.size) + sizeof(Auth) * evm_Out_IsAuthed(self);
-}
-uint32_t evm_Out_Public_TotalSize(PEventMessage self) {
-  return evm_Out_TotalSize(self);
-}
-EventBuffer evm_Reuse_Transform(const PEventMessage self, char *buffer) {
-  uint32_t totalSize = evm_Out_TotalSize(self);
-  memcpy(evm_Out_PayloadSizePointer(self, buffer), &self->str.size, sizeof(self->str.size));
-  uint32_t mergedHeaders = (self->headerCode | ((1<<24) * self->isAuthed));
-  memcpy(evm_Out_HeaderPointer(self, buffer), &mergedHeaders, sizeof(mergedHeaders));
-  char *headerPointer = evm_Out_HeaderAuthPointer(self, buffer);
-  if(headerPointer) {
-    memcpy(headerPointer, self->uniqueCode.bff, sizeof(self->uniqueCode));
-  }
-  if(self->str.buffer) {
-    memcpy(evm_Out_PayloadPointer(self, buffer), self->str.buffer, self->str.size);
-  }
-  return (EventBuffer) {
-    .buffer = buffer,
-    .size = totalSize
-  };
-}
-EventBuffer evm_New_Transform(const PEventMessage self) {
-  uint32_t totalSize = evm_Out_TotalSize(self);
-  char *buffer = malloc(totalSize);
-  return evm_Reuse_Transform(self, buffer);
-}
-EventMessage evm_Parse(EventBuffer inp, uint8_t *valid) {
-  *valid = 0;
-  if(inp.size < 8) {
-    return (EventMessage) {};
-  }
-  char *endBuffer = evm_In_EndPointer(inp.buffer);
-  if(endBuffer != inp.size + inp.buffer) {
-    return (EventMessage) {};
-  }
-  EventMessage response = (EventMessage) {
-    .isAuthed = evm_In_HeaderIsAuth(inp.buffer),
-    .headerCode = evm_In_HeaderCode(inp.buffer),
-    .str = (EventBuffer) {
-      .buffer = evm_In_PayloadPointer(inp.buffer),
-      .size = evm_In_Size(inp.buffer)
-    }
-  };
-  char *authCode = evm_In_AuthPointer(inp.buffer);
-  if(authCode) {
-    memcpy(response.uniqueCode.bff, authCode, sizeof(Auth));
-  }
-  *valid = 1;
-  return response;
-}
+typedef __uint8_t uint8_t;
+typedef __uint16_t uint16_t;
+typedef __uint32_t uint32_t;
+typedef __uint64_t uint64_t;
+typedef __int_least8_t int_least8_t;
+typedef __int_least16_t int_least16_t;
+typedef __int_least32_t int_least32_t;
+typedef __int_least64_t int_least64_t;
+typedef __uint_least8_t uint_least8_t;
+typedef __uint_least16_t uint_least16_t;
+typedef __uint_least32_t uint_least32_t;
+typedef __uint_least64_t uint_least64_t;
+typedef signed char int_fast8_t;
+typedef long int int_fast16_t;
+typedef long int int_fast32_t;
+typedef long int int_fast64_t;
+typedef unsigned char uint_fast8_t;
+typedef unsigned long int uint_fast16_t;
+typedef unsigned long int uint_fast32_t;
+typedef unsigned long int uint_fast64_t;
+typedef long int intptr_t;
+typedef unsigned long int uintptr_t;
+typedef __intmax_t intmax_t;
+typedef __uintmax_t uintmax_t;
        
-PEventServer evs_Create(uint16_t port);
-void evs_Delete(PEventServer self);
-void evs_OnFrame(PEventServer self, uint64_t deltaMS);
-void evs_PushMessage(PEventServer self, PResponseObject msg);
-void evs_EnablePingPongTimeout(PEventServer self, uint64_t timeout);
-       
-PWebSocketServer wss_Create(uint16_t port);
-size_t wss_ConnectionsCount(PWebSocketServer self);
-void wss_OnFrame(PWebSocketServer self, uint64_t deltaMS);
-void wss_EnablePingPongTimeout(PWebSocketServer self, uint64_t timeout);
-void wss_Delete(PWebSocketServer self);
-void wss_SendMessage(PWebSocketServer self, PDataFragment dt);
-       
-PSocketServer sock_Create(uint16_t port);
-void sock_Delete(PSocketServer self);
-void sock_OnFrame(PSocketServer self, uint64_t deltaMS);
-void sock_Write_Push(PSocketServer self, DataFragment *dt);
-size_t sock_ConnectionCount(PSocketServer self);
-void sock_SetMaxConnections(PSocketServer self, int32_t maxActiveConnections);
-void sock_PushCloseConnections(PSocketServer self, PConnection conn);
-void sock_CloseConnection(PSocketServer self, size_t index);
-PSocketMethod sock_Method_Create(void *method, void *mirrorBuffer);
-void sock_Method_Delete(PSocketMethod self);
-static inline void evs_ProcessClosingConn(PEventServer self, PConnection conn) {
-  if(self->onClose) {
-    void (*method)(PConnection, void *) = self->onClose->method;
-    method(conn, self->onClose->mirrorBuffer);
-  }
-}
-static inline void evs_PushEventBuffer(PEventServer self, PEventBuffer bff, PConnection conn) {
-  DataFragment nextFrag = {
-    .conn = *conn,
-    .data = bff->buffer,
-    .size = bff->size
-  };
-  wss_SendMessage(self->wsServer, &nextFrag);
-}
-void evs_EnablePingPongTimeout(PEventServer self, uint64_t timeout) {
-  wss_EnablePingPongTimeout(self->wsServer, timeout);
-}
-void evs_PushMessage(PEventServer self, PResponseObject msg) {
-  uint32_t msgSize = evm_Out_Public_TotalSize(&msg->metaData);
-  if(msgSize < (1<<12)) {
-    char buffer[(1<<12)];
-    EventBuffer response = evm_Reuse_Transform(&msg->metaData, buffer);
-    evs_PushEventBuffer(self, &response, msg->conn);
-    return ;
-  }
-  char *buffer = malloc(msgSize);
-  EventBuffer response = evm_Reuse_Transform(&msg->metaData, buffer);
-  evs_PushEventBuffer(self, &response, msg->conn);
-  free(buffer);
-}
-void _evs_OnClose(Connection conn, void *buffer) {
-  evs_ProcessClosingConn(buffer, &conn);
-}
-void _evs_OnReceive(PDataFragment frag, void *buffer) {
-  PEventServer self = buffer;
-  uint8_t valid;
-  EventMessage currentMessage = evm_Parse((EventBuffer) {
-    .buffer = frag->data,
-    .size = frag->size
-  }, &valid);
-  if(!valid) {
-    evs_ProcessClosingConn(self, &frag->conn);
-    sock_PushCloseConnections(self->wsServer->socketServer, &frag->conn);
-    return ;
-  }
-  if(self->onReceive) {
-    void (*method)(PResponseObject, void *) = self->onReceive->method;
-    ResponseObject rsp = (ResponseObject) {
-      .conn = &frag->conn,
-      .metaData = currentMessage
-    };
-    method(&rsp, self->onReceive->mirrorBuffer);
-  }
-}
-static inline void evs_RegisterMethods(PEventServer self) {
-  PSocketMethod _onReceive = sock_Method_Create(
-    _evs_OnReceive,
-    self
-  );
-  self->wsServer->onReceiveMessage = _onReceive;
-  PSocketMethod _onClose = sock_Method_Create(
-    _evs_OnClose,
-    self
-  );
-  self->wsServer->onRelease = _onClose;
-}
-PEventServer evs_Create(uint16_t port) {
-  PEventServer self = malloc(sizeof(EventServer));
-  memset(self, 0, sizeof(EventServer));
-  self->wsServer = wss_Create(port);
-  evs_RegisterMethods(self);
-  return self;
-}
-void evs_FreeMethods(PEventServer self) {
-  sock_Method_Delete(self->wsServer->onReceiveMessage);
-  sock_Method_Delete(self->wsServer->onRelease);
-}
-void evs_OnFrame(PEventServer self, uint64_t deltaMS) {
-  wss_OnFrame(self->wsServer, deltaMS);
-}
-void evs_Delete(PEventServer self) {
-  evs_FreeMethods(self);
-  wss_Delete(self->wsServer);
-  free(self);
-}
-       
-typedef struct MemoryFragment_t {
-  size_t *flag;
-  struct MemoryFragment_t **self;
-  void *buffer;
-} MemoryFragment;
-typedef MemoryFragment *PMemoryFragment;
-typedef struct FreeStackTracker_t {
-  void *stack;
+typedef long int ptrdiff_t;
+typedef struct {
+  long long __max_align_ll __attribute__((__aligned__(__alignof__(long long))));
+  long double __max_align_ld __attribute__((__aligned__(__alignof__(long double))));
+} max_align_t;
+struct WebSocketServer_t;
+typedef struct WebSocketServer_t WebSocketServer;
+typedef WebSocketServer *PWebSocketServer;
+typedef enum {
+  OPCODE_CONTINUATION_FRAME = 0x0,
+  OPCODE_TEXT_FRAME = 0x1,
+  OPCODE_BINARY = 0x2,
+  OPCODE_CONNECTION_CLOSE = 0x8,
+  OPCODE_PING = 0x9,
+  OPCODE_PONG = 0xA
+} Opcode;
+typedef struct Auth_t {
+  uint8_t bff[8];
+} Auth;
+typedef Auth *PAuth;
+typedef struct EventBuffer_t {
+  char *buffer;
+  uint32_t size;
+} EventBuffer;
+typedef EventBuffer *PEventBuffer;
+typedef struct EventMessage_t {
+  uint8_t isAuthed;
+  uint32_t headerCode;
+  Auth uniqueCode;
+  EventBuffer str;
+} EventMessage;
+typedef struct WebSocketObject_t {
+  char *buffer;
   size_t sz;
-} FreeStackTracker;
-typedef FreeStackTracker *PFreeStackTracker;
-typedef struct FixedMemoryPool_t {
-  MemoryFragment *bufferFragments;
-  void *memory;
-  void *_endBuffer;
-  FreeStackTracker freeStack;
-  size_t count;
-  size_t objSize;
+  uint8_t opcode;
+} WebSocketObject;
+typedef WebSocketObject *PWebSocketObject;
+typedef EventMessage *PEventMessage;
+typedef struct SocketMethod_t {
+  void *method;
+  void *mirrorBuffer;
+} SocketMethod;
+typedef struct Connection_t {
+  int32_t fd;
+} Connection;
+typedef struct DataFragment_t {
+  uint32_t size;
+  uint8_t persistent;
+  Connection conn;
+  char *data;
+} DataFragment;
+typedef SocketMethod *PSocketMethod;
+typedef Connection *PConnection;
+typedef DataFragment *PDataFragment;
+typedef struct EventServer_t {
+  PWebSocketServer wsServer;
+  PSocketMethod onReceive;
+  PSocketMethod onClose;
+} EventServer;
+typedef struct ResponseObject_t {
+  EventMessage metaData;
+  PConnection conn;
+} ResponseObject;
+typedef ResponseObject *PResponseObject;
+typedef EventServer *PEventServer;
+typedef struct PrivateMethodsBundle_t {
+  PSocketMethod _onConnect;
+  PSocketMethod _onReceive;
+  PSocketMethod _onRelease;
+} PrivateMethodsBundle;
+typedef struct TimeMethod_t {
+  void *method;
+  void *buffer;
+} TimeMethod;
+typedef struct TimeFragment_t {
+  TimeMethod methodFragment;
+  int64_t executeAfter;
+  int64_t time;
+} TimeFragment;
+struct Vector_t {
+  void *buffer;
+  size_t size;
   size_t capacity;
-  struct FixedMemoryPool_t *next;
-} FixedMemoryPool;
-typedef FixedMemoryPool *PFixedMemoryPool;
-PFixedMemoryPool fmp_InitWithCapacity(size_t objSize, size_t capacity);
-PFixedMemoryPool fmp_Init(size_t objSize);
-void *fmp_Alloc(PFixedMemoryPool self);
-void fmp_Free(PFixedMemoryPool self, void *buffer);
-void fmp_PrintMemory(PFixedMemoryPool self);
-void fmp_Delete(PFixedMemoryPool self);
+  size_t objSize;
+};
+typedef struct Vector_t *Vector;
+typedef struct TimeServer_t {
+  Vector methods;
+  Vector loopMethods;
+} TimeServer;
+typedef TimeServer *PTimeServer;
+typedef struct Timeout_t {
+  uint64_t timeout;
+  PTimeServer server;
+} Timeout;
+typedef Timeout *PTimeout;
+typedef struct Timers_t {
+  PTimeServer timeServer;
+  int64_t timeout;
+} Timers;
+typedef struct SocketServer_t {
+  uint16_t port;
+  int32_t maxActiveConnections;
+  int32_t maxBytesPerReadConnection;
+  Connection serverFD;
+  Vector connections;
+  Vector inputReads;
+  Vector outputCommands;
+  Vector closeConnectionsQueue;
+  PSocketMethod onConnectionRelease;
+  PSocketMethod onConnectionAquire;
+  PSocketMethod onReceiveMessage;
+  Timers timeServer;
+} SocketServer;
+typedef SocketServer *PSocketServer;
+typedef struct WebSocketServer_t {
+  PSocketServer socketServer;
+  PSocketMethod onConnect;
+  PSocketMethod onReceiveMessage;
+  PSocketMethod onRelease;
+  PrivateMethodsBundle methodsBundle;
+  Vector pendingConnections;
+  Vector pendingPingRequests;
+  PTimeout timeServer;
+} WebSocketServer;
+typedef WebSocketServer *PWebSocketServer;
+typedef enum {
+  GET,
+  POST,
+  PUT,
+  PATCH,
+  DELETE
+} HttpAction;
+typedef struct HttpString_t {
+  char *buffer;
+  size_t sz;
+} HttpString;
+typedef HttpString *PHttpString;
+typedef struct URL_t {
+  HttpString path;
+  char httpType[16];
+  HttpAction method;
+} URL;
+typedef URL *PURL;
+typedef struct HttpMetaData_t {
+  HttpString codes[10];
+  size_t actionsSz;
+} HttpMetaData;
+typedef HttpMetaData *PHttpMetaData;
+typedef struct TrieNode_t *PTrieNode;
+typedef struct TrieHash_t {
+  uint32_t count;
+  PTrieNode parentNode;
+} TrieHash;
+typedef TrieHash *PTrieHash;
+typedef struct TrieNode_t {
+  uint32_t count;
+  void *buffer;
+  PTrieNode *nextNodes;
+} TrieNode;
+typedef struct Key_t {
+  char *key;
+  uint32_t keySize;
+} Key;
+typedef struct Hash_t {
+  PTrieHash hash;
+  PTrieHash valuesSize;
+} Hash;
+typedef struct HttpRequest_t {
+  Hash headers;
+  PURL url;
+  HttpString body;
+  char *_endBuffer;
+  PHttpMetaData metadata;
+} HttpRequest;
+typedef HttpRequest *PHttpRequest;
+typedef struct HttpResponse_t {
+  char *httpCode;
+  Hash headers;
+  HttpString body;
+  uint16_t response;
+} HttpResponse;
+typedef HttpResponse *PHttpResponse;
+typedef enum {
+  JSON_INVALID,
+  JSON_NULL,
+  JSON_INTEGER,
+  JSON_NUMBER,
+  JSON_STRING,
+  JSON_BOOLEAN,
+  JSON_JSON,
+  JSON_ARRAY
+} JsonType;
+typedef enum {
+  RESPONSE_TIMEOUT,
+  RESPONSE_PARSE_ERROR
+} RequestError;
+typedef struct JsonElement_t {
+  void *value;
+  JsonType type;
+} JsonElement;
+typedef JsonElement *PJsonElement;
+typedef struct JsonObject_t {
+  PTrieHash hsh;
+  uint8_t selfContained;
+} JsonObject;
+typedef JsonObject *PJsonObject;
+typedef struct HttpServer_t {
+  PSocketServer server;
+  PSocketMethod onReceive;
+} HttpServer;
+typedef HttpServer *PHttpServer;
+typedef struct HttpRequestServer_t {
+  Vector requests;
+  int64_t timeoutMS;
+} HttpRequestServer;
+typedef HttpRequestServer *PHttpRequestServer;
+typedef struct RequestStruct_t {
+  uint16_t port;
+  char ip[17];
+  HttpString query;
+  PSocketMethod onSuccess;
+  PSocketMethod onFailure;
+} RequestStruct;
+Vector vct_Init(size_t size);
+Vector vct_InitWithCapacity(size_t size, size_t count);
+void vct_Push(Vector self, void *buffer);
+void vct_Delete(Vector self);
+void vct_DeleteWOBuffer(Vector self);
+void vct_Clear(Vector self);
+void vct_RemoveElement(Vector payload, size_t index);
+Vector vct_RemoveElements(Vector payload, Vector indexes);
+int64_t vct_Find(Vector payload, void *element);
+Vector vct_InitWithSize(size_t objSize, size_t count);
+char *vct_Last(Vector self);
+void vct_Pop(Vector self);
+void vct_RemoveElementsWithReplacing(Vector *self, Vector indexes);
 
-extern void __assert_fail (const char *__assertion, const char *__file,
-      unsigned int __line, const char *__function)
-     __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__noreturn__));
-extern void __assert_perror_fail (int __errnum, const char *__file,
-      unsigned int __line, const char *__function)
-     __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__noreturn__));
-extern void __assert (const char *__assertion, const char *__file, int __line)
-     __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__noreturn__));
+extern void *memcpy (void *__restrict __dest, const void *__restrict __src,
+       size_t __n) __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__nonnull__ (1, 2)));
+extern void *memmove (void *__dest, const void *__src, size_t __n)
+     __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__nonnull__ (1, 2)));
+extern void *memccpy (void *__restrict __dest, const void *__restrict __src,
+        int __c, size_t __n)
+    __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__nonnull__ (1, 2))) __attribute__ ((__access__ (__write_only__, 1, 4)));
+extern void *memset (void *__s, int __c, size_t __n) __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__nonnull__ (1)));
+extern int memcmp (const void *__s1, const void *__s2, size_t __n)
+     __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__pure__)) __attribute__ ((__nonnull__ (1, 2)));
+extern int __memcmpeq (const void *__s1, const void *__s2, size_t __n)
+     __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__pure__)) __attribute__ ((__nonnull__ (1, 2)));
+extern void *memchr (const void *__s, int __c, size_t __n)
+      __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__pure__)) __attribute__ ((__nonnull__ (1)));
+extern char *strcpy (char *__restrict __dest, const char *__restrict __src)
+     __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__nonnull__ (1, 2)));
+extern char *strncpy (char *__restrict __dest,
+        const char *__restrict __src, size_t __n)
+     __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__nonnull__ (1, 2)));
+extern char *strcat (char *__restrict __dest, const char *__restrict __src)
+     __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__nonnull__ (1, 2)));
+extern char *strncat (char *__restrict __dest, const char *__restrict __src,
+        size_t __n) __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__nonnull__ (1, 2)));
+extern int strcmp (const char *__s1, const char *__s2)
+     __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__pure__)) __attribute__ ((__nonnull__ (1, 2)));
+extern int strncmp (const char *__s1, const char *__s2, size_t __n)
+     __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__pure__)) __attribute__ ((__nonnull__ (1, 2)));
+extern int strcoll (const char *__s1, const char *__s2)
+     __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__pure__)) __attribute__ ((__nonnull__ (1, 2)));
+extern size_t strxfrm (char *__restrict __dest,
+         const char *__restrict __src, size_t __n)
+    __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__nonnull__ (2))) __attribute__ ((__access__ (__write_only__, 1, 3)));
+struct __locale_struct
+{
+  struct __locale_data *__locales[13];
+  const unsigned short int *__ctype_b;
+  const int *__ctype_tolower;
+  const int *__ctype_toupper;
+  const char *__names[13];
+};
+typedef struct __locale_struct *__locale_t;
+typedef __locale_t locale_t;
+extern int strcoll_l (const char *__s1, const char *__s2, locale_t __l)
+     __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__pure__)) __attribute__ ((__nonnull__ (1, 2, 3)));
+extern size_t strxfrm_l (char *__dest, const char *__src, size_t __n,
+    locale_t __l) __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__nonnull__ (2, 4)))
+     __attribute__ ((__access__ (__write_only__, 1, 3)));
+extern char *strdup (const char *__s)
+     __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__malloc__)) __attribute__ ((__nonnull__ (1)));
+extern char *strndup (const char *__string, size_t __n)
+     __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__malloc__)) __attribute__ ((__nonnull__ (1)));
+extern char *strchr (const char *__s, int __c)
+     __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__pure__)) __attribute__ ((__nonnull__ (1)));
+extern char *strrchr (const char *__s, int __c)
+     __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__pure__)) __attribute__ ((__nonnull__ (1)));
+extern size_t strcspn (const char *__s, const char *__reject)
+     __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__pure__)) __attribute__ ((__nonnull__ (1, 2)));
+extern size_t strspn (const char *__s, const char *__accept)
+     __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__pure__)) __attribute__ ((__nonnull__ (1, 2)));
+extern char *strpbrk (const char *__s, const char *__accept)
+     __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__pure__)) __attribute__ ((__nonnull__ (1, 2)));
+extern char *strstr (const char *__haystack, const char *__needle)
+     __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__pure__)) __attribute__ ((__nonnull__ (1, 2)));
+extern char *strtok (char *__restrict __s, const char *__restrict __delim)
+     __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__nonnull__ (2)));
+extern char *__strtok_r (char *__restrict __s,
+    const char *__restrict __delim,
+    char **__restrict __save_ptr)
+     __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__nonnull__ (2, 3)));
+extern char *strtok_r (char *__restrict __s, const char *__restrict __delim,
+         char **__restrict __save_ptr)
+     __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__nonnull__ (2, 3)));
+extern size_t strlen (const char *__s)
+     __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__pure__)) __attribute__ ((__nonnull__ (1)));
+extern size_t strnlen (const char *__string, size_t __maxlen)
+     __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__pure__)) __attribute__ ((__nonnull__ (1)));
+extern char *strerror (int __errnum) __attribute__ ((__nothrow__ , __leaf__));
+extern int strerror_r (int __errnum, char *__buf, size_t __buflen) __asm__ ("" "__xpg_strerror_r") __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__nonnull__ (2)))
+    __attribute__ ((__access__ (__write_only__, 2, 3)));
+extern char *strerror_l (int __errnum, locale_t __l) __attribute__ ((__nothrow__ , __leaf__));
+
+extern int bcmp (const void *__s1, const void *__s2, size_t __n)
+     __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__pure__)) __attribute__ ((__nonnull__ (1, 2)));
+extern void bcopy (const void *__src, void *__dest, size_t __n)
+  __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__nonnull__ (1, 2)));
+extern void bzero (void *__s, size_t __n) __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__nonnull__ (1)));
+extern char *index (const char *__s, int __c)
+     __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__pure__)) __attribute__ ((__nonnull__ (1)));
+extern char *rindex (const char *__s, int __c)
+     __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__pure__)) __attribute__ ((__nonnull__ (1)));
+extern int ffs (int __i) __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__const__));
+extern int ffsl (long int __l) __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__const__));
+__extension__ extern int ffsll (long long int __ll)
+     __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__const__));
+extern int strcasecmp (const char *__s1, const char *__s2)
+     __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__pure__)) __attribute__ ((__nonnull__ (1, 2)));
+extern int strncasecmp (const char *__s1, const char *__s2, size_t __n)
+     __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__pure__)) __attribute__ ((__nonnull__ (1, 2)));
+extern int strcasecmp_l (const char *__s1, const char *__s2, locale_t __loc)
+     __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__pure__)) __attribute__ ((__nonnull__ (1, 2, 3)));
+extern int strncasecmp_l (const char *__s1, const char *__s2,
+     size_t __n, locale_t __loc)
+     __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__pure__)) __attribute__ ((__nonnull__ (1, 2, 4)));
+
+extern __inline __attribute__ ((__always_inline__)) __attribute__ ((__gnu_inline__)) __attribute__ ((__artificial__)) void
+__attribute__ ((__nothrow__ , __leaf__)) bcopy (const void *__src, void *__dest, size_t __len)
+{
+  (void) __builtin___memmove_chk (__dest, __src, __len,
+      __builtin_object_size (__dest, 0));
+}
+extern __inline __attribute__ ((__always_inline__)) __attribute__ ((__gnu_inline__)) __attribute__ ((__artificial__)) void
+__attribute__ ((__nothrow__ , __leaf__)) bzero (void *__dest, size_t __len)
+{
+  (void) __builtin___memset_chk (__dest, '\0', __len,
+     __builtin_object_size (__dest, 0));
+}
+extern void explicit_bzero (void *__s, size_t __n) __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__nonnull__ (1)))
+    __attribute__ ((__access__ (__write_only__, 1, 2)));
+extern char *strsep (char **__restrict __stringp,
+       const char *__restrict __delim)
+     __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__nonnull__ (1, 2)));
+extern char *strsignal (int __sig) __attribute__ ((__nothrow__ , __leaf__));
+extern char *__stpcpy (char *__restrict __dest, const char *__restrict __src)
+     __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__nonnull__ (1, 2)));
+extern char *stpcpy (char *__restrict __dest, const char *__restrict __src)
+     __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__nonnull__ (1, 2)));
+extern char *__stpncpy (char *__restrict __dest,
+   const char *__restrict __src, size_t __n)
+     __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__nonnull__ (1, 2)));
+extern char *stpncpy (char *__restrict __dest,
+        const char *__restrict __src, size_t __n)
+     __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__nonnull__ (1, 2)));
+extern __inline __attribute__ ((__always_inline__)) __attribute__ ((__gnu_inline__)) __attribute__ ((__artificial__)) void *
+__attribute__ ((__nothrow__ , __leaf__)) memcpy (void *__restrict __dest, const void *__restrict __src, size_t __len)
+{
+  return __builtin___memcpy_chk (__dest, __src, __len,
+     __builtin_object_size (__dest, 0));
+}
+extern __inline __attribute__ ((__always_inline__)) __attribute__ ((__gnu_inline__)) __attribute__ ((__artificial__)) void *
+__attribute__ ((__nothrow__ , __leaf__)) memmove (void *__dest, const void *__src, size_t __len)
+{
+  return __builtin___memmove_chk (__dest, __src, __len,
+      __builtin_object_size (__dest, 0));
+}
+extern __inline __attribute__ ((__always_inline__)) __attribute__ ((__gnu_inline__)) __attribute__ ((__artificial__)) void *
+__attribute__ ((__nothrow__ , __leaf__)) memset (void *__dest, int __ch, size_t __len)
+{
+  return __builtin___memset_chk (__dest, __ch, __len,
+     __builtin_object_size (__dest, 0));
+}
+void __explicit_bzero_chk (void *__dest, size_t __len, size_t __destlen)
+  __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__nonnull__ (1))) __attribute__ ((__access__ (__write_only__, 1, 2)));
+extern __inline __attribute__ ((__always_inline__)) __attribute__ ((__gnu_inline__)) __attribute__ ((__artificial__)) void
+__attribute__ ((__nothrow__ , __leaf__)) explicit_bzero (void *__dest, size_t __len)
+{
+  __explicit_bzero_chk (__dest, __len, __builtin_object_size (__dest, 0));
+}
+extern __inline __attribute__ ((__always_inline__)) __attribute__ ((__gnu_inline__)) __attribute__ ((__artificial__)) char *
+__attribute__ ((__nothrow__ , __leaf__)) strcpy (char *__restrict __dest, const char *__restrict __src)
+{
+  return __builtin___strcpy_chk (__dest, __src, __builtin_object_size (__dest, 2 > 1));
+}
+extern __inline __attribute__ ((__always_inline__)) __attribute__ ((__gnu_inline__)) __attribute__ ((__artificial__)) char *
+__attribute__ ((__nothrow__ , __leaf__)) stpcpy (char *__restrict __dest, const char *__restrict __src)
+{
+  return __builtin___stpcpy_chk (__dest, __src, __builtin_object_size (__dest, 2 > 1));
+}
+extern __inline __attribute__ ((__always_inline__)) __attribute__ ((__gnu_inline__)) __attribute__ ((__artificial__)) char *
+__attribute__ ((__nothrow__ , __leaf__)) strncpy (char *__restrict __dest, const char *__restrict __src, size_t __len)
+{
+  return __builtin___strncpy_chk (__dest, __src, __len,
+      __builtin_object_size (__dest, 2 > 1));
+}
+extern __inline __attribute__ ((__always_inline__)) __attribute__ ((__gnu_inline__)) __attribute__ ((__artificial__)) char *
+__attribute__ ((__nothrow__ , __leaf__)) stpncpy (char *__dest, const char *__src, size_t __n)
+{
+  return __builtin___stpncpy_chk (__dest, __src, __n,
+      __builtin_object_size (__dest, 2 > 1));
+}
+extern __inline __attribute__ ((__always_inline__)) __attribute__ ((__gnu_inline__)) __attribute__ ((__artificial__)) char *
+__attribute__ ((__nothrow__ , __leaf__)) strcat (char *__restrict __dest, const char *__restrict __src)
+{
+  return __builtin___strcat_chk (__dest, __src, __builtin_object_size (__dest, 2 > 1));
+}
+extern __inline __attribute__ ((__always_inline__)) __attribute__ ((__gnu_inline__)) __attribute__ ((__artificial__)) char *
+__attribute__ ((__nothrow__ , __leaf__)) strncat (char *__restrict __dest, const char *__restrict __src, size_t __len)
+{
+  return __builtin___strncat_chk (__dest, __src, __len,
+      __builtin_object_size (__dest, 2 > 1));
+}
 
 
 typedef __builtin_va_list __gnuc_va_list;
@@ -1745,6 +1503,364 @@ fread_unlocked (void *__restrict __ptr, size_t __size, size_t __n,
   return __fread_unlocked_chk (__ptr, sz, __size, __n, __stream);
 }
 
+
+extern void __assert_fail (const char *__assertion, const char *__file,
+      unsigned int __line, const char *__function)
+     __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__noreturn__));
+extern void __assert_perror_fail (int __errnum, const char *__file,
+      unsigned int __line, const char *__function)
+     __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__noreturn__));
+extern void __assert (const char *__assertion, const char *__file, int __line)
+     __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__noreturn__));
+
+Vector vct_Init(size_t size) {
+  Vector self = (Vector)malloc(sizeof(struct Vector_t));
+  self->buffer = malloc(size);
+  self->size = 0;
+  self->capacity = 1;
+  self->objSize = size;
+  return self;
+}
+Vector vct_InitWithCapacity(size_t size, size_t count) {
+  Vector self = malloc(sizeof(struct Vector_t));
+  self->buffer = malloc(size * count);
+  self->size = 0;
+  self->capacity = count;
+  self->objSize = size;
+  return self;
+}
+Vector vct_InitWithSize(size_t objSize, size_t count) {
+  Vector self = malloc(sizeof(struct Vector_t));
+  self->buffer = malloc(objSize * count);
+  self->size = count;
+  self->capacity = count;
+  self->objSize = objSize;
+  return self;
+}
+void copyData(Vector self, void *buffer) {
+  memcpy(self->buffer + (self->size * self->objSize), buffer, self->objSize);
+  self->size++;
+}
+void vct_Push(Vector self, void *buffer) {
+  if(self->size >= self->capacity) {
+    self->capacity <<= 1;
+    self->buffer = realloc(self->buffer, self->capacity * self->objSize);
+  }
+  copyData(self, buffer);
+}
+void vct_RemoveElement(Vector self, size_t index) {
+  ((void) sizeof ((self->size != 0) ? 1 : 0), __extension__ ({ if (self->size != 0) ; else __assert_fail ("self->size != 0", "bin/svv.c", 52, __extension__ __PRETTY_FUNCTION__); }));
+  if(index >= self->size) {
+    return ;
+  }
+  char *payloadBuffer = self->buffer;
+  for(ssize_t i = index, c = (ssize_t)self->size - 1; i < c; i++) {
+    memcpy(payloadBuffer + i * self->objSize, payloadBuffer + (i + 1) * self->objSize, self->objSize);
+  }
+  self->size--;
+}
+void vct_Delete(Vector self) {
+  free(self->buffer);
+  free(self);
+}
+void vct_DeleteWOBuffer(Vector self) {
+  free(self);
+}
+char *vct_Last(Vector self) {
+  if(!self->size) {
+    return ((void *)0);
+  }
+  return self->buffer + (self->size - 1) * self->objSize;
+}
+void vct_Pop(Vector self) {
+  if(!self->size) {
+    return ;
+  }
+  self->size--;
+}
+Vector vct_RemoveElements(Vector payload, Vector indexes) {
+  Vector indexesCount = vct_InitWithSize(sizeof(uint8_t), payload->size);
+  memset(indexesCount->buffer, 0, sizeof(uint8_t) * payload->size);
+  size_t *indexesBuffer = indexes->buffer;
+  uint8_t *aparitionCount = indexesCount->buffer;
+  for(size_t i = 0, c = indexes->size; i < c; i++) {
+    if(indexesBuffer[i] < payload->size) {
+      aparitionCount[indexesBuffer[i]] = 1;
+    }
+  }
+  Vector payloadWithMissingElements = vct_Init(payload->objSize);
+  for(size_t i = 0, c = payload->size; i < c; i++) {
+    if(!aparitionCount[i]) {
+      vct_Push(payloadWithMissingElements, payload->buffer + i * payload->objSize);
+    }
+  }
+  vct_Delete(indexesCount);
+  return payloadWithMissingElements;
+}
+void vct_RemoveElementsWithReplacing(Vector *self, Vector indexes) {
+  Vector deleted = vct_RemoveElements(*self, indexes);
+  vct_Delete(*self);
+  *self = deleted;
+}
+int64_t vct_Find(Vector payload, void *element) {
+  void *startingPointer = payload->buffer;
+  size_t objSize = payload->objSize;
+  for(size_t i = 0, c = payload->size; i < c; i++) {
+    if(!memcmp(startingPointer + i * objSize, element, objSize)) {
+      return i;
+    }
+  }
+  return -1;
+}
+void vct_Clear(Vector self) {
+  self->size = 0;
+}
+       
+EventBuffer evm_New_Transform(const PEventMessage self);
+EventBuffer evm_Reuse_Transform(const PEventMessage self, char *buffer);
+EventMessage evm_Parse(EventBuffer buffer, uint8_t *valid);
+uint32_t evm_Out_Public_TotalSize(PEventMessage self);
+static inline uint8_t evm_Out_IsAuthed(const PEventMessage self) {
+  return self->isAuthed;
+}
+static inline char *evm_Out_PayloadSizePointer(const PEventMessage self, char *buffer) {
+  return buffer;
+}
+static inline char *evm_Out_HeaderPointer(const PEventMessage self, char *buffer) {
+  return buffer + sizeof(self->str.size);
+}
+static inline char *evm_Out_HeaderAuthPointer(const PEventMessage self, char *buffer) {
+  if(!evm_Out_IsAuthed(self)) {
+    return ((void *)0);
+  }
+  return evm_Out_HeaderPointer(self, buffer) + sizeof(self->headerCode);
+}
+static inline char *evm_Out_PayloadPointer(const PEventMessage self, char *buffer) {
+  if(!evm_Out_IsAuthed(self)) {
+    return evm_Out_HeaderPointer(self, buffer) + sizeof(self->headerCode);
+  }
+  return evm_Out_HeaderPointer(self, buffer) + sizeof(self->headerCode) + sizeof(Auth);
+}
+static inline char *evm_In_SizePointer(char *buffer) {
+  return buffer;
+}
+static inline char *evm_In_HeaderPointer(char *buffer) {
+  return evm_In_SizePointer(buffer) + sizeof(uint32_t);
+}
+static inline uint32_t evm_In_Size(char *buffer) {
+  return *(uint32_t *)evm_In_SizePointer(buffer);
+}
+static inline uint32_t evm_In_Header(char *buffer) {
+  return *(uint32_t *)evm_In_HeaderPointer(buffer);
+}
+static inline uint32_t evm_In_HeaderCode(char *buffer) {
+  return (evm_In_Header(buffer) & 0xFFFFFF);
+}
+static inline uint8_t evm_In_HeaderIsAuth(char *buffer) {
+  return (evm_In_Header(buffer) & (1<<24)) != 0;
+}
+static inline char *evm_In_AuthPointer(char *buffer) {
+  if(!evm_In_HeaderIsAuth(buffer)) {
+    return ((void *)0);
+  }
+  return evm_In_HeaderPointer(buffer) + sizeof(uint32_t);
+}
+static inline char *evm_In_PayloadPointer(char *buffer) {
+  return evm_In_HeaderPointer(buffer) + ((size_t)evm_In_AuthPointer(buffer) != 0) * sizeof(Auth) + sizeof(uint32_t);
+}
+static inline char *evm_In_EndPointer(char *buffer) {
+  return evm_In_PayloadPointer(buffer) + evm_In_Size(buffer);
+}
+static inline uint32_t evm_Out_TotalSize(const PEventMessage self) {
+  return self->str.size + sizeof(self->headerCode) + sizeof(self->str.size) + sizeof(Auth) * evm_Out_IsAuthed(self);
+}
+uint32_t evm_Out_Public_TotalSize(PEventMessage self) {
+  return evm_Out_TotalSize(self);
+}
+EventBuffer evm_Reuse_Transform(const PEventMessage self, char *buffer) {
+  uint32_t totalSize = evm_Out_TotalSize(self);
+  memcpy(evm_Out_PayloadSizePointer(self, buffer), &self->str.size, sizeof(self->str.size));
+  uint32_t mergedHeaders = (self->headerCode | ((1<<24) * self->isAuthed));
+  memcpy(evm_Out_HeaderPointer(self, buffer), &mergedHeaders, sizeof(mergedHeaders));
+  char *headerPointer = evm_Out_HeaderAuthPointer(self, buffer);
+  if(headerPointer) {
+    memcpy(headerPointer, self->uniqueCode.bff, sizeof(self->uniqueCode));
+  }
+  if(self->str.buffer) {
+    memcpy(evm_Out_PayloadPointer(self, buffer), self->str.buffer, self->str.size);
+  }
+  return (EventBuffer) {
+    .buffer = buffer,
+    .size = totalSize
+  };
+}
+EventBuffer evm_New_Transform(const PEventMessage self) {
+  uint32_t totalSize = evm_Out_TotalSize(self);
+  char *buffer = malloc(totalSize);
+  return evm_Reuse_Transform(self, buffer);
+}
+EventMessage evm_Parse(EventBuffer inp, uint8_t *valid) {
+  *valid = 0;
+  if(inp.size < 8) {
+    return (EventMessage) {};
+  }
+  char *endBuffer = evm_In_EndPointer(inp.buffer);
+  if(endBuffer != inp.size + inp.buffer) {
+    return (EventMessage) {};
+  }
+  EventMessage response = (EventMessage) {
+    .isAuthed = evm_In_HeaderIsAuth(inp.buffer),
+    .headerCode = evm_In_HeaderCode(inp.buffer),
+    .str = (EventBuffer) {
+      .buffer = evm_In_PayloadPointer(inp.buffer),
+      .size = evm_In_Size(inp.buffer)
+    }
+  };
+  char *authCode = evm_In_AuthPointer(inp.buffer);
+  if(authCode) {
+    memcpy(response.uniqueCode.bff, authCode, sizeof(Auth));
+  }
+  *valid = 1;
+  return response;
+}
+       
+PEventServer evs_Create(uint16_t port);
+void evs_Delete(PEventServer self);
+void evs_OnFrame(PEventServer self, uint64_t deltaMS);
+void evs_PushMessage(PEventServer self, PResponseObject msg);
+void evs_EnablePingPongTimeout(PEventServer self, uint64_t timeout);
+       
+PWebSocketServer wss_Create(uint16_t port);
+size_t wss_ConnectionsCount(PWebSocketServer self);
+void wss_OnFrame(PWebSocketServer self, uint64_t deltaMS);
+void wss_EnablePingPongTimeout(PWebSocketServer self, uint64_t timeout);
+void wss_Delete(PWebSocketServer self);
+void wss_SendMessage(PWebSocketServer self, PDataFragment dt);
+       
+PSocketServer sock_Create(uint16_t port);
+void sock_Delete(PSocketServer self);
+void sock_OnFrame(PSocketServer self, uint64_t deltaMS);
+void sock_Write_Push(PSocketServer self, DataFragment *dt);
+size_t sock_ConnectionCount(PSocketServer self);
+void sock_SetMaxConnections(PSocketServer self, int32_t maxActiveConnections);
+void sock_PushCloseConnections(PSocketServer self, PConnection conn);
+void sock_CloseConnection(PSocketServer self, size_t index);
+PSocketMethod sock_Method_Create(void *method, void *mirrorBuffer);
+void sock_Method_Delete(PSocketMethod self);
+static inline void evs_ProcessClosingConn(PEventServer self, PConnection conn) {
+  if(self->onClose) {
+    void (*method)(PConnection, void *) = self->onClose->method;
+    method(conn, self->onClose->mirrorBuffer);
+  }
+}
+static inline void evs_PushEventBuffer(PEventServer self, PEventBuffer bff, PConnection conn) {
+  DataFragment nextFrag = {
+    .conn = *conn,
+    .data = bff->buffer,
+    .size = bff->size
+  };
+  wss_SendMessage(self->wsServer, &nextFrag);
+}
+void evs_EnablePingPongTimeout(PEventServer self, uint64_t timeout) {
+  wss_EnablePingPongTimeout(self->wsServer, timeout);
+}
+void evs_PushMessage(PEventServer self, PResponseObject msg) {
+  uint32_t msgSize = evm_Out_Public_TotalSize(&msg->metaData);
+  if(msgSize < (1<<12)) {
+    char buffer[(1<<12)];
+    EventBuffer response = evm_Reuse_Transform(&msg->metaData, buffer);
+    evs_PushEventBuffer(self, &response, msg->conn);
+    return ;
+  }
+  char *buffer = malloc(msgSize);
+  EventBuffer response = evm_Reuse_Transform(&msg->metaData, buffer);
+  evs_PushEventBuffer(self, &response, msg->conn);
+  free(buffer);
+}
+void _evs_OnClose(Connection conn, void *buffer) {
+  evs_ProcessClosingConn(buffer, &conn);
+}
+void _evs_OnReceive(PDataFragment frag, void *buffer) {
+  PEventServer self = buffer;
+  uint8_t valid;
+  EventMessage currentMessage = evm_Parse((EventBuffer) {
+    .buffer = frag->data,
+    .size = frag->size
+  }, &valid);
+  if(!valid) {
+    evs_ProcessClosingConn(self, &frag->conn);
+    sock_PushCloseConnections(self->wsServer->socketServer, &frag->conn);
+    return ;
+  }
+  if(self->onReceive) {
+    void (*method)(PResponseObject, void *) = self->onReceive->method;
+    ResponseObject rsp = (ResponseObject) {
+      .conn = &frag->conn,
+      .metaData = currentMessage
+    };
+    method(&rsp, self->onReceive->mirrorBuffer);
+  }
+}
+static inline void evs_RegisterMethods(PEventServer self) {
+  PSocketMethod _onReceive = sock_Method_Create(
+    _evs_OnReceive,
+    self
+  );
+  self->wsServer->onReceiveMessage = _onReceive;
+  PSocketMethod _onClose = sock_Method_Create(
+    _evs_OnClose,
+    self
+  );
+  self->wsServer->onRelease = _onClose;
+}
+PEventServer evs_Create(uint16_t port) {
+  PEventServer self = malloc(sizeof(EventServer));
+  memset(self, 0, sizeof(EventServer));
+  self->wsServer = wss_Create(port);
+  evs_RegisterMethods(self);
+  return self;
+}
+void evs_FreeMethods(PEventServer self) {
+  sock_Method_Delete(self->wsServer->onReceiveMessage);
+  sock_Method_Delete(self->wsServer->onRelease);
+}
+void evs_OnFrame(PEventServer self, uint64_t deltaMS) {
+  wss_OnFrame(self->wsServer, deltaMS);
+}
+void evs_Delete(PEventServer self) {
+  evs_FreeMethods(self);
+  wss_Delete(self->wsServer);
+  free(self);
+}
+       
+typedef struct MemoryFragment_t {
+  size_t *flag;
+  struct MemoryFragment_t **self;
+  void *buffer;
+} MemoryFragment;
+typedef MemoryFragment *PMemoryFragment;
+typedef struct FreeStackTracker_t {
+  void *stack;
+  size_t sz;
+} FreeStackTracker;
+typedef FreeStackTracker *PFreeStackTracker;
+typedef struct FixedMemoryPool_t {
+  MemoryFragment *bufferFragments;
+  void *memory;
+  void *_endBuffer;
+  FreeStackTracker freeStack;
+  size_t count;
+  size_t objSize;
+  size_t capacity;
+  struct FixedMemoryPool_t *next;
+} FixedMemoryPool;
+typedef FixedMemoryPool *PFixedMemoryPool;
+PFixedMemoryPool fmp_InitWithCapacity(size_t objSize, size_t capacity);
+PFixedMemoryPool fmp_Init(size_t objSize);
+void *fmp_Alloc(PFixedMemoryPool self);
+void fmp_Free(PFixedMemoryPool self, void *buffer);
+void fmp_PrintMemory(PFixedMemoryPool self);
+void fmp_Delete(PFixedMemoryPool self);
 static inline size_t fmp_MemoryFragmentSize(size_t objSize) {
   return sizeof(MemoryFragment) - sizeof(void *) + objSize;
 }
@@ -1819,9 +1935,9 @@ static inline PFixedMemoryPool fmp_FindPool(const PFixedMemoryPool self, const v
 }
 void fmp_Free(PFixedMemoryPool self, void *buffer) {
   PFixedMemoryPool currentPool = fmp_FindPool(self, buffer);
-  ((void) sizeof ((currentPool != ((void *)0)) ? 1 : 0), __extension__ ({ if (currentPool != ((void *)0)) ; else __assert_fail ("currentPool != NULL", "bin/svv.c", 320, __extension__ __PRETTY_FUNCTION__); }));
+  ((void) sizeof ((currentPool != ((void *)0)) ? 1 : 0), __extension__ ({ if (currentPool != ((void *)0)) ; else __assert_fail ("currentPool != NULL", "bin/svv.c", 447, __extension__ __PRETTY_FUNCTION__); }));
   PMemoryFragment currentMemoryFragment = fmp_StartingPointer(buffer);
-  ((void) sizeof ((*currentMemoryFragment->flag == 1) ? 1 : 0), __extension__ ({ if (*currentMemoryFragment->flag == 1) ; else __assert_fail ("*currentMemoryFragment->flag == 1", "bin/svv.c", 322, __extension__ __PRETTY_FUNCTION__); }));
+  ((void) sizeof ((*currentMemoryFragment->flag == 1) ? 1 : 0), __extension__ ({ if (*currentMemoryFragment->flag == 1) ; else __assert_fail ("*currentMemoryFragment->flag == 1", "bin/svv.c", 449, __extension__ __PRETTY_FUNCTION__); }));
   stack_Push(&currentPool->freeStack, currentMemoryFragment->self);
   *currentMemoryFragment->flag = 0;
   currentPool->count--;
@@ -1955,20 +2071,6 @@ extern int tolower_l (int __c, locale_t __l) __attribute__ ((__nothrow__ , __lea
 extern int __toupper_l (int __c, locale_t __l) __attribute__ ((__nothrow__ , __leaf__));
 extern int toupper_l (int __c, locale_t __l) __attribute__ ((__nothrow__ , __leaf__));
 
-       
-Vector vct_Init(size_t size);
-Vector vct_InitWithCapacity(size_t size, size_t count);
-void vct_Push(Vector self, void *buffer);
-void vct_Delete(Vector self);
-void vct_DeleteWOBuffer(Vector self);
-void vct_Clear(Vector self);
-void vct_RemoveElement(Vector payload, size_t index);
-Vector vct_RemoveElements(Vector payload, Vector indexes);
-int64_t vct_Find(Vector payload, void *element);
-Vector vct_InitWithSize(size_t objSize, size_t count);
-char *vct_Last(Vector self);
-void vct_Pop(Vector self);
-void vct_RemoveElementsWithReplacing(Vector *self, Vector indexes);
        
 PTrieHash trh_Create();
 void trh_Add(PTrieHash self, void* key, uint32_t keySize, void* value, uint32_t valueSize);
@@ -3013,7 +3115,7 @@ PJsonObject json_Create() {
   return self;
 }
 void json_Add(PJsonObject self, PHttpString key, JsonElement element) {
-  ((void) sizeof ((self->hsh) ? 1 : 0), __extension__ ({ if (self->hsh) ; else __assert_fail ("self->hsh", "bin/svv.c", 1505, __extension__ __PRETTY_FUNCTION__); }));
+  ((void) sizeof ((self->hsh) ? 1 : 0), __extension__ ({ if (self->hsh) ; else __assert_fail ("self->hsh", "bin/svv.c", 1632, __extension__ __PRETTY_FUNCTION__); }));
   trh_Add(self->hsh, key->buffer, key->sz, &element, sizeof(JsonElement));
 }
 void json_Delete(PJsonObject self) {
@@ -3106,17 +3208,17 @@ void json_PushLeafValue(Vector str, JsonElement element) {
       break;
     }
     case JSON_INTEGER: {
-      ((void) sizeof ((element.value) ? 1 : 0), __extension__ ({ if (element.value) ; else __assert_fail ("element.value", "bin/svv.c", 1611, __extension__ __PRETTY_FUNCTION__); }));
+      ((void) sizeof ((element.value) ? 1 : 0), __extension__ ({ if (element.value) ; else __assert_fail ("element.value", "bin/svv.c", 1738, __extension__ __PRETTY_FUNCTION__); }));
       json_Element_PushInteger(str, *(int64_t *)element.value);
       break;
     }
     case JSON_NUMBER: {
-      ((void) sizeof ((element.value) ? 1 : 0), __extension__ ({ if (element.value) ; else __assert_fail ("element.value", "bin/svv.c", 1616, __extension__ __PRETTY_FUNCTION__); }));
+      ((void) sizeof ((element.value) ? 1 : 0), __extension__ ({ if (element.value) ; else __assert_fail ("element.value", "bin/svv.c", 1743, __extension__ __PRETTY_FUNCTION__); }));
       json_Element_PushFloat(str, *(float *)element.value);
       break;
     }
     case JSON_STRING: {
-      ((void) sizeof ((element.value) ? 1 : 0), __extension__ ({ if (element.value) ; else __assert_fail ("element.value", "bin/svv.c", 1621, __extension__ __PRETTY_FUNCTION__); }));
+      ((void) sizeof ((element.value) ? 1 : 0), __extension__ ({ if (element.value) ; else __assert_fail ("element.value", "bin/svv.c", 1748, __extension__ __PRETTY_FUNCTION__); }));
       json_Element_PushString(str, element.value);
       break;
     }
@@ -3293,7 +3395,7 @@ TokenParser json_Parser_Null(TokenParser tck) {
   return tck;
 }
 void json_Map_Add(JsonElement map, char *key, JsonElement element) {
-  ((void) sizeof ((map.type == JSON_JSON) ? 1 : 0), __extension__ ({ if (map.type == JSON_JSON) ; else __assert_fail ("map.type == JSON_JSON", "bin/svv.c", 1812, __extension__ __PRETTY_FUNCTION__); }));
+  ((void) sizeof ((map.type == JSON_JSON) ? 1 : 0), __extension__ ({ if (map.type == JSON_JSON) ; else __assert_fail ("map.type == JSON_JSON", "bin/svv.c", 1939, __extension__ __PRETTY_FUNCTION__); }));
   HttpString str = {
     .buffer = key,
     .sz = strlen(key)
@@ -3754,15 +3856,15 @@ JsonElement json_Array_At(JsonElement arr, size_t index) {
   return ((JsonElement *)vct->buffer)[index];
 }
 size_t json_Array_Size(JsonElement arr) {
-  ((void) sizeof ((arr.type == JSON_ARRAY) ? 1 : 0), __extension__ ({ if (arr.type == JSON_ARRAY) ; else __assert_fail ("arr.type == JSON_ARRAY", "bin/svv.c", 2305, __extension__ __PRETTY_FUNCTION__); }));
+  ((void) sizeof ((arr.type == JSON_ARRAY) ? 1 : 0), __extension__ ({ if (arr.type == JSON_ARRAY) ; else __assert_fail ("arr.type == JSON_ARRAY", "bin/svv.c", 2432, __extension__ __PRETTY_FUNCTION__); }));
   return ((Vector)arr.value)->size;
 }
 int64_t json_Integer_Get(JsonElement arr) {
-  ((void) sizeof ((arr.type == JSON_INTEGER) ? 1 : 0), __extension__ ({ if (arr.type == JSON_INTEGER) ; else __assert_fail ("arr.type == JSON_INTEGER", "bin/svv.c", 2310, __extension__ __PRETTY_FUNCTION__); }));
+  ((void) sizeof ((arr.type == JSON_INTEGER) ? 1 : 0), __extension__ ({ if (arr.type == JSON_INTEGER) ; else __assert_fail ("arr.type == JSON_INTEGER", "bin/svv.c", 2437, __extension__ __PRETTY_FUNCTION__); }));
   return *((int64_t *)arr.value);
 }
 float json_Number_Get(JsonElement arr) {
-  ((void) sizeof ((arr.type == JSON_NUMBER) ? 1 : 0), __extension__ ({ if (arr.type == JSON_NUMBER) ; else __assert_fail ("arr.type == JSON_NUMBER", "bin/svv.c", 2315, __extension__ __PRETTY_FUNCTION__); }));
+  ((void) sizeof ((arr.type == JSON_NUMBER) ? 1 : 0), __extension__ ({ if (arr.type == JSON_NUMBER) ; else __assert_fail ("arr.type == JSON_NUMBER", "bin/svv.c", 2442, __extension__ __PRETTY_FUNCTION__); }));
   return *((float *)arr.value);
 }
        
@@ -9262,7 +9364,7 @@ void sock_PushCloseConnMethod(PSocketServer self, Connection conn, size_t index)
   tf_ExecuteAfter(self->timeServer.timeServer, timeFragment, self->timeServer.timeout);
 }
 void sock_SetMaxConnections(PSocketServer self, int32_t maxActiveConnections) {
-  ((void) sizeof ((maxActiveConnections < 1024) ? 1 : 0), __extension__ ({ if (maxActiveConnections < 1024) ; else __assert_fail ("maxActiveConnections < MAX_CONNECTIONS_PER_SERVER", "bin/svv.c", 2760, __extension__ __PRETTY_FUNCTION__); }));
+  ((void) sizeof ((maxActiveConnections < 1024) ? 1 : 0), __extension__ ({ if (maxActiveConnections < 1024) ; else __assert_fail ("maxActiveConnections < MAX_CONNECTIONS_PER_SERVER", "bin/svv.c", 2887, __extension__ __PRETTY_FUNCTION__); }));
   self->maxActiveConnections = maxActiveConnections;
 }
 void sock_Write_Push(PSocketServer self, DataFragment *dt) {
@@ -9909,108 +10011,6 @@ void trh_Integer32_RemoveElement(PTrieHash self, uint32_t key) {
 void trh_Delete(PTrieHash self) {
   trn_DeleteNodes(self->parentNode);
   free(self);
-}
-Vector vct_Init(size_t size) {
-  Vector self = (Vector)malloc(sizeof(struct Vector_t));
-  self->buffer = malloc(size);
-  self->size = 0;
-  self->capacity = 1;
-  self->objSize = size;
-  return self;
-}
-Vector vct_InitWithCapacity(size_t size, size_t count) {
-  Vector self = malloc(sizeof(struct Vector_t));
-  self->buffer = malloc(size * count);
-  self->size = 0;
-  self->capacity = count;
-  self->objSize = size;
-  return self;
-}
-Vector vct_InitWithSize(size_t objSize, size_t count) {
-  Vector self = malloc(sizeof(struct Vector_t));
-  self->buffer = malloc(objSize * count);
-  self->size = count;
-  self->capacity = count;
-  self->objSize = objSize;
-  return self;
-}
-void copyData(Vector self, void *buffer) {
-  memcpy(self->buffer + (self->size * self->objSize), buffer, self->objSize);
-  self->size++;
-}
-void vct_Push(Vector self, void *buffer) {
-  if(self->size >= self->capacity) {
-    self->capacity <<= 1;
-    self->buffer = realloc(self->buffer, self->capacity * self->objSize);
-  }
-  copyData(self, buffer);
-}
-void vct_RemoveElement(Vector self, size_t index) {
-  ((void) sizeof ((self->size != 0) ? 1 : 0), __extension__ ({ if (self->size != 0) ; else __assert_fail ("self->size != 0", "bin/svv.c", 3506, __extension__ __PRETTY_FUNCTION__); }));
-  if(index >= self->size) {
-    return ;
-  }
-  char *payloadBuffer = self->buffer;
-  for(ssize_t i = index, c = (ssize_t)self->size - 1; i < c; i++) {
-    memcpy(payloadBuffer + i * self->objSize, payloadBuffer + (i + 1) * self->objSize, self->objSize);
-  }
-  self->size--;
-}
-void vct_Delete(Vector self) {
-  free(self->buffer);
-  free(self);
-}
-void vct_DeleteWOBuffer(Vector self) {
-  free(self);
-}
-char *vct_Last(Vector self) {
-  if(!self->size) {
-    return ((void *)0);
-  }
-  return self->buffer + (self->size - 1) * self->objSize;
-}
-void vct_Pop(Vector self) {
-  if(!self->size) {
-    return ;
-  }
-  self->size--;
-}
-Vector vct_RemoveElements(Vector payload, Vector indexes) {
-  Vector indexesCount = vct_InitWithSize(sizeof(uint8_t), payload->size);
-  memset(indexesCount->buffer, 0, sizeof(uint8_t) * payload->size);
-  size_t *indexesBuffer = indexes->buffer;
-  uint8_t *aparitionCount = indexesCount->buffer;
-  for(size_t i = 0, c = indexes->size; i < c; i++) {
-    if(indexesBuffer[i] < payload->size) {
-      aparitionCount[indexesBuffer[i]] = 1;
-    }
-  }
-  Vector payloadWithMissingElements = vct_Init(payload->objSize);
-  for(size_t i = 0, c = payload->size; i < c; i++) {
-    if(!aparitionCount[i]) {
-      vct_Push(payloadWithMissingElements, payload->buffer + i * payload->objSize);
-    }
-  }
-  vct_Delete(indexesCount);
-  return payloadWithMissingElements;
-}
-void vct_RemoveElementsWithReplacing(Vector *self, Vector indexes) {
-  Vector deleted = vct_RemoveElements(*self, indexes);
-  vct_Delete(*self);
-  *self = deleted;
-}
-int64_t vct_Find(Vector payload, void *element) {
-  void *startingPointer = payload->buffer;
-  size_t objSize = payload->objSize;
-  for(size_t i = 0, c = payload->size; i < c; i++) {
-    if(!memcmp(startingPointer + i * objSize, element, objSize)) {
-      return i;
-    }
-  }
-  return -1;
-}
-void vct_Clear(Vector self) {
-  self->size = 0;
 }
         
 typedef struct SHAstate_st {

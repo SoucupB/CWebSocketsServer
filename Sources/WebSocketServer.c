@@ -6,7 +6,7 @@
 #include <openssl/evp.h>
 #include "WebSocketsTranslator.h"
 #include "SocketServer.h"
-#include "Vector.h"
+#include "Array.h"
 
 void wss_SetMethods(PWebSocketServer self);
 void _wss_OnConnect(Connection connection, void *buffer);
