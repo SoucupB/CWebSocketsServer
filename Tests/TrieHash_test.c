@@ -12,7 +12,7 @@
 #include "TrieHash_Helper_test.h"
 
 static void test_trie_hash_insertion_v1(void **state) {
-  PTrieHash hash = trh_Create();
+  PHsh hash = trh_Create();
   trh_Integer32_Insert(hash, 1, 2);
   assert_true(hash != NULL);
   assert_true(trh_Integer32_Get(hash, 1) != NULL && ((uint32_t *)trh_Integer32_Get(hash, 1))[0] == 2);
@@ -23,7 +23,7 @@ static void test_trie_hash_insertion_v1(void **state) {
 }
 
 static void test_trie_hash_insertion_v2(void **state) {
-  PTrieHash hash = trh_Create();
+  PHsh hash = trh_Create();
   for(uint32_t i = 1; i <= 10000; i++) {
     trh_Integer32_Insert(hash, i, 10000 - i);
   }
@@ -55,7 +55,7 @@ static void test_trie_hash_insertion_v2(void **state) {
 }
 
 static void test_trie_hash_insertion_v3(void **state) {
-  PTrieHash hash = trh_Create();
+  PHsh hash = trh_Create();
   // The zero also has to be added.
   trh_Buffer_AddToIndex(hash, 1, "Testing string", strlen("Testing string") + 1);
   assert_true(trh_Buffer_GetFromIndex(hash, 1) != NULL);
@@ -67,7 +67,7 @@ static void test_trie_hash_insertion_v3(void **state) {
 }
 
 static void test_trie_hash_insertion_v4(void **state) {
-  PTrieHash hash = trh_Create();
+  PHsh hash = trh_Create();
   // The zero also has to be added.
   trh_Buffer_AddToIndex(hash, 1351131451, "Testing_string_v1", strlen("Testing_string_v1") + 1);
   trh_Buffer_AddToIndex(hash, 1251425451, "Testing_string_v2", strlen("Testing_string_v2") + 1);
@@ -86,7 +86,7 @@ static void test_trie_hash_insertion_v4(void **state) {
 }
 
 static void test_trie_hash_insertion_v5(void **state) {
-  PTrieHash hash = trh_Create();
+  PHsh hash = trh_Create();
   size_t currentTime = tf_CurrentTimeMS();
   for(uint32_t i = 1; i <= 100000; i++) {
     trh_Integer32_Insert(hash, i, 100000 - i);
@@ -121,7 +121,7 @@ static void test_trie_hash_insertion_v5(void **state) {
 }
 
 static void test_trie_hash_insertion_get_values_v1(void **state) {
-  PTrieHash hash = trh_Create();
+  PHsh hash = trh_Create();
   uint32_t firstValue = 5;
   trh_Buffer_AddToIndex(hash, 1, &firstValue, sizeof(uint32_t));
   Array response = trh_GetValues(hash, sizeof(uint32_t));
@@ -133,7 +133,7 @@ static void test_trie_hash_insertion_get_values_v1(void **state) {
 }
 
 static void test_trie_hash_insertion_get_values_v2(void **state) {
-  PTrieHash hash = trh_Create();
+  PHsh hash = trh_Create();
   uint32_t values[] = {5, 2, 1, 3, 7, 4, 11, 34};
   for(size_t i = 0, c = sizeof(values) / sizeof(uint32_t); i < c; i++) {
     trh_Buffer_AddToIndex(hash, i, &values[i], sizeof(uint32_t));
@@ -149,7 +149,7 @@ static void test_trie_hash_insertion_get_values_v2(void **state) {
 }
 
 static void test_trie_hash_collect_integer_keys(void **state) {
-  PTrieHash hash = trh_Create();
+  PHsh hash = trh_Create();
   uint32_t values[] = {5, 2, 1, 3, 7, 4, 11, 34};
   uint32_t sortedValues[] = {1, 2, 3, 4, 5, 7, 11, 34};
   for(size_t i = 0, c = sizeof(values) / sizeof(uint32_t); i < c; i++) {
@@ -167,7 +167,7 @@ static void test_trie_hash_collect_integer_keys(void **state) {
 }
 
 static void test_trie_hash_collect_multiple_integer_keys(void **state) {
-  PTrieHash hash = trh_Create();
+  PHsh hash = trh_Create();
   const size_t count = 50000;
   size_t *inputBuffer = test_Util_CreateBuffer(count);
   for(size_t i = 0; i < count; i++) {
@@ -189,7 +189,7 @@ static void test_trie_hash_collect_multiple_integer_keys(void **state) {
 }
 
 static void test_trie_hash_collect_string_keys(void **state) {
-  PTrieHash hash = trh_Create();
+  PHsh hash = trh_Create();
   char *bufferInput[] = {
     "string_1", "string_222", "string_31", "string_4", "string_5"
   };
@@ -205,7 +205,7 @@ static void test_trie_hash_collect_string_keys(void **state) {
 }
 
 static void test_trie_hash_insert_1_mil_32_bits_values(void **state) {
-  PTrieHash hash = trh_Create();
+  PHsh hash = trh_Create();
   size_t currentTime = tf_CurrentTimeMS();
   for(uint32_t i = 0; i <= 1000000; i++) {
     trh_Integer32_Insert(hash, i, 1000000 - i);
@@ -216,7 +216,7 @@ static void test_trie_hash_insert_1_mil_32_bits_values(void **state) {
 }
 
 static void test_trie_hash_get_1_mil_values(void **state) {
-  PTrieHash hash = trh_Create();
+  PHsh hash = trh_Create();
   for(uint32_t i = 0; i <= 1000000; i++) {
     trh_Integer32_Insert(hash, i, 1000000 - i);
   }
@@ -230,7 +230,7 @@ static void test_trie_hash_get_1_mil_values(void **state) {
 }
 
 static void test_trie_hash_del_1_mil_values(void **state) {
-  PTrieHash hash = trh_Create();
+  PHsh hash = trh_Create();
   for(uint32_t i = 0; i <= 1000000; i++) {
     trh_Integer32_Insert(hash, i, 1000000 - i);
   }

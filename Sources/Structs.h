@@ -193,12 +193,12 @@ typedef HttpMetaData *PHttpMetaData;
 
 typedef struct TrieNode_t *PTrieNode;
 
-typedef struct TrieHash_t {
+typedef struct Hsh_t {
   uint32_t count;
   PTrieNode parentNode;
-} TrieHash;
+} Hsh;
 
-typedef TrieHash *PTrieHash;
+typedef Hsh *PHsh;
 
 typedef struct TrieNode_t {
   uint32_t count;
@@ -212,8 +212,8 @@ typedef struct Key_t {
 } Key;
 
 typedef struct Hash_t {
-  PTrieHash hash;
-  PTrieHash valuesSize;
+  PHsh hash;
+  PHsh valuesSize;
 } Hash;
 
 typedef struct HttpRequest_t {
@@ -259,7 +259,7 @@ typedef struct JsonElement_t {
 typedef JsonElement *PJsonElement;
 
 typedef struct JsonObject_t {
-  PTrieHash hsh;
+  PHsh hsh;
   uint8_t selfContained;
 } JsonObject;
 

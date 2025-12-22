@@ -6,14 +6,14 @@
 PTrieNode trn_Create();
 uint8_t trn_AddValues(PTrieNode self, PVOID key, uint32_t keySize, PVOID value, uint32_t valueSize, uint32_t position);
 
-PTrieHash trh_Create() {
-  PTrieHash self = crm_Alloc(sizeof(TrieHash));
-  memset(self, 0, sizeof(TrieHash));
+PHsh trh_Create() {
+  PHsh self = crm_Alloc(sizeof(Hsh));
+  memset(self, 0, sizeof(Hsh));
   self->parentNode = trn_Create();
   return self;
 }
 
-void trh_Add(PTrieHash self, PVOID key, uint32_t keySize, PVOID value, uint32_t valueSize) {
+void trh_Add(PHsh self, PVOID key, uint32_t keySize, PVOID value, uint32_t valueSize) {
   if(!trn_AddValues(self->parentNode, key, keySize, value, valueSize, 0)) {
     self->count++;
   }
@@ -74,27 +74,27 @@ uint8_t trn_RemoveNode_t(PTrieNode self, PVOID key, uint32_t keySize, uint32_t p
   return deleted;
 }
 
-void trh_Buffer_AddToIndex(PTrieHash self, uint32_t id, PVOID buffer, uint32_t bufferSize) {
+void trh_Buffer_AddToIndex(PHsh self, uint32_t id, PVOID buffer, uint32_t bufferSize) {
   trh_Add(self, &id, sizeof(uint32_t), buffer, bufferSize);
 }
 
-void trh_Buffer_AddToIndex64(PTrieHash self, uint64_t id, PVOID buffer, uint32_t bufferSize) {
+void trh_Buffer_AddToIndex64(PHsh self, uint64_t id, PVOID buffer, uint32_t bufferSize) {
   trh_Add(self, &id, sizeof(uint64_t), buffer, bufferSize);
 }
 
-PVOID trh_Buffer_GetFromIndex(PTrieHash self, uint32_t id) {
+PVOID trh_Buffer_GetFromIndex(PHsh self, uint32_t id) {
   return trh_GetBuffer(self, &id, sizeof(uint32_t));
 }
 
-PVOID trh_Buffer_GetFromIndex64(PTrieHash self, uint64_t id) {
+PVOID trh_Buffer_GetFromIndex64(PHsh self, uint64_t id) {
   return trh_GetBuffer(self, &id, sizeof(uint64_t));
 }
 
-void trh_Buffer_RemoveAtIndex(PTrieHash self, uint32_t id) {
+void trh_Buffer_RemoveAtIndex(PHsh self, uint32_t id) {
   trh_RemoveNode(self, &id, sizeof(uint32_t));
 }
 
-void trh_Buffer_RemoveAtIndex64(PTrieHash self, uint64_t id) {
+void trh_Buffer_RemoveAtIndex64(PHsh self, uint64_t id) {
   trh_RemoveNode(self, &id, sizeof(uint64_t));
 }
 
@@ -131,7 +131,7 @@ void trh_GetValues_t(PTrieNode self, Array values) {
   }
 }
 
-Array trh_GetValues(PTrieHash self, size_t valueSize) {
+Array trh_GetValues(PHsh self, size_t valueSize) {
   Array response = arr_Init(valueSize);
   trh_GetValues_t(self->parentNode, response);
   return response;
@@ -185,7 +185,7 @@ void trh_GetKeys_t(PTrieNode self, Array keys, Array currentKey, size_t position
   }
 }
 
-Array trh_GetKeys(PTrieHash self) {
+Array trh_GetKeys(PHsh self) {
   Array response = arr_Init(sizeof(Key));
   Array currentKey = arr_Init(sizeof(uint8_t));
   trh_GetKeys_t(self->parentNode, response, currentKey, 0);
@@ -201,11 +201,11 @@ void trh_FreeKeys(Array keys) {
   arr_Delete(keys);
 }
 
-PVOID trh_GetBuffer(PTrieHash self, PVOID key, uint32_t keySize) {
+PVOID trh_GetBuffer(PHsh self, PVOID key, uint32_t keySize) {
   return trn_GetBuffer_t(self->parentNode, key, keySize, 0);
 }
 
-void trh_RemoveNode(PTrieHash self, PVOID key, uint32_t keySize) {
+void trh_RemoveNode(PHsh self, PVOID key, uint32_t keySize) {
   if(trn_RemoveNode_t(self->parentNode, key, keySize, 0)) {
     self->count--;
   }
@@ -238,19 +238,19 @@ uint8_t trn_AddValues(PTrieNode self, PVOID key, uint32_t keySize, PVOID value, 
   return trn_AddValues(node, key, keySize, value, valueSize, position + 1);
 }
 
-void trh_Integer32_Insert(PTrieHash self, uint32_t key, uint32_t value) {
+void trh_Integer32_Insert(PHsh self, uint32_t key, uint32_t value) {
   trh_Add(self, &key, sizeof(uint32_t), &value, sizeof(uint32_t));
 }
 
-PVOID trh_Integer32_Get(PTrieHash self, uint32_t key) {
+PVOID trh_Integer32_Get(PHsh self, uint32_t key) {
   return trh_GetBuffer(self, &key, sizeof(uint32_t));
 }
 
-void trh_Integer32_RemoveElement(PTrieHash self, uint32_t key) {
+void trh_Integer32_RemoveElement(PHsh self, uint32_t key) {
   trh_RemoveNode(self, &key, sizeof(uint32_t));
 }
 
-void trh_Delete(PTrieHash self) {
+void trh_Delete(PHsh self) {
   trn_DeleteNodes(self->parentNode);
   crm_Free(self);
 }
