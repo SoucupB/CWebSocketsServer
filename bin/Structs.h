@@ -4,9 +4,6 @@
 
 #define PVOID void*
 
-#define crm_Alloc malloc
-#define crm_Free free
-
 struct WebSocketServer_t;
 typedef struct WebSocketServer_t WebSocketServer;
 typedef WebSocketServer *PWebSocketServer;
