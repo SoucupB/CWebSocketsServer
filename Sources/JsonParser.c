@@ -373,8 +373,9 @@ JsonElement json_Map_Create() {
 
 JsonElement json_String_Create(char *string) {
   PHttpString str = malloc(sizeof(HttpString));
-  str->buffer = string;
   str->sz = strlen(string);
+  str->buffer = malloc(str->sz);
+  memcpy(str->buffer, string, str->sz);
 
   return (JsonElement) {
     .type = JSON_STRING,
