@@ -269,7 +269,33 @@ static void test_jwt_parse_correct(void **state) {
     .sz = strlen("a-string-secret-at-least-256-bits-long")
   });
   assert_ptr_not_equal(jwt, NULL);
+  assert_int_equal(jwt->header.type, JSON_JSON);
+  assert_int_equal(jwt->payload.type, JSON_JSON);
   jwt_Delete(jwt);
+}
+
+static void test_jwt_parse_correct_invalid_header(void **state) {
+  char *jwtCode = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVC9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiYWRtaW4iOnRydWUsImlhdCI6MTUxNjIzOTAyMn0.KMUFsIDTnFmyG3nMiGM6H9FNFUROf3wh7SmqJp-QV30";
+  PJWT jwt = jwt_Parse((HttpString) {
+    .buffer = jwtCode,
+    .sz = strlen(jwtCode)
+  }, (HttpString) {
+    .buffer = "a-string-secret-at-least-256-bits-long",
+    .sz = strlen("a-string-secret-at-least-256-bits-long")
+  });
+  assert_ptr_equal(jwt, NULL);
+}
+
+static void test_jwt_parse_correct_invalid_payload(void **state) {
+  char *jwtCode = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiYWRtaW4iOnRydWUsImlhdCI6MTUxNjIzOTAyMn.KMUFsIDTnFmyG3nMiGM6H9FNFUROf3wh7SmqJp-QV30";
+  PJWT jwt = jwt_Parse((HttpString) {
+    .buffer = jwtCode,
+    .sz = strlen(jwtCode)
+  }, (HttpString) {
+    .buffer = "a-string-secret-at-least-256-bits-long",
+    .sz = strlen("a-string-secret-at-least-256-bits-long")
+  });
+  assert_ptr_equal(jwt, NULL);
 }
 
 int main() {
@@ -297,6 +323,8 @@ int main() {
     cmocka_unit_test_prestate(test_jwt_is_jwt_format_invalid_spacing_missing_points, NULL),
     cmocka_unit_test_prestate(test_jwt_is_jwt_format_valid_small, NULL),
     cmocka_unit_test_prestate(test_jwt_parse_correct, NULL),
+    cmocka_unit_test_prestate(test_jwt_parse_correct_invalid_header, NULL),
+    cmocka_unit_test_prestate(test_jwt_parse_correct_invalid_payload, NULL),
   };
   const uint32_t value = cmocka_run_group_tests(tests, NULL, NULL);
   return value;

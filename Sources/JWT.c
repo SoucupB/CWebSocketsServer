@@ -314,15 +314,20 @@ PJWT jwt_Parse(HttpString jwtStr, HttpString secret) {
     jwt_Delete(response);
     return NULL;
   }
-
-  string_Print((HttpString) {
-    .buffer = headerStr,
+  JsonElement headerJson = json_Parse((HttpString) {
+    .buffer = (char *)headerStr,
     .sz = headerSize
-  });
-  string_Print((HttpString) {
-    .buffer = payloadStr,
+  }, NULL);
+  JsonElement payloadJson = json_Parse((HttpString) {
+    .buffer = (char *)payloadStr,
     .sz = payloadSize
-  });
+  }, NULL);
+  response->header = headerJson;
+  response->payload = payloadJson;
+  if(payloadJson.type != JSON_JSON || headerJson.type != JSON_JSON) {
+    jwt_Delete(response);
+    return NULL;
+  }
   return response;
 }
 
