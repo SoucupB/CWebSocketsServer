@@ -888,6 +888,11 @@ typedef struct RequestStruct_t {
   PSocketMethod onSuccess;
   PSocketMethod onFailure;
 } RequestStruct;
+typedef struct JWT_t {
+  JsonElement header;
+  JsonElement payload;
+} JWT;
+typedef JWT *PJWT;
 Array arr_Init(size_t size);
 Array arr_InitWithCapacity(size_t size, size_t count);
 void arr_Push(Array self, void *buffer);
@@ -2321,6 +2326,7 @@ extern int toupper_l (int __c, locale_t __l) __attribute__ ((__nothrow__ , __lea
 
        
 HttpString string_DeepCopy(HttpString str);
+void string_Print(HttpString str);
 static inline PHttpMetaData http_InitMetadata();
 static inline PURL http_URL_Init();
 static inline void http_UpdateString(PHttpString string, char *buffer, char *_endBuffer);
@@ -3643,8 +3649,9 @@ JsonElement json_Map_Create() {
 }
 JsonElement json_String_Create(char *string) {
   PHttpString str = malloc(sizeof(HttpString));
-  str->buffer = string;
   str->sz = strlen(string);
+  str->buffer = malloc(str->sz);
+  memcpy(str->buffer, string, str->sz);
   return (JsonElement) {
     .type = JSON_STRING,
     .value = str
@@ -4079,15 +4086,15 @@ JsonElement json_Array_At(JsonElement arr, size_t index) {
   return ((JsonElement *)vct->buffer)[index];
 }
 size_t json_Array_Size(JsonElement arr) {
-  ((void) sizeof ((arr.type == JSON_ARRAY) ? 1 : 0), __extension__ ({ if (arr.type == JSON_ARRAY) ; else __assert_fail ("arr.type == JSON_ARRAY", "bin/svv.c", 2684, __extension__ __PRETTY_FUNCTION__); }));
+  ((void) sizeof ((arr.type == JSON_ARRAY) ? 1 : 0), __extension__ ({ if (arr.type == JSON_ARRAY) ; else __assert_fail ("arr.type == JSON_ARRAY", "bin/svv.c", 2685, __extension__ __PRETTY_FUNCTION__); }));
   return ((Array)arr.value)->size;
 }
 int64_t json_Integer_Get(JsonElement arr) {
-  ((void) sizeof ((arr.type == JSON_INTEGER) ? 1 : 0), __extension__ ({ if (arr.type == JSON_INTEGER) ; else __assert_fail ("arr.type == JSON_INTEGER", "bin/svv.c", 2689, __extension__ __PRETTY_FUNCTION__); }));
+  ((void) sizeof ((arr.type == JSON_INTEGER) ? 1 : 0), __extension__ ({ if (arr.type == JSON_INTEGER) ; else __assert_fail ("arr.type == JSON_INTEGER", "bin/svv.c", 2690, __extension__ __PRETTY_FUNCTION__); }));
   return *((int64_t *)arr.value);
 }
 float json_Number_Get(JsonElement arr) {
-  ((void) sizeof ((arr.type == JSON_NUMBER) ? 1 : 0), __extension__ ({ if (arr.type == JSON_NUMBER) ; else __assert_fail ("arr.type == JSON_NUMBER", "bin/svv.c", 2694, __extension__ __PRETTY_FUNCTION__); }));
+  ((void) sizeof ((arr.type == JSON_NUMBER) ? 1 : 0), __extension__ ({ if (arr.type == JSON_NUMBER) ; else __assert_fail ("arr.type == JSON_NUMBER", "bin/svv.c", 2695, __extension__ __PRETTY_FUNCTION__); }));
   return *((float *)arr.value);
 }
        
@@ -4095,6 +4102,8 @@ HttpString jwt_Encode(JsonElement payload, HttpString secret, uint64_t expiratio
 size_t jwt_Base64_Size_Public(size_t sz);
 uint8_t jwt_IsSigned(HttpString str, HttpString secret);
 uint8_t jwt_IsValid(HttpString str, HttpString secret);
+PJWT jwt_Parse(HttpString jwtStr, HttpString secret);
+void jwt_Delete(PJWT self);
         
         
         
@@ -8364,6 +8373,62 @@ uint8_t jwt_IsValid(HttpString str, HttpString secret) {
   }
   return jwt_IsSigned(str, secret);
 }
+static inline void jwt_HeaderPayload(HttpString jwtStr, HttpString *headerPtr, HttpString *payloadPtr) {
+  size_t firstPointIndex = 0;
+  while(firstPointIndex < jwtStr.sz && jwtStr.buffer[firstPointIndex] != '.') {
+    firstPointIndex++;
+  }
+  size_t secondPointIndex = firstPointIndex + 1;
+  while(secondPointIndex < jwtStr.sz && jwtStr.buffer[secondPointIndex] != '.') {
+    secondPointIndex++;
+  }
+  headerPtr->buffer = jwtStr.buffer;
+  headerPtr->sz = firstPointIndex;
+  payloadPtr->buffer = jwtStr.buffer + firstPointIndex + 1;
+  payloadPtr->sz = secondPointIndex - firstPointIndex - 1;
+}
+PJWT jwt_Parse(HttpString jwtStr, HttpString secret) {
+  if(!jwt_IsValid(jwtStr, secret)) {
+    return ((void *)0);
+  }
+  PJWT response = malloc(sizeof(JWT));
+  memset(response, 0, sizeof(JWT));
+  HttpString header;
+  HttpString payload;
+  jwt_HeaderPayload(jwtStr, &header, &payload);
+  uint8_t headerStr[header.sz];
+  size_t headerSize;
+  if(!jwt_DecodeURLEncodedBase64(header, headerStr, &headerSize)) {
+    jwt_Delete(response);
+    return ((void *)0);
+  }
+  uint8_t payloadStr[payload.sz];
+  size_t payloadSize;
+  if(!jwt_DecodeURLEncodedBase64(payload, payloadStr, &payloadSize)) {
+    jwt_Delete(response);
+    return ((void *)0);
+  }
+  JsonElement headerJson = json_Parse((HttpString) {
+    .buffer = (char *)headerStr,
+    .sz = headerSize
+  }, ((void *)0));
+  JsonElement payloadJson = json_Parse((HttpString) {
+    .buffer = (char *)payloadStr,
+    .sz = payloadSize
+  }, ((void *)0));
+  response->header = headerJson;
+  response->payload = payloadJson;
+  if(payloadJson.type != JSON_JSON || headerJson.type != JSON_JSON) {
+    jwt_Delete(response);
+    return ((void *)0);
+  }
+  return response;
+}
+void jwt_Delete(PJWT self) {
+  json_DeleteElement(self->header);
+  json_DeleteElement(self->payload);
+  free(self);
+}
 HttpString jwt_Encode(JsonElement payload, HttpString secret, uint64_t expirationInMS) {
   return jwt_Encode_t(payload, secret, tf_CurrentTimeMS(), expirationInMS);
 }
@@ -9587,7 +9652,7 @@ void sock_PushCloseConnMethod(PSocketServer self, Connection conn, size_t index)
   tf_ExecuteAfter(self->timeServer.timeServer, timeFragment, self->timeServer.timeout);
 }
 void sock_SetMaxConnections(PSocketServer self, int32_t maxActiveConnections) {
-  ((void) sizeof ((maxActiveConnections < 1024) ? 1 : 0), __extension__ ({ if (maxActiveConnections < 1024) ; else __assert_fail ("maxActiveConnections < MAX_CONNECTIONS_PER_SERVER", "bin/svv.c", 3139, __extension__ __PRETTY_FUNCTION__); }));
+  ((void) sizeof ((maxActiveConnections < 1024) ? 1 : 0), __extension__ ({ if (maxActiveConnections < 1024) ; else __assert_fail ("maxActiveConnections < MAX_CONNECTIONS_PER_SERVER", "bin/svv.c", 3200, __extension__ __PRETTY_FUNCTION__); }));
   self->maxActiveConnections = maxActiveConnections;
 }
 void sock_Write_Push(PSocketServer self, DataFragment *dt) {
@@ -9913,6 +9978,9 @@ HttpString string_DeepCopy(HttpString str) {
   memcpy(response.buffer, str.buffer, str.sz);
   response.sz = str.sz;
   return response;
+}
+void string_Print(HttpString str) {
+  printf("%.*s\n", (int32_t)str.sz, str.buffer);
 }
 
 struct timezone

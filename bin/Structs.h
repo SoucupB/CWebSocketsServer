@@ -283,3 +283,10 @@ typedef struct RequestStruct_t {
   PSocketMethod onSuccess; // void (*onSuccess)(PHttpResponse req, void *mirror)
   PSocketMethod onFailure; // void (*onFailure)(RequestError error, void *mirror)
 } RequestStruct;
+
+typedef struct JWT_t {
+  JsonElement header;
+  JsonElement payload;
+} JWT;
+
+typedef JWT *PJWT;
