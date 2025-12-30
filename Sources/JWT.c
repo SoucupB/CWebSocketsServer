@@ -6,6 +6,7 @@
 #include <string.h>
 #include "Array.h"
 #include <unistd.h>
+#include "String.h"
 
 #define MAXIMUM_JWT_SIZE 1024 * 1024 * 10
 
@@ -275,6 +276,60 @@ uint8_t jwt_IsValid(HttpString str, HttpString secret) {
     return 0;
   }
   return jwt_IsSigned(str, secret);
+}
+
+static inline void jwt_HeaderPayload(HttpString jwtStr, HttpString *headerPtr, HttpString *payloadPtr) {
+  size_t firstPointIndex = 0;
+  while(firstPointIndex < jwtStr.sz && jwtStr.buffer[firstPointIndex] != '.') {
+    firstPointIndex++;
+  }
+  size_t secondPointIndex = firstPointIndex + 1;
+  while(secondPointIndex < jwtStr.sz && jwtStr.buffer[secondPointIndex] != '.') {
+    secondPointIndex++;
+  }
+  headerPtr->buffer = jwtStr.buffer;
+  headerPtr->sz = firstPointIndex;
+  payloadPtr->buffer = jwtStr.buffer + firstPointIndex + 1;
+  payloadPtr->sz = secondPointIndex - firstPointIndex - 1;
+}
+
+PJWT jwt_Parse(HttpString jwtStr, HttpString secret) {
+  if(!jwt_IsValid(jwtStr, secret)) {
+    return NULL;
+  }
+  PJWT response = malloc(sizeof(JWT));
+  memset(response, 0, sizeof(JWT));
+  HttpString header;
+  HttpString payload;
+  jwt_HeaderPayload(jwtStr, &header, &payload);
+  uint8_t headerStr[header.sz];
+  size_t headerSize;
+  if(!jwt_DecodeURLEncodedBase64(header, headerStr, &headerSize)) {
+    jwt_Delete(response);
+    return NULL;
+  }
+  uint8_t payloadStr[payload.sz];
+  size_t payloadSize;
+  if(!jwt_DecodeURLEncodedBase64(payload, payloadStr, &payloadSize)) {
+    jwt_Delete(response);
+    return NULL;
+  }
+
+  string_Print((HttpString) {
+    .buffer = headerStr,
+    .sz = headerSize
+  });
+  string_Print((HttpString) {
+    .buffer = payloadStr,
+    .sz = payloadSize
+  });
+  return response;
+}
+
+void jwt_Delete(PJWT self) {
+  json_DeleteElement(self->header);
+  json_DeleteElement(self->payload);
+  free(self);
 }
 
 HttpString jwt_Encode(JsonElement payload, HttpString secret, uint64_t expirationInMS) {

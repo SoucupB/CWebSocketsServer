@@ -259,6 +259,19 @@ static void test_jwt_is_jwt_format_valid_small(void **state) {
   }));
 }
 
+static void test_jwt_parse_correct(void **state) {
+  char *jwtCode = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiYWRtaW4iOnRydWUsImlhdCI6MTUxNjIzOTAyMn0.KMUFsIDTnFmyG3nMiGM6H9FNFUROf3wh7SmqJp-QV30";
+  PJWT jwt = jwt_Parse((HttpString) {
+    .buffer = jwtCode,
+    .sz = strlen(jwtCode)
+  }, (HttpString) {
+    .buffer = "a-string-secret-at-least-256-bits-long",
+    .sz = strlen("a-string-secret-at-least-256-bits-long")
+  });
+  assert_ptr_not_equal(jwt, NULL);
+  jwt_Delete(jwt);
+}
+
 int main() {
   const struct CMUnitTest tests[] = {
     cmocka_unit_test_prestate(test_jwt_hmac_create, NULL),
@@ -283,6 +296,7 @@ int main() {
     cmocka_unit_test_prestate(test_jwt_is_jwt_format_invalid_spacing_back, NULL),
     cmocka_unit_test_prestate(test_jwt_is_jwt_format_invalid_spacing_missing_points, NULL),
     cmocka_unit_test_prestate(test_jwt_is_jwt_format_valid_small, NULL),
+    cmocka_unit_test_prestate(test_jwt_parse_correct, NULL),
   };
   const uint32_t value = cmocka_run_group_tests(tests, NULL, NULL);
   return value;
