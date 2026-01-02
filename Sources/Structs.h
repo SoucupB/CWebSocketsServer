@@ -290,3 +290,12 @@ typedef struct JWT_t {
 } JWT;
 
 typedef JWT *PJWT;
+
+typedef struct NetworkBuffer_t {
+  void *buffer;
+  void *currentBuffer;
+  size_t size;
+  size_t capacity;
+} NetworkBuffer;
+
+typedef NetworkBuffer *PNetworkBuffer;

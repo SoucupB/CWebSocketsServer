@@ -238,6 +238,10 @@ static inline char *_wbs_ToWebSocket(WebSocketObject self, Opcode opcode) {
   return response;
 }
 
+WebSocketObject wbs_Get(char *left, char *right) {
+  return (WebSocketObject) {};
+}
+
 char *wbs_ToWebSocket(WebSocketObject self) {
   return _wbs_ToWebSocket(self, self.opcode);
 }

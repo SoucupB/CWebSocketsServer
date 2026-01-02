@@ -13,6 +13,7 @@ void wbs_Clear_FromWebSocket(Array objects);
 char *wbs_Masked_ToWebSocket(WebSocketObject self);
 void wbs_MaskSwitch(char *buffer);
 char *wbs_Ping(WebSocketObject self);
+WebSocketObject wbs_Get(char *left, char *right);
 
 size_t wbs_Public_HeaderSize(const PWebSocketObject obj, uint8_t shouldBeMasked);
 size_t wbs_Public_PayloadSize(char *buffer);
