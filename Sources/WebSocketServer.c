@@ -257,8 +257,36 @@ uint8_t wss_ProcessConnectionRequest(PWebSocketServer self, PDataFragment dt) {
   return 1;
 }
 
-uint8_t wss_ReceiveMessages(PWebSocketServer self, PDataFragment dt, PSocketMethod routine) {
+PNetworkBuffer wss_FindPayloadChecker(const PWebSocketServer self, const PDataFragment dt) {
+  ActiveConnections *conns = self->activeConnections->buffer;
+  for(size_t i = 0, c = self->activeConnections->size; i < c; i++) {
+    if(dt->conn.fd == conns[i].conn.fd) {
+      return conns[i].buff;
+    }
+  }
+  return NULL;
+}
+
+PNetworkBuffer wss_NetworkBuffer(const PWebSocketServer self, const PDataFragment dt) {
+  PNetworkBuffer buff = wss_FindPayloadChecker(self, dt);
+  if(!buff) {
+    return NULL;
+  }
+  tpd_Push(buff, dt->data, dt->size);
+  return buff;
+}
+
+Array wss_GetObject(const PWebSocketServer self, const PDataFragment dt) {
+  PNetworkBuffer protoBuff = wss_NetworkBuffer(self, dt);
+  if(!protoBuff) {
+    return NULL;
+  }
+  return wbs_Public_ParseData(protoBuff);
+}
+
+int8_t wss_ReceiveMessages(PWebSocketServer self, PDataFragment dt, PSocketMethod routine) {
   Array messages = wbs_FromWebSocket(dt->data, dt->size);
+  // Array messages = wss_GetObject(self, dt);
   if(!messages) {
     return 0;
   }

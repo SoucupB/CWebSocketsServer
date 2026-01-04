@@ -328,3 +328,25 @@ Array wbs_FromWebSocket(char *msg, size_t bufferSize) {
 
   return buffer;
 }
+
+Array wbs_Public_ParseData(PNetworkBuffer self) {
+  size_t sz = tpd_Size(self);
+  Array response = arr_Init(sizeof(WebSocketObject));
+  while((sz = tpd_Size(self)) && sz) {
+    char *bff = tpd_StartingBuffer(self);
+    char *nxt = wbs_NextMessageIterator(bff, sz);
+    if(!nxt) {
+      return response;
+    }
+    size_t currentSliceSize = (size_t)(nxt - bff);
+    WebSocketObject obj = (WebSocketObject) {
+      .buffer = wbs_ExtractPayload(bff),
+      .sz = wbs_PayloadSize(bff),
+      .opcode = wbs_GetCode(bff)
+    };
+    arr_Push(response, &obj);
+    tpd_Retract(self, currentSliceSize);
+    sz = tpd_Size(self);
+  }
+  return response;
+}

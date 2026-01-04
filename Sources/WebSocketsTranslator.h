@@ -2,6 +2,7 @@
 #include <stdint.h>
 #include <stddef.h>
 #include "Structs.h"
+#include "NetworkBuffer.h"
 
 char *wbs_ToWebSocket(WebSocketObject self);
 Array/*WebSocketObject*/ wbs_FromWebSocket(char *msg, size_t bufferSize);
@@ -22,3 +23,4 @@ size_t wbs_Raw_Public_HeaderSize(char *buffer);
 
 char *wbs_Public_PayloadBuffer(char *buffer);
 uint8_t wbs_Public_GetCode(char *buffer);
+Array wbs_Public_ParseData(PNetworkBuffer self);
