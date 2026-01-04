@@ -21,9 +21,9 @@ static void test_network_buffer_create(void **state) {
 static void test_network_buffer_insert(void **state) {
   PNetworkBuffer buffer = tpd_Create(1024);
   uint32_t someNumbers[] = {1, 2, 3, 4, 5, 6, 7};
-  tpd_Push(buffer, someNumbers, BUFFER_SIZE(someNumbers));
-  assert_int_equal(tpd_Size(buffer), BUFFER_SIZE(someNumbers));
-  assert_memory_equal(tpd_StartingBuffer(buffer), someNumbers, BUFFER_SIZE(someNumbers));
+  tpd_Push(buffer, someNumbers, sizeof(someNumbers));
+  assert_int_equal(tpd_Size(buffer), sizeof(someNumbers));
+  assert_memory_equal(tpd_StartingBuffer(buffer), someNumbers, sizeof(someNumbers));
   tpd_Delete(buffer);
 }
 
@@ -31,20 +31,20 @@ static void test_network_buffer_overflow(void **state) {
   PNetworkBuffer buffer = tpd_Create(1024);
   uint32_t someNumbers[1024];
   memset(someNumbers, 1, sizeof(someNumbers));
-  tpd_Push(buffer, someNumbers, BUFFER_SIZE(someNumbers));
-  assert_int_equal(tpd_Size(buffer), BUFFER_SIZE(someNumbers));
-  assert_memory_equal(tpd_StartingBuffer(buffer), someNumbers, BUFFER_SIZE(someNumbers));
+  tpd_Push(buffer, someNumbers, sizeof(someNumbers));
+  assert_int_equal(tpd_Size(buffer), sizeof(someNumbers));
+  assert_memory_equal(tpd_StartingBuffer(buffer), someNumbers, sizeof(someNumbers));
   tpd_Delete(buffer);
 }
 
 static void test_network_buffer_retract(void **state) {
   PNetworkBuffer buffer = tpd_Create(1024);
   uint32_t someNumbers[] = {1, 2, 3, 4, 5, 6, 7};
-  uint32_t newBuffer[] = {5, 6, 7};
-  tpd_Push(buffer, someNumbers, BUFFER_SIZE(someNumbers));
-  tpd_Retract(buffer, 4);
-  assert_int_equal(tpd_Size(buffer), BUFFER_SIZE(newBuffer));
-  assert_memory_equal(tpd_StartingBuffer(buffer), newBuffer, BUFFER_SIZE(newBuffer));
+  uint32_t expectedBuffer[] = {5, 6, 7};
+  tpd_Push(buffer, someNumbers, sizeof(someNumbers));
+  tpd_Retract(buffer, 4 * sizeof(uint32_t));
+  assert_int_equal(tpd_Size(buffer), sizeof(expectedBuffer));
+  assert_memory_equal(tpd_StartingBuffer(buffer), expectedBuffer, sizeof(expectedBuffer));
   tpd_Delete(buffer);
 }
 

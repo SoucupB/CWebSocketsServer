@@ -1,6 +1,11 @@
 #include "NetworkBuffer.h"
 #include <stdlib.h>
 #include <string.h>
+#include <stdio.h>
+
+static inline size_t tpd_Min(const size_t a, const size_t b) {
+  return a < b ? a : b;
+}
 
 PNetworkBuffer tpd_Create(size_t maxSizeB) {
   PNetworkBuffer self = malloc(sizeof(NetworkBuffer));
@@ -33,17 +38,13 @@ static inline void tpd_Retract_Realloc(const PNetworkBuffer self) {
 }
 
 void tpd_Retract(PNetworkBuffer self, size_t bytes) {
-  if(self->size < bytes) {
-    self->size = 0;
-  }
-  else {
-    self->size -= bytes;
-  }
+  bytes = tpd_Min(bytes, self->size);
+  self->size -= bytes;
+  self->currentBuffer += bytes;
   if(self->maxRetriedSize >= self->size * 2) {
     tpd_Retract_Realloc(self);
     return ;
   }
-  self->currentBuffer += bytes;
 }
 
 void *tpd_StartingBuffer(PNetworkBuffer self) {
