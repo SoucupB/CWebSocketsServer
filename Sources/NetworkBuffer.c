@@ -15,6 +15,7 @@ PNetworkBuffer tpd_Create(size_t maxSizeB) {
   self->size = 0;
   self->capacity = capacity;
   self->maxRetriedSize = 0;
+  self->maxSizeB = maxSizeB;
   return self;
 }
 
@@ -66,11 +67,15 @@ static inline void *tpd_EndBuffer(const PNetworkBuffer self) {
   return (void *)(self->currentBuffer + self->size);
 }
 
-void tpd_Push(PNetworkBuffer self, void *buffer, size_t size) {
+uint8_t tpd_Push(PNetworkBuffer self, void *buffer, size_t size) {
+  if(self->size + size >= self->maxSizeB) {
+    return 0;
+  }
   if(self->maxRetriedSize + size >= self->capacity) {
     tpd_OverPush(self, buffer, size);
   }
   memcpy(tpd_EndBuffer(self), buffer, size);
   self->size += size;
   self->maxRetriedSize += size;
+  return 1;
 }

@@ -45,6 +45,7 @@ PWebSocketServer wss_Create(uint16_t port) {
   self->pendingConnections = arr_Init(sizeof(Connection));
   self->pendingPingRequests = arr_Init(sizeof(PingConnData));
   self->activeConnections = arr_Init(sizeof(ActiveConnections));
+  self->maxBSize = 1024 * 1024;
   wss_SetMethods(self);
   return self;
 }
@@ -272,7 +273,9 @@ PNetworkBuffer wss_NetworkBuffer(const PWebSocketServer self, const PDataFragmen
   if(!buff) {
     return NULL;
   }
-  tpd_Push(buff, dt->data, dt->size);
+  if(!tpd_Push(buff, dt->data, dt->size)) {
+    return NULL;
+  }
   return buff;
 }
 
@@ -284,9 +287,16 @@ Array wss_GetObject(const PWebSocketServer self, const PDataFragment dt) {
   return wbs_Public_ParseData(protoBuff);
 }
 
+static inline void wss_CleanMessages(const Array arr) {
+  WebSocketObject *objs = arr->buffer;
+  for(size_t i = 0, c = arr->size; i < c; i++) {
+    free(objs[i]._fullMessage);
+  }
+  arr_Delete(arr);
+}
+
 int8_t wss_ReceiveMessages(PWebSocketServer self, PDataFragment dt, PSocketMethod routine) {
-  Array messages = wbs_FromWebSocket(dt->data, dt->size);
-  // Array messages = wss_GetObject(self, dt);
+  Array messages = wss_GetObject(self, dt);
   if(!messages) {
     return 0;
   }
@@ -315,7 +325,8 @@ int8_t wss_ReceiveMessages(PWebSocketServer self, PDataFragment dt, PSocketMetho
     void (*cMethod)(PDataFragment, void *) = routine->method;
     cMethod(&responseDt, routine->mirrorBuffer);
   }
-  arr_Delete(messages);
+  // arr_Delete(messages);
+  wss_CleanMessages(messages);
   return validConnection;
 }
 
@@ -354,10 +365,14 @@ static inline void wss_ProcessWsRequests(PWebSocketServer self, PDataFragment dt
   }
 }
 
+void wss_SetMaxBSizeSocket(PWebSocketServer self, size_t bytesSize) {
+  self->maxBSize = bytesSize;
+}
+
 static inline void wss_AddConnection(const PWebSocketServer self, const Connection conn) {
   ActiveConnections conns = {
     .conn = conn,
-    .buff = tpd_Create(1024 * 1024)
+    .buff = tpd_Create(self->maxBSize)
   };
   arr_Push(self->activeConnections, &conns);
 }

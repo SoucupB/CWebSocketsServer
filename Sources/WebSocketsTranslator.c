@@ -339,10 +339,13 @@ Array wbs_Public_ParseData(PNetworkBuffer self) {
       return response;
     }
     size_t currentSliceSize = (size_t)(nxt - bff);
+    char *checkerBuffer = malloc(currentSliceSize);
+    memcpy(checkerBuffer, bff, currentSliceSize);
     WebSocketObject obj = (WebSocketObject) {
-      .buffer = wbs_ExtractPayload(bff),
-      .sz = wbs_PayloadSize(bff),
-      .opcode = wbs_GetCode(bff)
+      .buffer = wbs_ExtractPayload(checkerBuffer),
+      .sz = wbs_PayloadSize(checkerBuffer),
+      .opcode = wbs_GetCode(checkerBuffer),
+      ._fullMessage = checkerBuffer
     };
     arr_Push(response, &obj);
     tpd_Retract(self, currentSliceSize);

@@ -41,6 +41,7 @@ typedef struct WebSocketObject_t {
   char *buffer;
   size_t sz;
   uint8_t opcode;
+  char *_fullMessage;
 } WebSocketObject;
 
 typedef WebSocketObject *PWebSocketObject;
@@ -155,6 +156,7 @@ typedef struct WebSocketServer_t {
   Array pendingPingRequests;
   Array activeConnections;
   PTimeout timeServer;
+  size_t maxBSize;
 } WebSocketServer;
 
 typedef WebSocketServer *PWebSocketServer;
@@ -298,6 +300,7 @@ typedef struct NetworkBuffer_t {
   size_t size;
   size_t capacity;
   size_t maxRetriedSize;
+  size_t maxSizeB;
 } NetworkBuffer;
 
 typedef NetworkBuffer *PNetworkBuffer;

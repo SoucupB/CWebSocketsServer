@@ -29,7 +29,7 @@ static void test_network_buffer_insert(void **state) {
 }
 
 static void test_network_buffer_overflow(void **state) {
-  PNetworkBuffer buffer = tpd_Create(1024);
+  PNetworkBuffer buffer = tpd_Create(1024 * 10);
   uint32_t someNumbers[1024];
   memset(someNumbers, 1, sizeof(someNumbers));
   tpd_Push(buffer, someNumbers, sizeof(someNumbers));
