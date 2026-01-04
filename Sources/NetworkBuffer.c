@@ -9,11 +9,13 @@ PNetworkBuffer tpd_Create(size_t maxSizeB) {
   self->currentBuffer = self->buffer;
   self->size = 0;
   self->capacity = capacity;
+  self->maxRetriedSize = 0;
   return self;
 }
 
 void tpd_Delete(PNetworkBuffer self) {
-
+  free(self->buffer);
+  free(self);
 }
 
 size_t tpd_Size(PNetworkBuffer self) {
@@ -27,17 +29,17 @@ static inline void tpd_Retract_Realloc(const PNetworkBuffer self) {
   free(self->buffer);
   self->buffer = newBuffer;
   self->currentBuffer = newBuffer;
+  self->maxRetriedSize = self->size;
 }
 
 void tpd_Retract(PNetworkBuffer self, size_t bytes) {
-  const size_t oldSize = self->size;
-  if(oldSize < bytes) {
+  if(self->size < bytes) {
     self->size = 0;
   }
   else {
     self->size -= bytes;
   }
-  if(oldSize >= self->size * 2) {
+  if(self->maxRetriedSize >= self->size * 2) {
     tpd_Retract_Realloc(self);
     return ;
   }
@@ -69,4 +71,5 @@ void tpd_Push(PNetworkBuffer self, void *buffer, size_t size) {
   }
   memcpy(tpd_EndBuffer(self), buffer, size);
   self->size += size;
+  self->maxRetriedSize += size;
 }

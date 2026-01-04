@@ -296,6 +296,7 @@ typedef struct NetworkBuffer_t {
   void *currentBuffer;
   size_t size;
   size_t capacity;
+  size_t maxRetriedSize;
 } NetworkBuffer;
 
 typedef NetworkBuffer *PNetworkBuffer;
