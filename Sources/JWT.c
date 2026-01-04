@@ -81,7 +81,7 @@ HttpString jwt_Encode_t(JsonElement payload, HttpString secret, uint64_t iam, ui
   char *bff = response->buffer;
   size_t sz = response->size;
   arr_DeleteWOBuffer(response);
-  free(payloadString.buffer);
+  crm_Free(payloadString.buffer);
   return (HttpString){
     .buffer = bff,
     .sz = sz
@@ -297,7 +297,7 @@ PJWT jwt_Parse(HttpString jwtStr, HttpString secret) {
   if(!jwt_IsValid(jwtStr, secret)) {
     return NULL;
   }
-  PJWT response = malloc(sizeof(JWT));
+  PJWT response = crm_Alloc(sizeof(JWT));
   memset(response, 0, sizeof(JWT));
   HttpString header;
   HttpString payload;
@@ -334,7 +334,7 @@ PJWT jwt_Parse(HttpString jwtStr, HttpString secret) {
 void jwt_Delete(PJWT self) {
   json_DeleteElement(self->header);
   json_DeleteElement(self->payload);
-  free(self);
+  crm_Free(self);
 }
 
 HttpString jwt_Encode(JsonElement payload, HttpString secret, uint64_t expirationInMS) {
@@ -344,7 +344,7 @@ HttpString jwt_Encode(JsonElement payload, HttpString secret, uint64_t expiratio
 static inline void jwt_EncodeElement(JsonElement payload, uint8_t *code, size_t *sz) {
   HttpString payloadString = json_Element_ToString(payload);
   jwt_ToBase64UrlEncoded(payloadString, code, sz);
-  free(payloadString.buffer);
+  crm_Free(payloadString.buffer);
 }
 
 void jwt_HMAC(HttpString key, HttpString secret, uint8_t *hmacResult, size_t *currentSize) {

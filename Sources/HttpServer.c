@@ -8,7 +8,7 @@
 void httpS_InitializeMethods(PHttpServer self);
 
 PHttpServer httpS_Create(uint16_t port) {
-  PHttpServer self = malloc(sizeof(HttpServer));
+  PHttpServer self = crm_Alloc(sizeof(HttpServer));
   memset(self, 0, sizeof(HttpServer));
   self->server = sock_Create(port);
   httpS_InitializeMethods(self);
@@ -51,7 +51,7 @@ PHttpResponse httpS_Json_Post(JsonElement jsn) {
   if(jsn.type == JSON_JSON) {
     http_Response_SetJSON(response);
   }
-  free(str.buffer);
+  crm_Free(str.buffer);
   return response;
 }
 
@@ -86,7 +86,7 @@ void remote_OnReceiveMessage(PDataFragment frag, void *buffer) {
     .size = responseString.sz
   };
   sock_Write_Push(self->server, &dt);
-  free(responseString.buffer);
+  crm_Free(responseString.buffer);
   http_Response_Delete(response);
   http_Request_Delete(req);
 }
@@ -102,7 +102,7 @@ void httpS_InitializeMethods(PHttpServer self) {
 void httpS_Delete(PHttpServer self) {
   sock_Method_Delete(self->server->onReceiveMessage);
   sock_Delete(self->server);
-  free(self);
+  crm_Free(self);
 }
 
 void httpS_OnFrame(PHttpServer self, uint64_t deltaMS) {

@@ -32,7 +32,7 @@ void sigpipe_handler(int signum) {
 }
 
 PSocketServer sock_Create(uint16_t port) {
-  PSocketServer server = malloc(sizeof(SocketServer));
+  PSocketServer server = crm_Alloc(sizeof(SocketServer));
   memset(server, 0, sizeof(SocketServer));
   server->connections = arr_Init(sizeof(Connection));
   server->port = port;
@@ -52,14 +52,14 @@ void _sock_CloseConnection(void *buffer) {
   PCloseConnStruct conn = buffer;
   close(conn->conn.fd);
   arr_RemoveElement(conn->self->connections, conn->index);
-  free(buffer);
+  crm_Free(buffer);
 }
 
 void sock_PushCloseConnMethod(PSocketServer self, Connection conn, size_t index) {
   if(!self->timeServer.timeServer) {
     return ;
   }
-  PCloseConnStruct closeCmd = malloc(sizeof(CloseConnStruct));
+  PCloseConnStruct closeCmd = crm_Alloc(sizeof(CloseConnStruct));
   closeCmd->conn = conn;
   closeCmd->self = self;
   closeCmd->index = index;
@@ -78,7 +78,7 @@ void sock_SetMaxConnections(PSocketServer self, int32_t maxActiveConnections) {
 void sock_Write_Push(PSocketServer self, DataFragment *dt) {
   char *memory = dt->data;
   if(dt->persistent) {
-    memory = malloc(dt->size);
+    memory = crm_Alloc(dt->size);
     memcpy(memory, dt->data, dt->size);
   }
   DataFragment newDt = *dt;
@@ -211,9 +211,9 @@ static inline void sock_OnReceiveMessage(PSocketServer self, Connection *conn, s
     sock_ReadData(self, conn, buffer, count);
     return ;
   }
-  void *buffer = malloc(count);
+  void *buffer = crm_Alloc(count);
   sock_ReadData(self, conn, buffer, count);
-  free(buffer);
+  crm_Free(buffer);
 }
 
 void sock_ProcessReadMessage(PSocketServer self) {
@@ -247,21 +247,21 @@ static inline void sock_WriteBufferCleanup(PSocketServer self) {
   DataFragment *dataFragments = self->outputCommands->buffer;
   for(size_t i = 0, c = self->outputCommands->size; i < c; i++) {
     if(dataFragments[i].persistent) {
-      free(dataFragments[i].data);
+      crm_Free(dataFragments[i].data);
     }
   }
   arr_Clear(self->outputCommands);
 }
 
 PSocketMethod sock_Method_Create(void *method, void *mirrorBuffer) {
-  PSocketMethod self = malloc(sizeof(SocketMethod));
+  PSocketMethod self = crm_Alloc(sizeof(SocketMethod));
   self->method = method;
   self->mirrorBuffer = mirrorBuffer;
   return self;
 }
 
 void sock_Method_Delete(PSocketMethod self) {
-  free(self);
+  crm_Free(self);
 }
 
 void sock_ProcessWriteRequests_t(PSocketServer self, Array markedForDeletionRequests) {
@@ -355,7 +355,7 @@ PConnection sock_Client_Connect(uint16_t port, char *ip) {
   if(fd == -1) {
     return NULL;
   }
-  PConnection conn = malloc(sizeof(Connection));
+  PConnection conn = crm_Alloc(sizeof(Connection));
   conn->fd = fd;
   return conn;
 }
@@ -386,7 +386,7 @@ DataFragment sock_Client_Receive(PConnection conn) {
 HttpString sock_Client_ReceiveWithErrors(PConnection conn) {
   DataFragment dt = sock_Client_Receive(conn);
   if(!dt.size) {
-    free(dt.data);
+    crm_Free(dt.data);
     return (HttpString) {
       .buffer = NULL,
     };
@@ -399,14 +399,14 @@ HttpString sock_Client_ReceiveWithErrors(PConnection conn) {
 
 void sock_Client_Free(PConnection conn) {
   close(conn->fd);
-  free(conn);
+  crm_Free(conn);
 }
 
 static inline void sock_Delete_OutputCommands(PSocketServer self) {
   DataFragment *dataFragments = self->outputCommands->buffer;
   for(size_t i = 0, c = self->outputCommands->size; i < c; i++) {
     if(dataFragments[i].persistent) {
-      free(dataFragments[i].data);
+      crm_Free(dataFragments[i].data);
     }
   }
   arr_Delete(self->outputCommands);
@@ -418,5 +418,5 @@ void sock_Delete(PSocketServer self) {
   sock_Delete_OutputCommands(self);
   close(self->serverFD.fd);
   sock_Time_Delete(self);
-  free(self);
+  crm_Free(self);
 }

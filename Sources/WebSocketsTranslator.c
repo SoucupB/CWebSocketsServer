@@ -228,7 +228,7 @@ void wbs_Print(char *buffer) {
 }
 
 static inline char *_wbs_ToWebSocket(WebSocketObject self, Opcode opcode) {
-  char *response = malloc(wbs_Object_HeaderSize(&self, 0));
+  char *response = crm_Alloc(wbs_Object_HeaderSize(&self, 0));
   wbs_ClearHeaderBytes(response);
   wbs_SetFin(response);
   wbs_SetOpcodeTo(response, opcode);
@@ -266,7 +266,7 @@ static inline void wbs_Mask_Set(char *buffer) {
 }
 
 char *wbs_Masked_ToWebSocket(WebSocketObject self) {
-  char *response = malloc(wbs_Object_HeaderSize(&self, 1));
+  char *response = crm_Alloc(wbs_Object_HeaderSize(&self, 1));
   wbs_ClearHeaderBytes(response);
   wbs_SetFin(response);
   wbs_SetMaskFlag(response);
@@ -339,7 +339,7 @@ Array wbs_Public_ParseData(PNetworkBuffer self) {
       return response;
     }
     size_t currentSliceSize = (size_t)(nxt - bff);
-    char *checkerBuffer = malloc(currentSliceSize);
+    char *checkerBuffer = crm_Alloc(currentSliceSize);
     memcpy(checkerBuffer, bff, currentSliceSize);
     WebSocketObject obj = (WebSocketObject) {
       .buffer = wbs_ExtractPayload(checkerBuffer),

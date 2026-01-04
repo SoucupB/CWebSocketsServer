@@ -3,6 +3,9 @@
 #include <stddef.h>
 
 #define PVOID void*
+#define crm_Alloc malloc
+#define crm_Free free
+#define crm_Realloc realloc
 
 struct WebSocketServer_t;
 typedef struct WebSocketServer_t WebSocketServer;

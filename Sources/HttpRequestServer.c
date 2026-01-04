@@ -18,7 +18,7 @@ HttpString sock_Client_ReceiveWithErrors(PConnection conn);
 void httpS_Request_CleanHangingConnections(const PHttpRequestServer self) ;
 
 PHttpRequestServer httpS_Request_Create(int64_t timeoutMS) {
-  PHttpRequestServer self = malloc(sizeof(HttpRequestServer));
+  PHttpRequestServer self = crm_Alloc(sizeof(HttpRequestServer));
   self->requests = arr_Init(sizeof(RequestMetadata));
   self->timeoutMS = timeoutMS;
   return self;
@@ -27,7 +27,7 @@ PHttpRequestServer httpS_Request_Create(int64_t timeoutMS) {
 void httpS_Request_Delete(PHttpRequestServer self) {
   httpS_Request_CleanHangingConnections(self);
   arr_Delete(self->requests);
-  free(self);
+  crm_Free(self);
 }
 
 void httpS_Request_Send(PHttpRequestServer self, RequestStruct request) {
@@ -90,11 +90,11 @@ static inline uint8_t httpS_Request_ProcessCurrentFragment(PHttpRequestServer se
   }
   PHttpResponse httpResponse = http_Response_Parse(response);
   if(!httpResponse) {
-    free(response.buffer);
+    crm_Free(response.buffer);
     httpS_Request_ExecuteErrorMethod(metadata->metadata.onFailure, RESPONSE_PARSE_ERROR);
     return 1;
   }
-  free(response.buffer);
+  crm_Free(response.buffer);
   httpS_Request_ExecuteSuccessMethod(metadata->metadata.onSuccess, httpResponse);
   http_Response_Delete(httpResponse);
   metadata->requestDateMS -= deltaMS;

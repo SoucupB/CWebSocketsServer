@@ -7,7 +7,7 @@ PTrieNode trn_Create();
 uint8_t trn_AddValues(PTrieNode self, PVOID key, uint32_t keySize, PVOID value, uint32_t valueSize, uint32_t position);
 
 PHsh hsh_Create() {
-  PHsh self = malloc(sizeof(Hsh));
+  PHsh self = crm_Alloc(sizeof(Hsh));
   memset(self, 0, sizeof(Hsh));
   self->parentNode = trn_Create();
   return self;
@@ -20,16 +20,16 @@ void hsh_Add(PHsh self, PVOID key, uint32_t keySize, PVOID value, uint32_t value
 }
 
 PTrieNode trn_Create() {
-  PTrieNode self = malloc(sizeof(TrieNode));
+  PTrieNode self = crm_Alloc(sizeof(TrieNode));
   memset(self, 0, sizeof(TrieNode));
-  self->nextNodes = malloc(sizeof(PTrieNode) * 16);
+  self->nextNodes = crm_Alloc(sizeof(PTrieNode) * 16);
   memset(self->nextNodes, 0, sizeof(PTrieNode) * 16);
   return self;
 }
 
 static inline void hsh_FreeNode(PTrieNode self) {
-  free(self->nextNodes);
-  free(self);
+  crm_Free(self->nextNodes);
+  crm_Free(self);
 }
 
 void trn_DeleteNodes(PTrieNode self) {
@@ -40,7 +40,7 @@ void trn_DeleteNodes(PTrieNode self) {
     }
   }
   if(self->buffer) {
-    free(self->buffer);
+    crm_Free(self->buffer);
   }
   hsh_FreeNode(self);
 }
@@ -48,7 +48,7 @@ void trn_DeleteNodes(PTrieNode self) {
 uint8_t trn_RemoveNode_t(PTrieNode self, PVOID key, uint32_t keySize, uint32_t position) {
   if(position >= (keySize << 1)) {
     if(self->buffer) {
-      free(self->buffer);
+      crm_Free(self->buffer);
       self->buffer = NULL;
       return 1;
     }
@@ -170,7 +170,7 @@ void hsh_GetKeys_t(PTrieNode self, Array keys, Array currentKey, size_t position
   if(self->buffer) {
     Key key;
     key.keySize = currentKey->size;
-    key.key = malloc(key.keySize);
+    key.key = crm_Alloc(key.keySize);
 
     memcpy(key.key, currentKey->buffer, key.keySize);
     arr_Push(keys, &key);
@@ -196,7 +196,7 @@ Array hsh_GetKeys(PHsh self) {
 void hsh_FreeKeys(Array keys) {
   Key *buffer = (Key *)keys->buffer;
   for(size_t i = 0, c = keys->size; i < c; i++) {
-    free(buffer[i].key);
+    crm_Free(buffer[i].key);
   }
   arr_Delete(keys);
 }
@@ -214,10 +214,10 @@ void hsh_RemoveNode(PHsh self, PVOID key, uint32_t keySize) {
 uint8_t trn_AddValues(PTrieNode self, PVOID key, uint32_t keySize, PVOID value, uint32_t valueSize, uint32_t position) {
   if(position >= (keySize << 1)) {
     PVOID lastBuffer = self->buffer;
-    self->buffer = malloc(valueSize);
+    self->buffer = crm_Alloc(valueSize);
     memcpy(self->buffer, value, valueSize);
     if(lastBuffer) {
-      free(lastBuffer);
+      crm_Free(lastBuffer);
       return 0;
     }
     return 1;
@@ -252,5 +252,5 @@ void hsh_Integer32_RemoveElement(PHsh self, uint32_t key) {
 
 void hsh_Delete(PHsh self) {
   trn_DeleteNodes(self->parentNode);
-  free(self);
+  crm_Free(self);
 }

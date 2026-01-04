@@ -31,7 +31,7 @@ TokenParser json_Parser_Boolean(TokenParser tck);
 TokenParser json_Parser_Map(TokenParser tck);
 
 PJsonObject json_Create() {
-  PJsonObject self = malloc(sizeof(JsonObject));
+  PJsonObject self = crm_Alloc(sizeof(JsonObject));
   self->hsh = hsh_Create();
   self->selfContained = 0;
   return self;
@@ -45,7 +45,7 @@ void json_Add(PJsonObject self, PHttpString key, JsonElement element) {
 void json_Delete(PJsonObject self) {
   json_RemoveSelfContainedData(self);
   hsh_Delete(self->hsh);
-  free(self);
+  crm_Free(self);
 }
 
 static inline void json_PushString(Array str, char *strC, size_t sz) {
@@ -192,7 +192,7 @@ void json_ToString_t(PJsonObject self, Array str) {
     };
     JsonElement *currentElement = hsh_GetBuffer(self->hsh, currentKey.buffer, currentKey.sz);
     json_PushLeafElement(str, &currentKey, *currentElement, i == keys->size - 1);
-    free(currentKey.buffer);
+    crm_Free(currentKey.buffer);
   }
   arr_Push(str, &(char){'}'});
   arr_Delete(keys);
@@ -224,16 +224,16 @@ void json_DeleteElement(JsonElement element) {
   switch (element.type)
   {
     case JSON_INTEGER: {
-      free(element.value); 
+      crm_Free(element.value); 
       break;
     }
     case JSON_NUMBER: {
-      free(element.value); 
+      crm_Free(element.value); 
       break;
     }
     case JSON_STRING: {
-      free(((PHttpString)element.value)->buffer);
-      free(element.value);
+      crm_Free(((PHttpString)element.value)->buffer);
+      crm_Free(element.value);
       break;
     }
     case JSON_JSON: {
@@ -356,7 +356,7 @@ void json_Map_Add(JsonElement map, char *key, JsonElement element) {
 JsonElement json_Integer_Create(int64_t val) {
   JsonElement element = {
     .type = JSON_INTEGER,
-    .value = malloc(sizeof(int64_t))
+    .value = crm_Alloc(sizeof(int64_t))
   };
   *(int64_t *)element.value = val;
   return element;
@@ -372,9 +372,9 @@ JsonElement json_Map_Create() {
 }
 
 JsonElement json_String_Create(char *string) {
-  PHttpString str = malloc(sizeof(HttpString));
+  PHttpString str = crm_Alloc(sizeof(HttpString));
   str->sz = strlen(string);
-  str->buffer = malloc(str->sz);
+  str->buffer = crm_Alloc(str->sz);
   memcpy(str->buffer, string, str->sz);
 
   return (JsonElement) {
@@ -386,7 +386,7 @@ JsonElement json_String_Create(char *string) {
 JsonElement json_Number_Create(float val) {
   JsonElement element = {
     .type = JSON_NUMBER,
-    .value = malloc(sizeof(float))
+    .value = crm_Alloc(sizeof(float))
   };
   *(float *)element.value = val;
   return element;
@@ -581,9 +581,9 @@ JsonElement json_Parser_Get_String(TokenParser tck, PTokenParser next) {
     return json_Element_Invalid();
   }
   const size_t stringSize = (size_t)(nextTck.endToken - nextTck.startToken) - 2;
-  PHttpString responseString = malloc(sizeof(HttpString));
+  PHttpString responseString = crm_Alloc(sizeof(HttpString));
   responseString->sz = stringSize;
-  responseString->buffer = malloc(stringSize + 1);
+  responseString->buffer = crm_Alloc(stringSize + 1);
   memcpy(responseString->buffer, nextTck.startToken + 1, stringSize);
   if(next) {
     *next = nextTck;
@@ -608,7 +608,7 @@ JsonElement json_Parser_Get_Integer(TokenParser tck, PTokenParser next) {
   if(errno == ERANGE || endingPointer == nextTck.startToken) {
     return json_Element_Invalid();
   }
-  response.value = malloc(sizeof(int64_t));
+  response.value = crm_Alloc(sizeof(int64_t));
   memcpy(response.value, &nrm, sizeof(int64_t));
   if(next) {
     *next = nextTck;
@@ -630,7 +630,7 @@ JsonElement json_Parser_Get_Number(TokenParser tck, PTokenParser next) {
   if(errno == ERANGE || endingPointer == nextTck.startToken) {
     return json_Element_Invalid();
   }
-  response.value = malloc(sizeof(float));
+  response.value = crm_Alloc(sizeof(float));
   memcpy(response.value, &nrm, sizeof(float));
   if(next) {
     *next = nextTck;
@@ -716,7 +716,7 @@ JsonElement json_Parser_Get_Array(TokenParser tck, PTokenParser next) {
 void json_Parser_Print(JsonElement self) {
   HttpString strResponse = json_Element_ToString(self);
   printf("%.*s\n", (uint32_t)strResponse.sz, strResponse.buffer);
-  free(strResponse.buffer);
+  crm_Free(strResponse.buffer);
 }
 
 JsonElement json_Parser_Get_Null(TokenParser tck, PTokenParser next) {

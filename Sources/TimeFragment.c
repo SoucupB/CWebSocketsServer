@@ -9,7 +9,7 @@ uint64_t tf_CurrentTimeMS() {
 }
 
 PTimeServer tf_Create() {
-  PTimeServer self = malloc(sizeof(TimeServer));
+  PTimeServer self = crm_Alloc(sizeof(TimeServer));
   self->methods = arr_Init(sizeof(TimeFragment));
   self->loopMethods = arr_Init(sizeof(TimeFragment));
   return self;
@@ -18,7 +18,7 @@ PTimeServer tf_Create() {
 void tf_Delete(PTimeServer self) {
   arr_Delete(self->methods);
   arr_Delete(self->loopMethods);
-  free(self);
+  crm_Free(self);
 }
 
 void tf_ExecuteAfter(PTimeServer self, TimeMethod currentMethod, uint64_t afterMS) {

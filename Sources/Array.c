@@ -5,8 +5,8 @@
 #include <stddef.h>
 
 Array arr_Init(size_t size) {
-  Array self = (Array)malloc(sizeof(struct Array_t));
-  self->buffer = malloc(size);
+  Array self = (Array)crm_Alloc(sizeof(struct Array_t));
+  self->buffer = crm_Alloc(size);
   self->size = 0;
   self->capacity = 1;
   self->objSize = size;
@@ -14,8 +14,8 @@ Array arr_Init(size_t size) {
 }
 
 Array arr_InitWithCapacity(size_t size, size_t count) {
-  Array self = malloc(sizeof(struct Array_t));
-  self->buffer = malloc(size * count);
+  Array self = crm_Alloc(sizeof(struct Array_t));
+  self->buffer = crm_Alloc(size * count);
   self->size = 0;
   self->capacity = count;
   self->objSize = size;
@@ -23,8 +23,8 @@ Array arr_InitWithCapacity(size_t size, size_t count) {
 }
 
 Array arr_InitWithSize(size_t objSize, size_t count) {
-  Array self = malloc(sizeof(struct Array_t));
-  self->buffer = malloc(objSize * count);
+  Array self = crm_Alloc(sizeof(struct Array_t));
+  self->buffer = crm_Alloc(objSize * count);
   self->size = count;
   self->capacity = count;
   self->objSize = objSize;
@@ -39,7 +39,7 @@ void copyData(Array self, void *buffer) {
 void arr_Push(Array self, void *buffer) {
   if(self->size >= self->capacity) {
     self->capacity <<= 1;
-    self->buffer = realloc(self->buffer, self->capacity * self->objSize);
+    self->buffer = crm_Realloc(self->buffer, self->capacity * self->objSize);
   }
   copyData(self, buffer);
 }
@@ -57,12 +57,12 @@ void arr_RemoveElement(Array self, size_t index) {
 }
 
 void arr_Delete(Array self) {
-  free(self->buffer);
-  free(self);
+  crm_Free(self->buffer);
+  crm_Free(self);
 }
 
 void arr_DeleteWOBuffer(Array self) {
-  free(self);
+  crm_Free(self);
 }
 
 char *arr_Last(Array self) {

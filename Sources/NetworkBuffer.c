@@ -8,9 +8,9 @@ static inline size_t tpd_Min(const size_t a, const size_t b) {
 }
 
 PNetworkBuffer tpd_Create(size_t maxSizeB) {
-  PNetworkBuffer self = malloc(sizeof(NetworkBuffer));
+  PNetworkBuffer self = crm_Alloc(sizeof(NetworkBuffer));
   const size_t capacity = 16;
-  self->buffer = malloc(capacity);
+  self->buffer = crm_Alloc(capacity);
   self->currentBuffer = self->buffer;
   self->size = 0;
   self->capacity = capacity;
@@ -20,8 +20,8 @@ PNetworkBuffer tpd_Create(size_t maxSizeB) {
 }
 
 void tpd_Delete(PNetworkBuffer self) {
-  free(self->buffer);
-  free(self);
+  crm_Free(self->buffer);
+  crm_Free(self);
 }
 
 size_t tpd_Size(PNetworkBuffer self) {
@@ -30,9 +30,9 @@ size_t tpd_Size(PNetworkBuffer self) {
 
 static inline void tpd_Retract_Realloc(const PNetworkBuffer self) {
   self->capacity = self->size * 2 + 1;
-  void *newBuffer = malloc(self->capacity);
+  void *newBuffer = crm_Alloc(self->capacity);
   memcpy(newBuffer, self->currentBuffer, (size_t)(self->size));
-  free(self->buffer);
+  crm_Free(self->buffer);
   self->buffer = newBuffer;
   self->currentBuffer = newBuffer;
   self->maxRetriedSize = self->size;
@@ -56,9 +56,9 @@ static inline void tpd_OverPush(const PNetworkBuffer self, const void *buffer, c
   while(self->capacity <= size + self->maxRetriedSize) {
     self->capacity <<= 1;
   }
-  void *newBuffer = malloc(self->capacity);
+  void *newBuffer = crm_Alloc(self->capacity);
   memcpy(newBuffer, self->currentBuffer, self->size);
-  free(self->buffer);
+  crm_Free(self->buffer);
   self->buffer = newBuffer;
   self->currentBuffer = newBuffer;
 }

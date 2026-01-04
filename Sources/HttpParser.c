@@ -26,7 +26,7 @@ PHttpResponse _http_Response_Empty(Hash headers);
 #define NUMBERS "0123456789"
 
 PHttpRequest http_Request_Parse(char *buffer, size_t sz) {
-  PHttpRequest self = malloc(sizeof(HttpRequest));
+  PHttpRequest self = crm_Alloc(sizeof(HttpRequest));
   memset(self, 0, sizeof(HttpRequest));
   self->headers = http_Hash_Create();
   self->_endBuffer = buffer + sz;
@@ -53,9 +53,9 @@ PHttpRequest http_Request_Parse(char *buffer, size_t sz) {
 }
 
 static inline PURL http_URL_Init() {
-  PURL self = malloc(sizeof(URL));
+  PURL self = crm_Alloc(sizeof(URL));
   memset(self, 0, sizeof(URL));
-  self->path.buffer = malloc(sizeof(char));
+  self->path.buffer = crm_Alloc(sizeof(char));
   self->path.buffer[0] = '/';
   self->path.sz = 1;
   return self;
@@ -167,7 +167,7 @@ uint8_t http_Header_Parse(Hash self, char *endBuffer, PHttpString buffer) {
 }
 
 static inline PHttpMetaData http_InitMetadata() {
-  PHttpMetaData metaData = malloc(sizeof(HttpMetaData));
+  PHttpMetaData metaData = crm_Alloc(sizeof(HttpMetaData));
   http_Meta_InitCodes(metaData);
   return metaData;
 }
@@ -218,7 +218,7 @@ HttpString http_Body_Chomp_t(PHttpString buffer, ssize_t contentLength) {
     };
   }
   HttpString response;
-  response.buffer = malloc(contentLength);
+  response.buffer = crm_Alloc(contentLength);
   response.sz = (size_t)contentLength;
   memcpy(response.buffer, buffer->buffer, response.sz);
   return response;
@@ -334,9 +334,9 @@ char *http_Route_ParseType(PHttpRequest parent, PHttpString buffer) {
 
 void http_URL_Set(PURL url, HttpString buffer) {
   if(url->path.buffer) {
-    free(url->path.buffer);
+    crm_Free(url->path.buffer);
   }
-  url->path.buffer = malloc(buffer.sz);
+  url->path.buffer = crm_Alloc(buffer.sz);
   memcpy(url->path.buffer, buffer.buffer, buffer.sz);
   url->path.sz = buffer.sz;
 }
@@ -405,9 +405,9 @@ void http_URL_Free(PURL self) {
     return ;
   }
   if(self->path.buffer) {
-    free(self->path.buffer);
+    crm_Free(self->path.buffer);
   }
-  free(self);
+  crm_Free(self);
 }
 
 static inline void http_Hash_Delete(Hash self) {
@@ -416,17 +416,17 @@ static inline void http_Hash_Delete(Hash self) {
 }
 
 void http_Metadata_Delete(PHttpMetaData self) {
-  free(self);
+  crm_Free(self);
 }
 
 void http_Request_Delete(PHttpRequest self) {
   if(self->body.buffer) {
-    free(self->body.buffer);
+    crm_Free(self->body.buffer);
   }
   http_URL_Free(self->url);
   http_Hash_Delete(self->headers);
   http_Metadata_Delete(self->metadata);
-  free(self);
+  crm_Free(self);
 }
 
 void http_SetBodySize(Hash hash, size_t sz) {
@@ -445,9 +445,9 @@ static inline void http_Request_SetBodySize(PHttpRequest self, size_t sz) {
 
 void http_Response_SetBody(PHttpResponse self, PHttpString buffer) {
   if(self->body.buffer) {
-    free(self->body.buffer);
+    crm_Free(self->body.buffer);
   }
-  self->body.buffer = malloc(buffer->sz);
+  self->body.buffer = crm_Alloc(buffer->sz);
   memcpy(self->body.buffer, buffer->buffer, buffer->sz);
   self->body.sz = buffer->sz;
   http_Response_SetBodySize(self, buffer->sz);
@@ -502,7 +502,7 @@ HttpString http_Response_ToString(PHttpResponse self) {
   size_t requestSize = http_Response_Size(self->headers, headersArr);
   size_t headerSizeCode = strlen(messageHeader);
   size_t bufferSize = headerSizeCode + requestSize + self->body.sz + 5;
-  char *buffer = malloc(bufferSize);
+  char *buffer = crm_Alloc(bufferSize);
   char *cpyBuffer = buffer;
   memcpy(cpyBuffer, messageHeader, headerSizeCode);
   cpyBuffer += headerSizeCode;
@@ -634,7 +634,7 @@ HttpString http_Request_GetBody(PHttpRequest self) {
 }
 
 PHttpRequest http_Request_Create() {
-  PHttpRequest self = malloc(sizeof(HttpRequest));
+  PHttpRequest self = crm_Alloc(sizeof(HttpRequest));
   memset(self, 0, sizeof(HttpRequest));
   self->url = http_URL_Init();
   self->metadata = http_InitMetadata();
@@ -645,7 +645,7 @@ PHttpRequest http_Request_Create() {
 }
 
 PHttpRequest http_Request_Basic() {
-  PHttpRequest self = malloc(sizeof(HttpRequest));
+  PHttpRequest self = crm_Alloc(sizeof(HttpRequest));
   memset(self, 0, sizeof(HttpRequest));
   self->url = http_URL_Init();
   self->metadata = http_InitMetadata();
@@ -665,7 +665,7 @@ void http_Request_AddHeader(PHttpRequest self, char *key, char *value) {
 HttpString http_String_Copy(HttpString str) {
   HttpString response;
   response.sz = str.sz;
-  response.buffer = malloc(str.sz);
+  response.buffer = crm_Alloc(str.sz);
   memcpy(response.buffer, str.buffer, str.sz);
   return response;
 }
@@ -686,7 +686,7 @@ void http_Response_Set(PHttpResponse self, char *key, size_t keySize, char *valu
 }
 
 PHttpResponse _http_Response_Empty(Hash headers) {
-  PHttpResponse self = malloc(sizeof(HttpResponse));
+  PHttpResponse self = crm_Alloc(sizeof(HttpResponse));
   memset(self, 0, sizeof(HttpResponse));
   self->headers = headers;
   self->httpCode = "HTTP/1.1";
@@ -698,7 +698,7 @@ PHttpResponse _http_Response_Empty(Hash headers) {
 PHttpResponse http_Response_Empty() {
   Hash newHash = http_Hash_Create();
   return _http_Response_Empty(newHash);
-  // PHttpResponse self = malloc(sizeof(HttpResponse));
+  // PHttpResponse self = crm_Alloc(sizeof(HttpResponse));
   // memset(self, 0, sizeof(HttpResponse));
   // self->headers = http_Hash_Create();
   // self->httpCode = "HTTP/1.1";
@@ -840,8 +840,8 @@ PHttpResponse http_Response_Create() {
 
 void http_Response_Delete(PHttpResponse self) {
   if(self->body.buffer) {
-    free(self->body.buffer);
+    crm_Free(self->body.buffer);
   }
   http_Hash_Delete(self->headers);
-  free(self);
+  crm_Free(self);
 }

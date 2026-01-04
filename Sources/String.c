@@ -11,7 +11,7 @@ HttpString string_DeepCopy(HttpString str) {
   if(!str.buffer) {
     return response;
   }
-  response.buffer = malloc(str.sz);
+  response.buffer = crm_Alloc(str.sz);
   memcpy(response.buffer, str.buffer, str.sz);
   response.sz = str.sz;
   return response;

@@ -35,10 +35,10 @@ void evs_PushMessage(PEventServer self, PResponseObject msg) {
     evs_PushEventBuffer(self, &response, msg->conn);
     return ;
   }
-  char *buffer = malloc(msgSize);
+  char *buffer = crm_Alloc(msgSize);
   EventBuffer response = evm_Reuse_Transform(&msg->metaData, buffer);
   evs_PushEventBuffer(self, &response, msg->conn);
-  free(buffer);
+  crm_Free(buffer);
 }
 
 void _evs_OnClose(Connection conn, void *buffer) {
@@ -81,7 +81,7 @@ static inline void evs_RegisterMethods(PEventServer self) {
 }
 
 PEventServer evs_Create(uint16_t port) {
-  PEventServer self = malloc(sizeof(EventServer));
+  PEventServer self = crm_Alloc(sizeof(EventServer));
   memset(self, 0, sizeof(EventServer));
   self->wsServer = wss_Create(port);
   evs_RegisterMethods(self);
@@ -100,5 +100,5 @@ void evs_OnFrame(PEventServer self, uint64_t deltaMS) {
 void evs_Delete(PEventServer self) {
   evs_FreeMethods(self);
   wss_Delete(self->wsServer);
-  free(self);
+  crm_Free(self);
 }

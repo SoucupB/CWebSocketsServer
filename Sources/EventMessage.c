@@ -95,7 +95,7 @@ EventBuffer evm_Reuse_Transform(const PEventMessage self, char *buffer) {
 
 EventBuffer evm_New_Transform(const PEventMessage self) {
   uint32_t totalSize = evm_Out_TotalSize(self);
-  char *buffer = malloc(totalSize);
+  char *buffer = crm_Alloc(totalSize);
   return evm_Reuse_Transform(self, buffer);
 }
 

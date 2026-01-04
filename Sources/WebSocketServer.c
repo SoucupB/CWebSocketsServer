@@ -39,7 +39,7 @@ static inline uint64_t _wss_Rand() {
 }
 
 PWebSocketServer wss_Create(uint16_t port) {
-  PWebSocketServer self = malloc(sizeof(WebSocketServer));
+  PWebSocketServer self = crm_Alloc(sizeof(WebSocketServer));
   memset(self, 0, sizeof(WebSocketServer));
   self->socketServer = sock_Create(port);
   self->pendingConnections = arr_Init(sizeof(Connection));
@@ -77,7 +77,7 @@ void _wss_LoopPingPong(void *buffer) {
       .persistent = 1
     };
     sock_Write_Push(self->socketServer, &fragment);
-    free(pingRequest);
+    crm_Free(pingRequest);
   }
 }
 
@@ -91,7 +91,7 @@ void wss_SetMethod(PWebSocketServer self) {
 
 void wss_EnablePingPongTimeout(PWebSocketServer self, uint64_t timeout) {
   if(!self->timeServer) {
-    self->timeServer = malloc(sizeof(Timers));
+    self->timeServer = crm_Alloc(sizeof(Timers));
     self->timeServer->server = tf_Create();
   }
   self->timeServer->timeout = timeout;
@@ -124,7 +124,7 @@ static inline void wss_Tf_Delete(PWebSocketServer self) {
     return ;
   }
   tf_Delete(self->timeServer->server);
-  free(self->timeServer);
+  crm_Free(self->timeServer);
 }
 
 static inline void wss_CloseConnections(PWebSocketServer self, Connection conn) {
@@ -165,7 +165,7 @@ void wss_Delete(PWebSocketServer self) {
   arr_Delete(self->pendingPingRequests);
   wss_ReleaseActiveConnections(self);
   sock_Delete(self->socketServer);
-  free(self);
+  crm_Free(self);
 }
 
 static inline size_t wss_FindConnectionOnThePull(PWebSocketServer self, PConnection conn, uint8_t *found) {
@@ -186,16 +186,16 @@ char *webSocketKey(PHttpString sec_websocket_key) {
   size_t key_len = sec_websocket_key->sz;
   size_t guid_len = strlen(GUID);
   size_t cat_len  = key_len + guid_len;
-  char *cat = (char *)malloc(cat_len + 1);
+  char *cat = (char *)crm_Alloc(cat_len + 1);
   if (!cat) return NULL;
   memcpy(cat, sec_websocket_key->buffer, key_len);
   memcpy(cat + key_len, GUID, guid_len);
   cat[cat_len] = '\0';
   unsigned char sha1_digest[SHA_DIGEST_LENGTH];
   SHA1((const unsigned char *)cat, cat_len, sha1_digest);
-  free(cat);
+  crm_Free(cat);
   int b64_len = 4 * ((SHA_DIGEST_LENGTH + 2) / 3);
-  char *accept = (char *)malloc(b64_len + 1);
+  char *accept = (char *)crm_Alloc(b64_len + 1);
   if (!accept) return NULL;
   EVP_EncodeBlock((unsigned char *)accept, sha1_digest, SHA_DIGEST_LENGTH);
   accept[b64_len] = '\0';
@@ -214,7 +214,7 @@ PHttpResponse wss_Response(PWebSocketServer self, PHttpRequest req) {
   }
   char *newKey = webSocketKey(&key);
   http_Response_Set(response, "Sec-WebSocket-Accept", sizeof("Sec-WebSocket-Accept") - 1, newKey, strlen(newKey));
-  free(newKey);
+  crm_Free(newKey);
   return response;
 }
 
@@ -232,7 +232,7 @@ void wss_SendMessage(PWebSocketServer self, PDataFragment dt) {
     .persistent = 1
   };
   sock_Write_Push(self->socketServer, &fragment);
-  free(response);
+  crm_Free(response);
 }
 
 uint8_t wss_ProcessConnectionRequest(PWebSocketServer self, PDataFragment dt) {
@@ -254,7 +254,7 @@ uint8_t wss_ProcessConnectionRequest(PWebSocketServer self, PDataFragment dt) {
   };
   sock_Write_Push(self->socketServer, &frag);
   http_Response_Delete(response);
-  free(responseChar.buffer);
+  crm_Free(responseChar.buffer);
   return 1;
 }
 
@@ -290,7 +290,7 @@ Array wss_GetObject(const PWebSocketServer self, const PDataFragment dt) {
 static inline void wss_CleanMessages(const Array arr) {
   WebSocketObject *objs = arr->buffer;
   for(size_t i = 0, c = arr->size; i < c; i++) {
-    free(objs[i]._fullMessage);
+    crm_Free(objs[i]._fullMessage);
   }
   arr_Delete(arr);
 }
