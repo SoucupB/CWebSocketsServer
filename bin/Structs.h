@@ -41,6 +41,7 @@ typedef struct WebSocketObject_t {
   char *buffer;
   size_t sz;
   uint8_t opcode;
+  char *_fullMessage;
 } WebSocketObject;
 
 typedef WebSocketObject *PWebSocketObject;
@@ -153,7 +154,9 @@ typedef struct WebSocketServer_t {
   PrivateMethodsBundle methodsBundle;
   Array pendingConnections;
   Array pendingPingRequests;
+  Array activeConnections;
   PTimeout timeServer;
+  size_t maxBSize;
 } WebSocketServer;
 
 typedef WebSocketServer *PWebSocketServer;
@@ -290,3 +293,14 @@ typedef struct JWT_t {
 } JWT;
 
 typedef JWT *PJWT;
+
+typedef struct NetworkBuffer_t {
+  void *buffer;
+  void *currentBuffer;
+  size_t size;
+  size_t capacity;
+  size_t maxRetriedSize;
+  size_t maxSizeB;
+} NetworkBuffer;
+
+typedef NetworkBuffer *PNetworkBuffer;

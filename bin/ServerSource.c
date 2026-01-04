@@ -699,6 +699,7 @@ typedef struct WebSocketObject_t {
   char *buffer;
   size_t sz;
   uint8_t opcode;
+  char *_fullMessage;
 } WebSocketObject;
 typedef WebSocketObject *PWebSocketObject;
 typedef EventMessage *PEventMessage;
@@ -787,7 +788,9 @@ typedef struct WebSocketServer_t {
   PrivateMethodsBundle methodsBundle;
   Array pendingConnections;
   Array pendingPingRequests;
+  Array activeConnections;
   PTimeout timeServer;
+  size_t maxBSize;
 } WebSocketServer;
 typedef WebSocketServer *PWebSocketServer;
 typedef enum {
@@ -893,6 +896,15 @@ typedef struct JWT_t {
   JsonElement payload;
 } JWT;
 typedef JWT *PJWT;
+typedef struct NetworkBuffer_t {
+  void *buffer;
+  void *currentBuffer;
+  size_t size;
+  size_t capacity;
+  size_t maxRetriedSize;
+  size_t maxSizeB;
+} NetworkBuffer;
+typedef NetworkBuffer *PNetworkBuffer;
 Array arr_Init(size_t size);
 Array arr_InitWithCapacity(size_t size, size_t count);
 void arr_Push(Array self, void *buffer);
@@ -1741,6 +1753,7 @@ void wss_OnFrame(PWebSocketServer self, uint64_t deltaMS);
 void wss_EnablePingPongTimeout(PWebSocketServer self, uint64_t timeout);
 void wss_Delete(PWebSocketServer self);
 void wss_SendMessage(PWebSocketServer self, PDataFragment dt);
+void wss_SetMaxBSizeSocket(PWebSocketServer self, size_t bytesSize);
        
 PSocketServer sock_Create(uint16_t port);
 void sock_Delete(PSocketServer self);
@@ -8511,6 +8524,80 @@ uint8_t jwt_IsSigned(HttpString str, HttpString secret) {
 static inline char *jwt_CreateHeader() {
   return "{\"alg\":\"HS256\",\"typ\":\"JWT\"}";
 }
+       
+PNetworkBuffer tpd_Create(size_t maxSizeB);
+void tpd_Delete(PNetworkBuffer self);
+uint8_t tpd_Push(PNetworkBuffer self, void *buffer, size_t size);
+size_t tpd_Size(PNetworkBuffer self);
+void tpd_Retract(PNetworkBuffer self, size_t bytes);
+void *tpd_StartingBuffer(PNetworkBuffer self);
+static inline size_t tpd_Min(const size_t a, const size_t b) {
+  return a < b ? a : b;
+}
+PNetworkBuffer tpd_Create(size_t maxSizeB) {
+  PNetworkBuffer self = malloc(sizeof(NetworkBuffer));
+  const size_t capacity = 16;
+  self->buffer = malloc(capacity);
+  self->currentBuffer = self->buffer;
+  self->size = 0;
+  self->capacity = capacity;
+  self->maxRetriedSize = 0;
+  self->maxSizeB = maxSizeB;
+  return self;
+}
+void tpd_Delete(PNetworkBuffer self) {
+  free(self->buffer);
+  free(self);
+}
+size_t tpd_Size(PNetworkBuffer self) {
+  return self->size;
+}
+static inline void tpd_Retract_Realloc(const PNetworkBuffer self) {
+  self->capacity = self->size * 2 + 1;
+  void *newBuffer = malloc(self->capacity);
+  memcpy(newBuffer, self->currentBuffer, (size_t)(self->size));
+  free(self->buffer);
+  self->buffer = newBuffer;
+  self->currentBuffer = newBuffer;
+  self->maxRetriedSize = self->size;
+}
+void tpd_Retract(PNetworkBuffer self, size_t bytes) {
+  bytes = tpd_Min(bytes, self->size);
+  self->size -= bytes;
+  self->currentBuffer += bytes;
+  if(self->maxRetriedSize >= (self->size << 1)) {
+    tpd_Retract_Realloc(self);
+    return ;
+  }
+}
+void *tpd_StartingBuffer(PNetworkBuffer self) {
+  return self->currentBuffer;
+}
+static inline void tpd_OverPush(const PNetworkBuffer self, const void *buffer, const size_t size) {
+  while(self->capacity <= size + self->maxRetriedSize) {
+    self->capacity <<= 1;
+  }
+  void *newBuffer = malloc(self->capacity);
+  memcpy(newBuffer, self->currentBuffer, self->size);
+  free(self->buffer);
+  self->buffer = newBuffer;
+  self->currentBuffer = newBuffer;
+}
+static inline void *tpd_EndBuffer(const PNetworkBuffer self) {
+  return (void *)(self->currentBuffer + self->size);
+}
+uint8_t tpd_Push(PNetworkBuffer self, void *buffer, size_t size) {
+  if(self->size + size >= self->maxSizeB) {
+    return 0;
+  }
+  if(self->maxRetriedSize + size >= self->capacity) {
+    tpd_OverPush(self, buffer, size);
+  }
+  memcpy(tpd_EndBuffer(self), buffer, size);
+  self->size += size;
+  self->maxRetriedSize += size;
+  return 1;
+}
 
 struct iovec
   {
@@ -9652,7 +9739,7 @@ void sock_PushCloseConnMethod(PSocketServer self, Connection conn, size_t index)
   tf_ExecuteAfter(self->timeServer.timeServer, timeFragment, self->timeServer.timeout);
 }
 void sock_SetMaxConnections(PSocketServer self, int32_t maxActiveConnections) {
-  ((void) sizeof ((maxActiveConnections < 1024) ? 1 : 0), __extension__ ({ if (maxActiveConnections < 1024) ; else __assert_fail ("maxActiveConnections < MAX_CONNECTIONS_PER_SERVER", "bin/svv.c", 3200, __extension__ __PRETTY_FUNCTION__); }));
+  ((void) sizeof ((maxActiveConnections < 1024) ? 1 : 0), __extension__ ({ if (maxActiveConnections < 1024) ; else __assert_fail ("maxActiveConnections < MAX_CONNECTIONS_PER_SERVER", "bin/svv.c", 3281, __extension__ __PRETTY_FUNCTION__); }));
   self->maxActiveConnections = maxActiveConnections;
 }
 void sock_Write_Push(PSocketServer self, DataFragment *dt) {
@@ -10142,12 +10229,14 @@ void wbs_Clear_FromWebSocket(Array objects);
 char *wbs_Masked_ToWebSocket(WebSocketObject self);
 void wbs_MaskSwitch(char *buffer);
 char *wbs_Ping(WebSocketObject self);
+WebSocketObject wbs_Get(char *left, char *right);
 size_t wbs_Public_HeaderSize(const PWebSocketObject obj, uint8_t shouldBeMasked);
 size_t wbs_Public_PayloadSize(char *buffer);
 size_t wbs_Public_PayloadSize(char *buffer);
 size_t wbs_Raw_Public_HeaderSize(char *buffer);
 char *wbs_Public_PayloadBuffer(char *buffer);
 uint8_t wbs_Public_GetCode(char *buffer);
+Array wbs_Public_ParseData(PNetworkBuffer self);
 void wss_SetMethods(PWebSocketServer self);
 void _wss_OnConnect(Connection connection, void *buffer);
 void _wss_OnReceive(PDataFragment dt, void *buffer);
@@ -10161,6 +10250,10 @@ typedef struct PingConnData_t {
   uint64_t payload;
   int64_t remainingTime;
 } PingConnData;
+typedef struct ActiveConnections_t {
+  Connection conn;
+  PNetworkBuffer buff;
+} ActiveConnections;
 static inline uint64_t _wss_Rand() {
   uint64_t response;
   char *buffer = (char *)&response;
@@ -10175,6 +10268,8 @@ PWebSocketServer wss_Create(uint16_t port) {
   self->socketServer = sock_Create(port);
   self->pendingConnections = arr_Init(sizeof(Connection));
   self->pendingPingRequests = arr_Init(sizeof(PingConnData));
+  self->activeConnections = arr_Init(sizeof(ActiveConnections));
+  self->maxBSize = 1024 * 1024;
   wss_SetMethods(self);
   return self;
 }
@@ -10269,6 +10364,13 @@ void wss_ProcessTimeoutPingRequests(PWebSocketServer self, uint64_t deltaMS) {
   self->pendingPingRequests = cpyVector;
   arr_Delete(indexesToRemove);
 }
+static inline void wss_ReleaseActiveConnections(const PWebSocketServer self) {
+  ActiveConnections *conns = self->activeConnections->buffer;
+  for(size_t i = 0, c = self->activeConnections->size; i < c; i++) {
+    tpd_Delete(conns[i].buff);
+  }
+  arr_Delete(self->activeConnections);
+}
 void wss_Delete(PWebSocketServer self) {
   sock_Method_Delete(self->methodsBundle._onReceive);
   sock_Method_Delete(self->methodsBundle._onConnect);
@@ -10276,6 +10378,7 @@ void wss_Delete(PWebSocketServer self) {
   wss_Tf_Delete(self);
   arr_Delete(self->pendingConnections);
   arr_Delete(self->pendingPingRequests);
+  wss_ReleaseActiveConnections(self);
   sock_Delete(self->socketServer);
   free(self);
 }
@@ -10364,8 +10467,41 @@ uint8_t wss_ProcessConnectionRequest(PWebSocketServer self, PDataFragment dt) {
   free(responseChar.buffer);
   return 1;
 }
-uint8_t wss_ReceiveMessages(PWebSocketServer self, PDataFragment dt, PSocketMethod routine) {
-  Array messages = wbs_FromWebSocket(dt->data, dt->size);
+PNetworkBuffer wss_FindPayloadChecker(const PWebSocketServer self, const PDataFragment dt) {
+  ActiveConnections *conns = self->activeConnections->buffer;
+  for(size_t i = 0, c = self->activeConnections->size; i < c; i++) {
+    if(dt->conn.fd == conns[i].conn.fd) {
+      return conns[i].buff;
+    }
+  }
+  return ((void *)0);
+}
+PNetworkBuffer wss_NetworkBuffer(const PWebSocketServer self, const PDataFragment dt) {
+  PNetworkBuffer buff = wss_FindPayloadChecker(self, dt);
+  if(!buff) {
+    return ((void *)0);
+  }
+  if(!tpd_Push(buff, dt->data, dt->size)) {
+    return ((void *)0);
+  }
+  return buff;
+}
+Array wss_GetObject(const PWebSocketServer self, const PDataFragment dt) {
+  PNetworkBuffer protoBuff = wss_NetworkBuffer(self, dt);
+  if(!protoBuff) {
+    return ((void *)0);
+  }
+  return wbs_Public_ParseData(protoBuff);
+}
+static inline void wss_CleanMessages(const Array arr) {
+  WebSocketObject *objs = arr->buffer;
+  for(size_t i = 0, c = arr->size; i < c; i++) {
+    free(objs[i]._fullMessage);
+  }
+  arr_Delete(arr);
+}
+int8_t wss_ReceiveMessages(PWebSocketServer self, PDataFragment dt, PSocketMethod routine) {
+  Array messages = wss_GetObject(self, dt);
   if(!messages) {
     return 0;
   }
@@ -10394,7 +10530,7 @@ uint8_t wss_ReceiveMessages(PWebSocketServer self, PDataFragment dt, PSocketMeth
     void (*cMethod)(PDataFragment, void *) = routine->method;
     cMethod(&responseDt, routine->mirrorBuffer);
   }
-  arr_Delete(messages);
+  wss_CleanMessages(messages);
   return validConnection;
 }
 static inline void wss_ProcessReleaseMethod(PWebSocketServer self, PDataFragment dt, PSocketMethod routine) {
@@ -10428,6 +10564,16 @@ static inline void wss_ProcessWsRequests(PWebSocketServer self, PDataFragment dt
     sock_PushCloseConnections(self->socketServer, &dt->conn);
   }
 }
+void wss_SetMaxBSizeSocket(PWebSocketServer self, size_t bytesSize) {
+  self->maxBSize = bytesSize;
+}
+static inline void wss_AddConnection(const PWebSocketServer self, const Connection conn) {
+  ActiveConnections conns = {
+    .conn = conn,
+    .buff = tpd_Create(self->maxBSize)
+  };
+  arr_Push(self->activeConnections, &conns);
+}
 void _wss_OnReceive(PDataFragment dt, void *buffer) {
   PWebSocketServer self = buffer;
   uint8_t found;
@@ -10445,6 +10591,7 @@ void _wss_OnReceive(PDataFragment dt, void *buffer) {
     void (*cMethod)(PConnection, void *) = self->onConnect->method;
     cMethod(&dt->conn, self->onConnect->mirrorBuffer);
   }
+  wss_AddConnection(self, dt->conn);
 }
 size_t wss_ConnectionsCount(PWebSocketServer self) {
   return sock_ConnectionCount(self->socketServer);
@@ -10678,6 +10825,9 @@ static inline char *_wbs_ToWebSocket(WebSocketObject self, Opcode opcode) {
   wbs_WritePayload(cpyResponse, &self);
   return response;
 }
+WebSocketObject wbs_Get(char *left, char *right) {
+  return (WebSocketObject) {};
+}
 char *wbs_ToWebSocket(WebSocketObject self) {
   return _wbs_ToWebSocket(self, self.opcode);
 }
@@ -10752,4 +10902,28 @@ Array wbs_FromWebSocket(char *msg, size_t bufferSize) {
     msg += wbs_FullMessageSize(msg);
   }
   return buffer;
+}
+Array wbs_Public_ParseData(PNetworkBuffer self) {
+  size_t sz = tpd_Size(self);
+  Array response = arr_Init(sizeof(WebSocketObject));
+  while((sz = tpd_Size(self)) && sz) {
+    char *bff = tpd_StartingBuffer(self);
+    char *nxt = wbs_NextMessageIterator(bff, sz);
+    if(!nxt) {
+      return response;
+    }
+    size_t currentSliceSize = (size_t)(nxt - bff);
+    char *checkerBuffer = malloc(currentSliceSize);
+    memcpy(checkerBuffer, bff, currentSliceSize);
+    WebSocketObject obj = (WebSocketObject) {
+      .buffer = wbs_ExtractPayload(checkerBuffer),
+      .sz = wbs_PayloadSize(checkerBuffer),
+      .opcode = wbs_GetCode(checkerBuffer),
+      ._fullMessage = checkerBuffer
+    };
+    arr_Push(response, &obj);
+    tpd_Retract(self, currentSliceSize);
+    sz = tpd_Size(self);
+  }
+  return response;
 }

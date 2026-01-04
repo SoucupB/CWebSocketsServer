@@ -36,3 +36,7 @@ void wss_Delete(PWebSocketServer self);
  * PDataFragment is described in `sock_Write_Push`.
  */
 void wss_SendMessage(PWebSocketServer self, PDataFragment dt);
+/*
+ * Max size in bytes per message
+ */
+void wss_SetMaxBSizeSocket(PWebSocketServer self, size_t bytesSize);
