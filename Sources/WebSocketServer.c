@@ -7,6 +7,7 @@
 #include "WebSocketsTranslator.h"
 #include "SocketServer.h"
 #include "Array.h"
+#include "NetworkBuffer.h"
 
 void wss_SetMethods(PWebSocketServer self);
 void _wss_OnConnect(Connection connection, void *buffer);
@@ -23,6 +24,11 @@ typedef struct PingConnData_t {
   int64_t remainingTime;
 } PingConnData;
 
+typedef struct ActiveConnections_t {
+  Connection conn;
+  PNetworkBuffer buff;
+} ActiveConnections;
+
 static inline uint64_t _wss_Rand() {
   uint64_t response;
   char *buffer = (char *)&response;
@@ -38,6 +44,7 @@ PWebSocketServer wss_Create(uint16_t port) {
   self->socketServer = sock_Create(port);
   self->pendingConnections = arr_Init(sizeof(Connection));
   self->pendingPingRequests = arr_Init(sizeof(PingConnData));
+  self->activeConnections = arr_Init(sizeof(ActiveConnections));
   wss_SetMethods(self);
   return self;
 }
@@ -140,6 +147,14 @@ void wss_ProcessTimeoutPingRequests(PWebSocketServer self, uint64_t deltaMS) {
   arr_Delete(indexesToRemove);
 }
 
+static inline void wss_ReleaseActiveConnections(const PWebSocketServer self) {
+  ActiveConnections *conns = self->activeConnections->buffer;
+  for(size_t i = 0, c = self->activeConnections->size; i < c; i++) {
+    tpd_Delete(conns[i].buff);
+  }
+  arr_Delete(self->activeConnections);
+}
+
 void wss_Delete(PWebSocketServer self) {
   sock_Method_Delete(self->methodsBundle._onReceive);
   sock_Method_Delete(self->methodsBundle._onConnect);
@@ -147,6 +162,7 @@ void wss_Delete(PWebSocketServer self) {
   wss_Tf_Delete(self);
   arr_Delete(self->pendingConnections);
   arr_Delete(self->pendingPingRequests);
+  wss_ReleaseActiveConnections(self);
   sock_Delete(self->socketServer);
   free(self);
 }
@@ -310,6 +326,14 @@ static inline void wss_ProcessWsRequests(PWebSocketServer self, PDataFragment dt
   }
 }
 
+static inline void wss_AddConnection(const PWebSocketServer self, const Connection conn) {
+  ActiveConnections conns = {
+    .conn = conn,
+    .buff = tpd_Create(1024 * 1024)
+  };
+  arr_Push(self->activeConnections, &conns);
+}
+
 void _wss_OnReceive(PDataFragment dt, void *buffer) {
   PWebSocketServer self = buffer;
   uint8_t found;
@@ -327,6 +351,7 @@ void _wss_OnReceive(PDataFragment dt, void *buffer) {
     void (*cMethod)(PConnection, void *) = self->onConnect->method;
     cMethod(&dt->conn, self->onConnect->mirrorBuffer);
   }
+  wss_AddConnection(self, dt->conn);
 }
 
 size_t wss_ConnectionsCount(PWebSocketServer self) {

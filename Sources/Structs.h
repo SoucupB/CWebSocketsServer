@@ -153,6 +153,7 @@ typedef struct WebSocketServer_t {
   PrivateMethodsBundle methodsBundle;
   Array pendingConnections;
   Array pendingPingRequests;
+  Array activeConnections;
   PTimeout timeServer;
 } WebSocketServer;
 
