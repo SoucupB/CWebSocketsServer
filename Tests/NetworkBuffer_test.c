@@ -68,7 +68,7 @@ static void test_network_buffer_with_overflow(void **state) {
   free(someNumbers);
 }
 
-static void test_network_buffer_react_overflow(void **state) {
+static void test_network_buffer_retract_overflow(void **state) {
   PNetworkBuffer buffer = tpd_Create(10000);
   const size_t bffSize = 1250;
   const size_t bufferSize = sizeof(uint32_t) * bffSize;
@@ -83,6 +83,21 @@ static void test_network_buffer_react_overflow(void **state) {
   free(someNumbers);
 }
 
+static void test_network_buffer_retract_special_case(void **state) {
+  PNetworkBuffer buffer = tpd_Create(10000);
+  uint8_t buff[14];
+  uint8_t newBuffer[5];
+  uint8_t expected[] = {1, 1, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2};
+  memset(buff, 1, sizeof(buff));
+  memset(newBuffer, 2, sizeof(newBuffer));
+  tpd_Push(buffer, buff, sizeof(buff));
+  tpd_Retract(buffer, 6);
+  tpd_Push(buffer, newBuffer, sizeof(newBuffer));
+  assert_int_equal(tpd_Size(buffer), sizeof(expected));
+  assert_memory_equal(tpd_StartingBuffer(buffer), expected, sizeof(expected));
+  tpd_Delete(buffer);
+}
+
 int main() {
   const struct CMUnitTest tests[] = {
     cmocka_unit_test_prestate(test_network_buffer_create, NULL),
@@ -90,7 +105,8 @@ int main() {
     cmocka_unit_test_prestate(test_network_buffer_overflow, NULL),
     cmocka_unit_test_prestate(test_network_buffer_retract, NULL),
     cmocka_unit_test_prestate(test_network_buffer_with_overflow, NULL),
-    cmocka_unit_test_prestate(test_network_buffer_react_overflow, NULL),
+    cmocka_unit_test_prestate(test_network_buffer_retract_overflow, NULL),
+    cmocka_unit_test_prestate(test_network_buffer_retract_special_case, NULL),
   };
   const uint32_t value = cmocka_run_group_tests(tests, NULL, NULL);
   return value;
