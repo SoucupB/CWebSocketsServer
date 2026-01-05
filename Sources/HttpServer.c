@@ -4,6 +4,12 @@
 #include "SocketServer.h"
 #include "JsonParser.h"
 #include <string.h>
+#include "NetworkBuffer.h"
+
+typedef struct ConnectionProtocol_t {
+  Connection conn;
+  PNetworkBuffer buff;
+} ConnectionProtocol;
 
 void httpS_InitializeMethods(PHttpServer self);
 
@@ -62,6 +68,10 @@ RequestStruct httpS_Request_StructInit(HttpString ip, uint16_t port) {
   memcpy(response.ip, ip.buffer, ip.sz);
   response.port = port;
   return response;
+}
+
+void remote_OnConnect(Connection conn, void *mirror) {
+
 }
 
 void remote_OnReceiveMessage(PDataFragment frag, void *buffer) {
