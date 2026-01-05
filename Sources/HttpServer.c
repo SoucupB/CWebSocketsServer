@@ -14,6 +14,7 @@ typedef struct HttpConnectionProtocol_t {
 
 void httpS_InitializeMethods(PHttpServer self);
 static void httpS_ReleaseConns(const PHttpServer self);
+static void httpS_Remove(const PHttpServer self, const PDataFragment dt, const HttpConnectionProtocol *protocol);
 
 PHttpServer httpS_Create(uint16_t port) {
   PHttpServer self = crm_Alloc(sizeof(HttpServer));
@@ -105,9 +106,11 @@ static PHttpRequest httpS_Request_ParseData(const PHttpServer self, const PDataF
   *incomplete = 0;
   HttpConnectionProtocol *protocol = httpS_Request_FindConn(self, dt);
   if(!protocol) {
+    sock_PushCloseConnections(self->server, &dt->conn);
     return NULL;
   }
   if(!tpd_Push(protocol->buff, dt->data, dt->size)) {
+    sock_PushCloseConnections(self->server, &dt->conn);
     return NULL;
   }
   PHttpRequest request = http_Request_NB_Get(protocol->buff);
@@ -115,7 +118,15 @@ static PHttpRequest httpS_Request_ParseData(const PHttpServer self, const PDataF
     *incomplete = 1;
     return NULL;
   }
+  httpS_Remove(self, dt, protocol);
   return request;
+}
+
+static void httpS_Remove(const PHttpServer self, const PDataFragment dt, const HttpConnectionProtocol *protocol) {
+  tpd_Delete(protocol->buff);
+  size_t index = (HttpConnectionProtocol *)protocol - (HttpConnectionProtocol *)self->connections->buffer;
+  arr_RemoveElement(self->connections, index);
+  sock_PushCloseConnections(self->server, &dt->conn);
 }
 
 void remote_OnReceiveMessage(PDataFragment frag, void *buffer) {
@@ -125,13 +136,8 @@ void remote_OnReceiveMessage(PDataFragment frag, void *buffer) {
     return ;
   }
   uint8_t incomplete;
-  // PHttpRequest req = http_Request_Parse(frag->data, frag->size);
   PHttpRequest req = httpS_Request_ParseData(self, frag, &incomplete);
-  if(incomplete) {
-    return ;
-  }
-  sock_PushCloseConnections(self->server, &frag->conn);
-  if(!req) {
+  if(!req || incomplete) {
     return ;
   }
   PHttpResponse response = httpS_PrivateCaller(self, req);

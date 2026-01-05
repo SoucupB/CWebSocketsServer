@@ -113,3 +113,7 @@ void http_Helper_Free(PHttpServer server) {
   sock_Method_Delete(server->onReceive);
   httpS_Delete(server);
 }
+
+void http_Helper_StressTest(PHttpServer server, size_t requestCounts, uint8_t (*finishCondition)(void *), void *buffer) {
+  // to do
+}
