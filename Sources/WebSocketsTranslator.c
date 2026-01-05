@@ -353,3 +353,11 @@ Array wbs_Public_ParseData(PNetworkBuffer self) {
   }
   return response;
 }
+
+void wbs_Public_FreeParseData(Array arr) {
+  WebSocketObject *objs = arr->buffer;
+  for(size_t i = 0, c = arr->size; i < c; i++) {
+    crm_Free(objs[i]._fullMessage);
+  }
+  arr_Delete(arr);
+}

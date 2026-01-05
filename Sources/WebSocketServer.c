@@ -288,11 +288,7 @@ Array wss_GetObject(const PWebSocketServer self, const PDataFragment dt) {
 }
 
 static inline void wss_CleanMessages(const Array arr) {
-  WebSocketObject *objs = arr->buffer;
-  for(size_t i = 0, c = arr->size; i < c; i++) {
-    crm_Free(objs[i]._fullMessage);
-  }
-  arr_Delete(arr);
+  wbs_Public_FreeParseData(arr);
 }
 
 int8_t wss_ReceiveMessages(PWebSocketServer self, PDataFragment dt, PSocketMethod routine) {

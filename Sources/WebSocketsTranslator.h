@@ -24,3 +24,4 @@ size_t wbs_Raw_Public_HeaderSize(char *buffer);
 char *wbs_Public_PayloadBuffer(char *buffer);
 uint8_t wbs_Public_GetCode(char *buffer);
 Array wbs_Public_ParseData(PNetworkBuffer self);
+void wbs_Public_FreeParseData(Array arr);

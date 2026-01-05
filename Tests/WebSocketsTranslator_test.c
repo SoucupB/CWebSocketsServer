@@ -340,6 +340,25 @@ static void test_websockets_message_split_messages_masked_data_many_messages_mas
   free(messages[0]);
 }
 
+static void test_websockets_message_parse_network_buffer(void **state) {
+  WebSocketObject drr = test_Util_Transform("some super specs", sizeof("some super specs") - 1);
+  char *bff = wbs_ToWebSocket(drr);
+  const size_t bffSize = 33;
+  char *nextBuffer = malloc(wbs_FullMessageSize(bff) + bffSize);
+  memcpy(nextBuffer, bff, wbs_FullMessageSize(bff));
+  memset(nextBuffer + wbs_FullMessageSize(bff), 254, bffSize);
+  PNetworkBuffer nb = tpd_Create(1024);
+  tpd_Push(nb, nextBuffer, wbs_FullMessageSize(bff) + bffSize);
+  Array buffers = wbs_Public_ParseData(nb);
+  assert_int_equal(buffers->size, 1);
+  assert_int_equal(tpd_Size(nb), bffSize);
+
+  test_Util_Delete(drr);
+  free(bff);
+  free(nextBuffer);
+  wbs_Public_FreeParseData(buffers);
+  tpd_Delete(nb);
+}
 
 int main(void) {
   const struct CMUnitTest tests[] = {
@@ -369,6 +388,7 @@ int main(void) {
     cmocka_unit_test(test_websockets_message_split_messages_masked_data),
     cmocka_unit_test(test_websockets_message_split_messages_masked_data_invalid_multiple_messages),
     cmocka_unit_test(test_websockets_message_split_messages_masked_data_many_messages_masked),
+    cmocka_unit_test(test_websockets_message_parse_network_buffer),
   };
   return cmocka_run_group_tests(tests, NULL, NULL);
 }
