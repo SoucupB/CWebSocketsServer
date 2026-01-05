@@ -52,6 +52,20 @@ PHttpRequest http_Request_Parse(char *buffer, size_t sz) {
   return self;
 }
 
+PHttpRequest http_Request_Chomp(HttpString bff, char **endBuffer) {
+  if(!bff.sz) {
+    return NULL;
+  }
+  for(size_t i = bff.sz - 1; i >= 1; i--) {
+    PHttpRequest httpReq = http_Request_Parse(bff.buffer, i);
+    if(httpReq) {
+      *endBuffer = (char *)bff.buffer + i;
+      return httpReq;
+    }
+  }
+  return NULL;
+}
+
 static inline PURL http_URL_Init() {
   PURL self = crm_Alloc(sizeof(URL));
   memset(self, 0, sizeof(URL));

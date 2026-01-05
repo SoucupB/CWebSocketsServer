@@ -434,6 +434,33 @@ DSDSAFAFAFAFA\
   assert_ptr_equal(response, NULL);
 }
 
+static void test_http_parser_request_chomp(void **state) {
+  char *request = "\
+GET /test_test HTTP/1.0\r\n\
+Content-Length: 13\r\n\
+\r\n\
+DSDSAFAFAFAFAsome_other_text\
+";
+  char *endingBuffer = NULL;
+  PHttpRequest response = http_Request_Chomp((HttpString) {
+    .buffer = request,
+    .sz = strlen(request)
+  }, &endingBuffer);
+  assert_ptr_not_equal(response, NULL);
+  assert_ptr_equal(endingBuffer, request + 0x3C);
+  http_Request_Delete(response);
+}
+
+static void test_http_parser_request_chomp_invalid(void **state) {
+  char *request = "fdjskfdjs 32 5353 kfjglkshlkhl3232542dsa";
+  char *endingBuffer = NULL;
+  PHttpRequest response = http_Request_Chomp((HttpString) {
+    .buffer = request,
+    .sz = strlen(request)
+  }, &endingBuffer);
+  assert_ptr_equal(response, NULL);
+}
+
 int main(void) {
   const struct CMUnitTest tests[] = {
     cmocka_unit_test(test_http_parser_full_http_body),
@@ -464,6 +491,8 @@ int main(void) {
     cmocka_unit_test(test_http_parser_response_parse_wrong_content_length_smaller),
     cmocka_unit_test(test_http_parser_request_with_different_http_code_1_1),
     cmocka_unit_test(test_http_parser_request_with_different_http_code_1_0),
+    cmocka_unit_test(test_http_parser_request_chomp),
+    cmocka_unit_test(test_http_parser_request_chomp_invalid),
   };
   return cmocka_run_group_tests(tests, NULL, NULL);
 }
