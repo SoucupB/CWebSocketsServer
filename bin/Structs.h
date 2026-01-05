@@ -281,6 +281,7 @@ typedef HttpServer *PHttpServer;
 typedef struct HttpRequestServer_t {
   Array requests;
   int64_t timeoutMS;
+  size_t maxSizeInB;
 } HttpRequestServer;
 
 typedef HttpRequestServer *PHttpRequestServer;

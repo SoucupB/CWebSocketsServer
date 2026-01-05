@@ -5,22 +5,26 @@
 #include "TimeFragment.h"
 #include "HttpParser.h"
 #include "SocketClient.h"
+#include "NetworkBuffer.h"
 
 typedef struct RequestMetadata_t {
   RequestStruct metadata;
   PConnection conn;
   uint64_t requestDateMS;
+  PNetworkBuffer buffer;
 } RequestMetadata;
 
 typedef RequestMetadata *PRequestMetadata;
 
 HttpString sock_Client_ReceiveWithErrors(PConnection conn);
-void httpS_Request_CleanHangingConnections(const PHttpRequestServer self) ;
+void httpS_Request_CleanHangingConnections(const PHttpRequestServer self);
+static void httpS_Request_FreeRequestMetadata(const PRequestMetadata metadata);
 
 PHttpRequestServer httpS_Request_Create(int64_t timeoutMS) {
   PHttpRequestServer self = crm_Alloc(sizeof(HttpRequestServer));
   self->requests = arr_Init(sizeof(RequestMetadata));
   self->timeoutMS = timeoutMS;
+  self->maxSizeInB = 1024 * 1024 * 10;
   return self;
 }
 
@@ -34,7 +38,8 @@ void httpS_Request_Send(PHttpRequestServer self, RequestStruct request) {
   RequestMetadata toAdd = {
     .conn = NULL,
     .metadata = request,
-    .requestDateMS = tf_CurrentTimeMS()
+    .requestDateMS = tf_CurrentTimeMS(),
+    .buffer = tpd_Create(self->maxSizeInB)
   };
   arr_Push(self->requests, &toAdd);
 }
@@ -79,7 +84,20 @@ static inline void httpS_Request_ExecuteSuccessMethod(PSocketMethod method, PHtt
   onSuccess(response, method->mirrorBuffer);
 }
 
-static inline uint8_t httpS_Request_ProcessCurrentFragment(PHttpRequestServer self, PRequestMetadata metadata, uint64_t deltaMS) {
+static inline PHttpResponse httpS_Response_Process(const PHttpRequestServer self, const HttpString msg, const PRequestMetadata metadata, uint8_t *incomplete) {
+  *incomplete = 0;
+  if(!tpd_Push(metadata->buffer, msg.buffer, msg.sz)) {
+    return NULL;
+  }
+  PHttpResponse resp = http_Response_NB_Get(metadata->buffer);
+  if(!resp) {
+    *incomplete = 1;
+    return NULL;
+  }
+  return resp;
+}
+
+static inline uint8_t httpS_Request_ProcessCurrentFragment(const PHttpRequestServer self, const PRequestMetadata metadata, const uint64_t deltaMS) {
   if(metadata->requestDateMS <= deltaMS) {
     httpS_Request_ExecuteErrorMethod(metadata->metadata.onFailure, RESPONSE_TIMEOUT);
     return 1;
@@ -88,7 +106,13 @@ static inline uint8_t httpS_Request_ProcessCurrentFragment(PHttpRequestServer se
   if(!response.buffer) {
     return 0;
   }
-  PHttpResponse httpResponse = http_Response_Parse(response);
+  uint8_t incomplete;
+  // PHttpResponse httpResponse = http_Response_Parse(response);
+  PHttpResponse httpResponse = httpS_Response_Process(self, response, metadata, &incomplete);
+  if(incomplete) {
+    crm_Free(response.buffer);
+    return 0;
+  }
   if(!httpResponse) {
     crm_Free(response.buffer);
     httpS_Request_ExecuteErrorMethod(metadata->metadata.onFailure, RESPONSE_PARSE_ERROR);
@@ -101,14 +125,19 @@ static inline uint8_t httpS_Request_ProcessCurrentFragment(PHttpRequestServer se
   return 1;
 }
 
+static void httpS_Request_FreeRequestMetadata(const PRequestMetadata metadata) {
+  sock_Client_Free(metadata->conn);
+  tpd_Delete(metadata->buffer);
+  metadata->conn = NULL;
+}
+
 void httpS_Request_CleanHangingConnections(const PHttpRequestServer self) {
   RequestMetadata *buffer = self->requests->buffer;
   for(size_t i = 0, c = self->requests->size; i < c; i++) {
     if(!buffer[i].conn) {
       continue;
     }
-    sock_Client_Free(buffer[i].conn);
-    buffer[i].conn = NULL;
+    httpS_Request_FreeRequestMetadata(&buffer[i]);
   }
 }
 
@@ -121,7 +150,7 @@ void httpS_Request_ProcessActiveRequests(PHttpRequestServer self, uint64_t delta
     }
     if(httpS_Request_ProcessCurrentFragment(self, &buffer[i], deltaMS)) {
       arr_Push(indexes, &i);
-      sock_Client_Free(buffer[i].conn);
+      httpS_Request_FreeRequestMetadata(&buffer[i]);
       buffer[i].conn = NULL;
     }
   }
