@@ -20,6 +20,7 @@ HttpString http_Body_Process(Hash self, char *_endBuffer, PHttpString buffer);
 static inline void http_SetBuffer(HttpString buffer, PHttpString nextPart, char *next);
 PHttpResponse _http_Response_Empty(Hash headers);
 PHttpResponse http_Response_Chomp_t(HttpString *bff);
+PHttpRequest http_Request_Chomp_t(HttpString *bff);
 
 #define ALPHANUMERIC "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_."
 #define ACCEPTED_ALPHANUMERIC_KEY "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!#$%&'*+-.^_`|~"
@@ -27,29 +28,37 @@ PHttpResponse http_Response_Chomp_t(HttpString *bff);
 #define NUMBERS "0123456789"
 
 PHttpRequest http_Request_Parse(char *buffer, size_t sz) {
-  PHttpRequest self = crm_Alloc(sizeof(HttpRequest));
-  memset(self, 0, sizeof(HttpRequest));
-  self->headers = http_Hash_Create();
-  self->_endBuffer = buffer + sz;
-  self->metadata = http_InitMetadata();
-  self->url = http_URL_Init();
-  HttpString input = {
+  HttpString req = {
     .buffer = buffer,
     .sz = sz
   };
-  if(!http_Route_Parse(self, &input)) {
+  PHttpRequest self = http_Request_Chomp_t(&req);
+  if(!self) {
+    return NULL;
+  }
+  if(req.sz) {
     http_Request_Delete(self);
     return NULL;
   }
-  if(!http_Header_Parse(self->headers, self->_endBuffer, &input)) {
+  return self;
+}
+
+PHttpRequest http_Request_Chomp_t(HttpString *bff) {
+  PHttpRequest self = crm_Alloc(sizeof(HttpRequest));
+  memset(self, 0, sizeof(HttpRequest));
+  self->headers = http_Hash_Create();
+  self->_endBuffer = bff->buffer + bff->sz;
+  self->metadata = http_InitMetadata();
+  self->url = http_URL_Init();
+  if(!http_Route_Parse(self, bff)) {
     http_Request_Delete(self);
     return NULL;
   }
-  self->body = http_Body_Process(self->headers, self->_endBuffer, &input);
-  if(input.sz) {
+  if(!http_Header_Parse(self->headers, self->_endBuffer, bff)) {
     http_Request_Delete(self);
     return NULL;
   }
+  self->body = http_Body_Process(self->headers, self->_endBuffer, bff);
   return self;
 }
 
@@ -69,26 +78,11 @@ PHttpRequest http_Request_NB_Get(PNetworkBuffer netBuffer) {
 }
 
 PHttpRequest http_Request_Chomp(HttpString bff, char **endBuffer) {
-  PHttpRequest self = crm_Alloc(sizeof(HttpRequest));
-  memset(self, 0, sizeof(HttpRequest));
-  self->headers = http_Hash_Create();
-  self->_endBuffer = bff.buffer + bff.sz;
-  self->metadata = http_InitMetadata();
-  self->url = http_URL_Init();
-  HttpString input = {
-    .buffer = bff.buffer,
-    .sz = bff.sz
-  };
-  if(!http_Route_Parse(self, &input)) {
-    http_Request_Delete(self);
+  PHttpRequest self = http_Request_Chomp_t(&bff);
+  if(!self) {
     return NULL;
   }
-  if(!http_Header_Parse(self->headers, self->_endBuffer, &input)) {
-    http_Request_Delete(self);
-    return NULL;
-  }
-  self->body = http_Body_Process(self->headers, self->_endBuffer, &input);
-  *endBuffer = input.buffer;
+  *endBuffer = bff.buffer;
   return self;
 }
 
@@ -880,6 +874,9 @@ PHttpResponse http_Response_Chomp_t(HttpString *bff) {
 
 PHttpResponse http_Response_Chomp(HttpString bff, char **endBuffer) {
   PHttpResponse response = http_Response_Chomp_t(&bff);
+  if(!response) {
+    return NULL;
+  }
   *endBuffer = bff.buffer;
   return response;
 }
