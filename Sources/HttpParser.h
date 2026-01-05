@@ -31,3 +31,4 @@ void http_Response_SetJSON(PHttpResponse self);
 PHttpResponse http_Response_Parse(HttpString buffer);
 HttpString http_Response_GetValue(PHttpResponse self, char *buffer);
 PHttpResponse http_Response_Chomp(HttpString bff, char **endBuffer);
+PHttpResponse http_Response_NB_Get(PNetworkBuffer netBuffer);

@@ -98,6 +98,21 @@ PHttpResponse http_Response_Chomp(HttpString bff, char **endBuffer) {
   return NULL;
 }
 
+PHttpResponse http_Response_NB_Get(PNetworkBuffer netBuffer) {
+  char *stBuffer = tpd_StartingBuffer(netBuffer);
+  char *endingBuffer;
+  PHttpResponse res = http_Response_Chomp((HttpString) {
+    .buffer = stBuffer,
+    .sz = tpd_Size(netBuffer)
+  }, &endingBuffer);
+  if(!res) {
+    return NULL;
+  }
+  const size_t nextSize = (size_t)(endingBuffer - stBuffer);
+  tpd_Retract(netBuffer, nextSize);
+  return res;
+}
+
 static inline PURL http_URL_Init() {
   PURL self = crm_Alloc(sizeof(URL));
   memset(self, 0, sizeof(URL));
