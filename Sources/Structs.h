@@ -272,6 +272,8 @@ typedef JsonObject *PJsonObject;
 typedef struct HttpServer_t {
   PSocketServer server;
   PSocketMethod onReceive;
+  Array connections;
+  size_t maximumRequestSize;
 } HttpServer;
 
 typedef HttpServer *PHttpServer;

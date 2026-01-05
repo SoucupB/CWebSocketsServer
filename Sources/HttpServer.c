@@ -5,6 +5,7 @@
 #include "JsonParser.h"
 #include <string.h>
 #include "NetworkBuffer.h"
+#include "Array.h"
 
 typedef struct ConnectionProtocol_t {
   Connection conn;
@@ -12,11 +13,14 @@ typedef struct ConnectionProtocol_t {
 } ConnectionProtocol;
 
 void httpS_InitializeMethods(PHttpServer self);
+static void httpS_ReleaseConns(const PHttpServer self);
 
 PHttpServer httpS_Create(uint16_t port) {
   PHttpServer self = crm_Alloc(sizeof(HttpServer));
   memset(self, 0, sizeof(HttpServer));
   self->server = sock_Create(port);
+  self->connections = arr_Init(sizeof(ConnectionProtocol));
+  self->maximumRequestSize = 1024 * 1024 * 10;
   httpS_InitializeMethods(self);
   return self;
 }
@@ -28,6 +32,23 @@ void httpS_SetMethod(PHttpServer self, PSocketMethod onReceive) {
 PHttpResponse httpS_PrivateCaller(PHttpServer self, PHttpRequest req) {
   PHttpResponse (*caller)(PHttpRequest, void *) = (PHttpResponse (*)(PHttpRequest, void *))self->onReceive->method;
   return caller(req, self->onReceive->mirrorBuffer);
+}
+
+void remote_OnConnect(Connection conn, void *mirror) {
+  PHttpServer self = mirror;
+  ConnectionProtocol proto = {
+    .conn = conn,
+    .buff = tpd_Create(self->maximumRequestSize)
+  };
+  arr_Push(self->connections, &proto);
+}
+
+static void httpS_ReleaseConns(const PHttpServer self) {
+  ConnectionProtocol *conns = self->connections->buffer;
+  for(size_t i = 0, c = self->connections->size; i < c; i++) {
+    tpd_Delete(conns[i].buff);
+  }
+  arr_Delete(self->connections);
 }
 
 JsonElement httpS_Json_Get(PHttpRequest req) {
@@ -70,10 +91,6 @@ RequestStruct httpS_Request_StructInit(HttpString ip, uint16_t port) {
   return response;
 }
 
-void remote_OnConnect(Connection conn, void *mirror) {
-
-}
-
 void remote_OnReceiveMessage(PDataFragment frag, void *buffer) {
   PHttpServer self = buffer;
   sock_PushCloseConnections(self->server, &frag->conn);
@@ -107,10 +124,17 @@ void httpS_InitializeMethods(PHttpServer self) {
     self
   );
   self->server->onReceiveMessage = onReceive;
+  PSocketMethod onConnect = sock_Method_Create(
+    (void *)remote_OnConnect,
+    self
+  );
+  self->server->onConnectionAquire = onConnect;
 }
 
 void httpS_Delete(PHttpServer self) {
+  sock_Method_Delete(self->server->onConnectionAquire);
   sock_Method_Delete(self->server->onReceiveMessage);
+  httpS_ReleaseConns(self);
   sock_Delete(self->server);
   crm_Free(self);
 }
