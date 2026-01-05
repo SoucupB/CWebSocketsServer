@@ -461,6 +461,39 @@ static void test_http_parser_request_chomp_invalid(void **state) {
   assert_ptr_equal(response, NULL);
 }
 
+static void test_http_parser_request_chomp_network_buffer(void **state) {
+  char *request = "\
+GET /test_test HTTP/1.0\r\n\
+Content-Length: 13\r\n\
+\r\n\
+DSDSAFAFAFAFAsome_other_text\
+";
+  PNetworkBuffer bff = tpd_Create(1024);
+  tpd_Push(bff, request, strlen(request));
+  PHttpRequest req = http_Request_NB_Get(bff);
+  assert_ptr_not_equal(req, NULL);
+  assert_int_equal(tpd_Size(bff), sizeof("some_other_text") - 1);
+  assert_memory_equal(tpd_StartingBuffer(bff), "some_other_text", tpd_Size(bff));
+  http_Request_Delete(req);
+  tpd_Delete(bff);
+}
+
+static void test_http_parser_request_chomp_network_buffer_invalid(void **state) {
+  char *request = "\
+GET /test_test HTTP/1.0 PP\r\n\
+Content-Length: 13\r\n\
+\r\n\
+DSDSAFAFAFAFAsome_other_text\
+";
+  PNetworkBuffer bff = tpd_Create(1024);
+  tpd_Push(bff, request, strlen(request));
+  char *startingBuffer = tpd_StartingBuffer(bff);
+  PHttpRequest req = http_Request_NB_Get(bff);
+  assert_ptr_equal(req, NULL);
+  assert_ptr_equal(startingBuffer, tpd_StartingBuffer(bff));
+  tpd_Delete(bff);
+}
+
 int main(void) {
   const struct CMUnitTest tests[] = {
     cmocka_unit_test(test_http_parser_full_http_body),
@@ -493,6 +526,8 @@ int main(void) {
     cmocka_unit_test(test_http_parser_request_with_different_http_code_1_0),
     cmocka_unit_test(test_http_parser_request_chomp),
     cmocka_unit_test(test_http_parser_request_chomp_invalid),
+    cmocka_unit_test(test_http_parser_request_chomp_network_buffer),
+    cmocka_unit_test(test_http_parser_request_chomp_network_buffer_invalid),
   };
   return cmocka_run_group_tests(tests, NULL, NULL);
 }

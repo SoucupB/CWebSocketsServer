@@ -52,6 +52,21 @@ PHttpRequest http_Request_Parse(char *buffer, size_t sz) {
   return self;
 }
 
+PHttpRequest http_Request_NB_Get(PNetworkBuffer netBuffer) {
+  char *stBuffer = tpd_StartingBuffer(netBuffer);
+  char *endingBuffer;
+  PHttpRequest req = http_Request_Chomp((HttpString) {
+    .buffer = stBuffer,
+    .sz = tpd_Size(netBuffer)
+  }, &endingBuffer);
+  if(!req) {
+    return NULL;
+  }
+  const size_t nextSize = (size_t)(endingBuffer - stBuffer);
+  tpd_Retract(netBuffer, nextSize);
+  return req;
+}
+
 PHttpRequest http_Request_Chomp(HttpString bff, char **endBuffer) {
   if(!bff.sz) {
     return NULL;
