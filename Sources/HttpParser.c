@@ -19,6 +19,7 @@ static inline Hash http_Hash_Create();
 HttpString http_Body_Process(Hash self, char *_endBuffer, PHttpString buffer);
 static inline void http_SetBuffer(HttpString buffer, PHttpString nextPart, char *next);
 PHttpResponse _http_Response_Empty(Hash headers);
+PHttpResponse http_Response_Chomp_t(HttpString *bff);
 
 #define ALPHANUMERIC "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_."
 #define ACCEPTED_ALPHANUMERIC_KEY "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!#$%&'*+-.^_`|~"
@@ -844,75 +845,51 @@ uint8_t http_Response_ParseBody(PHttpResponse self, PHttpServer buffer) {
   return 1;
 }
 
-
-
-PHttpResponse http_Response_Chomp(HttpString bff, char **endBuffer) {
-  HttpString cpyBuffer = bff;
-  if(!http_Response_ParseCode(&cpyBuffer)) {
+PHttpResponse http_Response_Chomp_t(HttpString *bff) {
+  if(!http_Response_ParseCode(bff)) {
     return NULL;
   }
-  if(!http_Response_ParseEmptySpace(&cpyBuffer)) {
+  if(!http_Response_ParseEmptySpace(bff)) {
     return NULL;
   }
-  char *_endBuffer = bff.buffer + bff.sz;
+  char *_endBuffer = bff->buffer + bff->sz;
   PHttpResponse self = http_Response_Empty();
-  if(!http_Response_ParseHttpCode(self, &cpyBuffer)) {
+  if(!http_Response_ParseHttpCode(self, bff)) {
     http_Response_Delete(self);
     return NULL;
   }
-  if(!http_Response_ParseEmptySpace(&cpyBuffer)) {
+  if(!http_Response_ParseEmptySpace(bff)) {
     http_Response_Delete(self);
     return NULL;
   }
-  if(!http_Response_ParseMessage(&cpyBuffer)) {
+  if(!http_Response_ParseMessage(bff)) {
     http_Response_Delete(self);
     return NULL;
   }
-  if(!http_Response_ParseLineSeparator(&cpyBuffer)) {
+  if(!http_Response_ParseLineSeparator(bff)) {
     http_Response_Delete(self);
     return NULL;
   }
-  if(!http_Header_Parse(self->headers, _endBuffer, &cpyBuffer)) {
+  if(!http_Header_Parse(self->headers, _endBuffer, bff)) {
     http_Response_Delete(self);
     return NULL;
   }
-  self->body = http_Body_Process(self->headers, _endBuffer, &cpyBuffer);
-  *endBuffer = cpyBuffer.buffer;
+  self->body = http_Body_Process(self->headers, _endBuffer, bff);
   return self;
 }
 
+PHttpResponse http_Response_Chomp(HttpString bff, char **endBuffer) {
+  PHttpResponse response = http_Response_Chomp_t(&bff);
+  *endBuffer = bff.buffer;
+  return response;
+}
+
 PHttpResponse http_Response_Parse(HttpString buffer) {
-  HttpString cpyBuffer = buffer;
-  if(!http_Response_ParseCode(&cpyBuffer)) {
+  PHttpResponse self = http_Response_Chomp_t(&buffer);
+  if(!self) {
     return NULL;
   }
-  if(!http_Response_ParseEmptySpace(&cpyBuffer)) {
-    return NULL;
-  }
-  char *_endBuffer = buffer.buffer + buffer.sz;
-  PHttpResponse self = http_Response_Empty();
-  if(!http_Response_ParseHttpCode(self, &cpyBuffer)) {
-    http_Response_Delete(self);
-    return NULL;
-  }
-  if(!http_Response_ParseEmptySpace(&cpyBuffer)) {
-    http_Response_Delete(self);
-    return NULL;
-  }
-  if(!http_Response_ParseMessage(&cpyBuffer)) {
-    http_Response_Delete(self);
-    return NULL;
-  }
-  if(!http_Response_ParseLineSeparator(&cpyBuffer)) {
-    http_Response_Delete(self);
-    return NULL;
-  }
-  if(!http_Header_Parse(self->headers, _endBuffer, &cpyBuffer)) {
-    http_Response_Delete(self);
-    return NULL;
-  }
-  self->body = http_Body_Process(self->headers, _endBuffer, &cpyBuffer);
-  if(cpyBuffer.sz) {
+  if(buffer.sz) {
     http_Response_Delete(self);
     return NULL;
   }
