@@ -29,7 +29,7 @@ int main()
     uint64_t currentTime = tf_CurrentTimeMS();
     httpS_OnFrame(server, currentTime - currentTimestamp);
     currentTimestamp = currentTime;
-    usleep(32 * 1000);
+    usleep(4 * 1000);
   }
   httpS_Delete(server);
   sock_Method_Delete(onReceive);
