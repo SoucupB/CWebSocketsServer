@@ -71,7 +71,7 @@ PHttpRequest http_Request_Chomp(HttpString bff, char **endBuffer) {
   if(!bff.sz) {
     return NULL;
   }
-  for(size_t i = bff.sz - 1; i >= 1; i--) {
+  for(size_t i = bff.sz; i >= 1; i--) {
     PHttpRequest httpReq = http_Request_Parse(bff.buffer, i);
     if(httpReq) {
       *endBuffer = (char *)bff.buffer + i;

@@ -281,7 +281,8 @@ PHttpRequest wss_ProcessHttpRequest(const PWebSocketServer self, const PDataFrag
 }
 
 uint8_t wss_ProcessConnectionRequest(PWebSocketServer self, PDataFragment dt, uint8_t *incomplete) {
-  PHttpRequest req = http_Request_Parse(dt->data, dt->size);
+  PHttpRequest req = wss_ProcessHttpRequest(self, dt, incomplete);
+  // PHttpRequest req = http_Request_Parse(dt->data, dt->size);
   if(!req) {
     return 0;
   }
@@ -427,6 +428,9 @@ void _wss_OnReceive(PDataFragment dt, void *buffer) {
   }
   uint8_t incomplete;
   uint8_t request = wss_ProcessConnectionRequest(self, dt, &incomplete);
+  if(incomplete) {
+    return ;
+  }
   wss_RemoveConnBuffer(self->pendingConnections, connIndex);
   if(!request) {
     sock_PushCloseConnections(self->socketServer, &dt->conn);
