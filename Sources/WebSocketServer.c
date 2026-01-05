@@ -282,7 +282,6 @@ PHttpRequest wss_ProcessHttpRequest(const PWebSocketServer self, const PDataFrag
 
 uint8_t wss_ProcessConnectionRequest(PWebSocketServer self, PDataFragment dt, uint8_t *incomplete) {
   PHttpRequest req = wss_ProcessHttpRequest(self, dt, incomplete);
-  // PHttpRequest req = http_Request_Parse(dt->data, dt->size);
   if(!req) {
     return 0;
   }
