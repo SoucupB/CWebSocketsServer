@@ -791,6 +791,7 @@ typedef struct WebSocketServer_t {
   Array activeConnections;
   PTimeout timeServer;
   size_t maxBSize;
+  size_t maxBSizeForHttpReq;
 } WebSocketServer;
 typedef WebSocketServer *PWebSocketServer;
 typedef enum {
@@ -2099,6 +2100,13 @@ void hsh_Delete(PHsh self) {
   free(self);
 }
        
+       
+PNetworkBuffer tpd_Create(size_t maxSizeB);
+void tpd_Delete(PNetworkBuffer self);
+uint8_t tpd_Push(PNetworkBuffer self, void *buffer, size_t size);
+size_t tpd_Size(PNetworkBuffer self);
+void tpd_Retract(PNetworkBuffer self, size_t bytes);
+void *tpd_StartingBuffer(PNetworkBuffer self);
 PHttpRequest http_Request_Parse(char *buffer, size_t sz);
 HttpString http_Request_ToString(PHttpRequest self);
 HttpString http_Request_GetValue(PHttpRequest self, char *buffer);
@@ -2109,6 +2117,8 @@ HttpString http_Request_GetBody(PHttpRequest self);
 HttpString http_Request_GetPath(PHttpRequest self);
 void http_Request_AddHeader(PHttpRequest self, char *key, char *value);
 PHttpRequest http_Request_Basic();
+PHttpRequest http_Request_Chomp(HttpString bff, char **endBuffer);
+PHttpRequest http_Request_NB_Get(PNetworkBuffer netBuffer);
 HttpString http_Hash_GetValue(Hash self, char *buffer, size_t bufferLen);
 PHttpResponse http_Response_Create();
 PHttpResponse http_Response_DeepCopy(PHttpResponse self);
@@ -2120,6 +2130,7 @@ void http_Response_Set(PHttpResponse self, char *key, size_t keySize, char *valu
 void http_Response_SetJSON(PHttpResponse self);
 PHttpResponse http_Response_Parse(HttpString buffer);
 HttpString http_Response_GetValue(PHttpResponse self, char *buffer);
+PHttpResponse http_Response_Chomp(HttpString bff, char **endBuffer);
 
 enum
 {
@@ -2227,6 +2238,49 @@ PHttpRequest http_Request_Parse(char *buffer, size_t sz) {
     return ((void *)0);
   }
   return self;
+}
+PHttpRequest http_Request_NB_Get(PNetworkBuffer netBuffer) {
+  char *stBuffer = tpd_StartingBuffer(netBuffer);
+  char *endingBuffer;
+  PHttpRequest req = http_Request_Chomp((HttpString) {
+    .buffer = stBuffer,
+    .sz = tpd_Size(netBuffer)
+  }, &endingBuffer);
+  if(!req) {
+    return ((void *)0);
+  }
+  const size_t nextSize = (size_t)(endingBuffer - stBuffer);
+  tpd_Retract(netBuffer, nextSize);
+  return req;
+}
+PHttpRequest http_Request_Chomp(HttpString bff, char **endBuffer) {
+  if(!bff.sz) {
+    return ((void *)0);
+  }
+  for(size_t i = bff.sz; i >= 1; i--) {
+    PHttpRequest httpReq = http_Request_Parse(bff.buffer, i);
+    if(httpReq) {
+      *endBuffer = (char *)bff.buffer + i;
+      return httpReq;
+    }
+  }
+  return ((void *)0);
+}
+PHttpResponse http_Response_Chomp(HttpString bff, char **endBuffer) {
+  if(!bff.sz) {
+    return ((void *)0);
+  }
+  for(size_t i = bff.sz; i >= 1; i--) {
+    PHttpResponse httpReq = http_Response_Parse((HttpString) {
+      .buffer = bff.buffer,
+      .sz = i
+    });
+    if(httpReq) {
+      *endBuffer = (char *)bff.buffer + i;
+      return httpReq;
+    }
+  }
+  return ((void *)0);
 }
 static inline PURL http_URL_Init() {
   PURL self = malloc(sizeof(URL));
@@ -3207,7 +3261,7 @@ PJsonObject json_Create() {
   return self;
 }
 void json_Add(PJsonObject self, PHttpString key, JsonElement element) {
-  ((void) sizeof ((self->hsh) ? 1 : 0), __extension__ ({ if (self->hsh) ; else __assert_fail ("self->hsh", "bin/svv.c", 1743, __extension__ __PRETTY_FUNCTION__); }));
+  ((void) sizeof ((self->hsh) ? 1 : 0), __extension__ ({ if (self->hsh) ; else __assert_fail ("self->hsh", "bin/svv.c", 1789, __extension__ __PRETTY_FUNCTION__); }));
   hsh_Add(self->hsh, key->buffer, key->sz, &element, sizeof(JsonElement));
 }
 void json_Delete(PJsonObject self) {
@@ -3300,17 +3354,17 @@ void json_PushLeafValue(Array str, JsonElement element) {
       break;
     }
     case JSON_INTEGER: {
-      ((void) sizeof ((element.value) ? 1 : 0), __extension__ ({ if (element.value) ; else __assert_fail ("element.value", "bin/svv.c", 1849, __extension__ __PRETTY_FUNCTION__); }));
+      ((void) sizeof ((element.value) ? 1 : 0), __extension__ ({ if (element.value) ; else __assert_fail ("element.value", "bin/svv.c", 1895, __extension__ __PRETTY_FUNCTION__); }));
       json_Element_PushInteger(str, *(int64_t *)element.value);
       break;
     }
     case JSON_NUMBER: {
-      ((void) sizeof ((element.value) ? 1 : 0), __extension__ ({ if (element.value) ; else __assert_fail ("element.value", "bin/svv.c", 1854, __extension__ __PRETTY_FUNCTION__); }));
+      ((void) sizeof ((element.value) ? 1 : 0), __extension__ ({ if (element.value) ; else __assert_fail ("element.value", "bin/svv.c", 1900, __extension__ __PRETTY_FUNCTION__); }));
       json_Element_PushFloat(str, *(float *)element.value);
       break;
     }
     case JSON_STRING: {
-      ((void) sizeof ((element.value) ? 1 : 0), __extension__ ({ if (element.value) ; else __assert_fail ("element.value", "bin/svv.c", 1859, __extension__ __PRETTY_FUNCTION__); }));
+      ((void) sizeof ((element.value) ? 1 : 0), __extension__ ({ if (element.value) ; else __assert_fail ("element.value", "bin/svv.c", 1905, __extension__ __PRETTY_FUNCTION__); }));
       json_Element_PushString(str, element.value);
       break;
     }
@@ -3487,7 +3541,7 @@ TokenParser json_Parser_Null(TokenParser tck) {
   return tck;
 }
 void json_Map_Add(JsonElement map, char *key, JsonElement element) {
-  ((void) sizeof ((map.type == JSON_JSON) ? 1 : 0), __extension__ ({ if (map.type == JSON_JSON) ; else __assert_fail ("map.type == JSON_JSON", "bin/svv.c", 2050, __extension__ __PRETTY_FUNCTION__); }));
+  ((void) sizeof ((map.type == JSON_JSON) ? 1 : 0), __extension__ ({ if (map.type == JSON_JSON) ; else __assert_fail ("map.type == JSON_JSON", "bin/svv.c", 2096, __extension__ __PRETTY_FUNCTION__); }));
   HttpString str = {
     .buffer = key,
     .sz = strlen(key)
@@ -3949,15 +4003,15 @@ JsonElement json_Array_At(JsonElement arr, size_t index) {
   return ((JsonElement *)vct->buffer)[index];
 }
 size_t json_Array_Size(JsonElement arr) {
-  ((void) sizeof ((arr.type == JSON_ARRAY) ? 1 : 0), __extension__ ({ if (arr.type == JSON_ARRAY) ; else __assert_fail ("arr.type == JSON_ARRAY", "bin/svv.c", 2544, __extension__ __PRETTY_FUNCTION__); }));
+  ((void) sizeof ((arr.type == JSON_ARRAY) ? 1 : 0), __extension__ ({ if (arr.type == JSON_ARRAY) ; else __assert_fail ("arr.type == JSON_ARRAY", "bin/svv.c", 2590, __extension__ __PRETTY_FUNCTION__); }));
   return ((Array)arr.value)->size;
 }
 int64_t json_Integer_Get(JsonElement arr) {
-  ((void) sizeof ((arr.type == JSON_INTEGER) ? 1 : 0), __extension__ ({ if (arr.type == JSON_INTEGER) ; else __assert_fail ("arr.type == JSON_INTEGER", "bin/svv.c", 2549, __extension__ __PRETTY_FUNCTION__); }));
+  ((void) sizeof ((arr.type == JSON_INTEGER) ? 1 : 0), __extension__ ({ if (arr.type == JSON_INTEGER) ; else __assert_fail ("arr.type == JSON_INTEGER", "bin/svv.c", 2595, __extension__ __PRETTY_FUNCTION__); }));
   return *((int64_t *)arr.value);
 }
 float json_Number_Get(JsonElement arr) {
-  ((void) sizeof ((arr.type == JSON_NUMBER) ? 1 : 0), __extension__ ({ if (arr.type == JSON_NUMBER) ; else __assert_fail ("arr.type == JSON_NUMBER", "bin/svv.c", 2554, __extension__ __PRETTY_FUNCTION__); }));
+  ((void) sizeof ((arr.type == JSON_NUMBER) ? 1 : 0), __extension__ ({ if (arr.type == JSON_NUMBER) ; else __assert_fail ("arr.type == JSON_NUMBER", "bin/svv.c", 2600, __extension__ __PRETTY_FUNCTION__); }));
   return *((float *)arr.value);
 }
        
@@ -8374,13 +8428,6 @@ uint8_t jwt_IsSigned(HttpString str, HttpString secret) {
 static inline char *jwt_CreateHeader() {
   return "{\"alg\":\"HS256\",\"typ\":\"JWT\"}";
 }
-       
-PNetworkBuffer tpd_Create(size_t maxSizeB);
-void tpd_Delete(PNetworkBuffer self);
-uint8_t tpd_Push(PNetworkBuffer self, void *buffer, size_t size);
-size_t tpd_Size(PNetworkBuffer self);
-void tpd_Retract(PNetworkBuffer self, size_t bytes);
-void *tpd_StartingBuffer(PNetworkBuffer self);
 static inline size_t tpd_Min(const size_t a, const size_t b) {
   return a < b ? a : b;
 }
@@ -9589,7 +9636,7 @@ void sock_PushCloseConnMethod(PSocketServer self, Connection conn, size_t index)
   tf_ExecuteAfter(self->timeServer.timeServer, timeFragment, self->timeServer.timeout);
 }
 void sock_SetMaxConnections(PSocketServer self, int32_t maxActiveConnections) {
-  ((void) sizeof ((maxActiveConnections < 1024) ? 1 : 0), __extension__ ({ if (maxActiveConnections < 1024) ; else __assert_fail ("maxActiveConnections < MAX_CONNECTIONS_PER_SERVER", "bin/svv.c", 3140, __extension__ __PRETTY_FUNCTION__); }));
+  ((void) sizeof ((maxActiveConnections < 1024) ? 1 : 0), __extension__ ({ if (maxActiveConnections < 1024) ; else __assert_fail ("maxActiveConnections < MAX_CONNECTIONS_PER_SERVER", "bin/svv.c", 3186, __extension__ __PRETTY_FUNCTION__); }));
   self->maxActiveConnections = maxActiveConnections;
 }
 void sock_Write_Push(PSocketServer self, DataFragment *dt) {
@@ -10087,6 +10134,16 @@ size_t wbs_Raw_Public_HeaderSize(char *buffer);
 char *wbs_Public_PayloadBuffer(char *buffer);
 uint8_t wbs_Public_GetCode(char *buffer);
 Array wbs_Public_ParseData(PNetworkBuffer self);
+void wbs_Public_FreeParseData(Array arr);
+typedef struct PingConnData_t {
+  Connection conn;
+  uint64_t payload;
+  int64_t remainingTime;
+} PingConnData;
+typedef struct ConnectionProtocol_t {
+  Connection conn;
+  PNetworkBuffer buff;
+} ConnectionProtocol;
 void wss_SetMethods(PWebSocketServer self);
 void _wss_OnConnect(Connection connection, void *buffer);
 void _wss_OnReceive(PDataFragment dt, void *buffer);
@@ -10095,15 +10152,9 @@ static inline void wss_RunCloseConnRoutine(PWebSocketServer self, Connection con
 static inline uint8_t wss_RemovePingRequest(PWebSocketServer self, PDataFragment dt);
 static inline uint8_t wss_IsPingRequestIssued(PWebSocketServer self, PDataFragment dt);
 static inline size_t wss_FindConnectionOnThePull(PWebSocketServer self, PConnection conn, uint8_t *found);
-typedef struct PingConnData_t {
-  Connection conn;
-  uint64_t payload;
-  int64_t remainingTime;
-} PingConnData;
-typedef struct ActiveConnections_t {
-  Connection conn;
-  PNetworkBuffer buff;
-} ActiveConnections;
+static inline void wss_FreeConn(const ConnectionProtocol conn);
+static inline void wss_RemoveConnBuffer(const Array arr, const size_t index);
+static inline ConnectionProtocol *wss_FindConn(const PWebSocketServer self, const PDataFragment dt);
 static inline uint64_t _wss_Rand() {
   uint64_t response;
   char *buffer = (char *)&response;
@@ -10116,10 +10167,11 @@ PWebSocketServer wss_Create(uint16_t port) {
   PWebSocketServer self = malloc(sizeof(WebSocketServer));
   memset(self, 0, sizeof(WebSocketServer));
   self->socketServer = sock_Create(port);
-  self->pendingConnections = arr_Init(sizeof(Connection));
+  self->pendingConnections = arr_Init(sizeof(ConnectionProtocol));
   self->pendingPingRequests = arr_Init(sizeof(PingConnData));
-  self->activeConnections = arr_Init(sizeof(ActiveConnections));
+  self->activeConnections = arr_Init(sizeof(ConnectionProtocol));
   self->maxBSize = 1024 * 1024;
+  self->maxBSizeForHttpReq = 1024 * 4;
   wss_SetMethods(self);
   return self;
 }
@@ -10215,18 +10267,30 @@ void wss_ProcessTimeoutPingRequests(PWebSocketServer self, uint64_t deltaMS) {
   arr_Delete(indexesToRemove);
 }
 static inline void wss_ReleaseActiveConnections(const PWebSocketServer self) {
-  ActiveConnections *conns = self->activeConnections->buffer;
+  ConnectionProtocol *conns = self->activeConnections->buffer;
   for(size_t i = 0, c = self->activeConnections->size; i < c; i++) {
     tpd_Delete(conns[i].buff);
   }
   arr_Delete(self->activeConnections);
+}
+static inline void wss_FreeConn(const ConnectionProtocol conn) {
+  if(conn.buff) {
+    tpd_Delete(conn.buff);
+  }
+}
+void wss_FreeConnectionPayload(const Array arr) {
+  const ConnectionProtocol *cp = arr->buffer;
+  for(size_t i = 0, c = arr->size; i < c; i++) {
+    wss_FreeConn(cp[i]);
+  }
+  arr_Delete(arr);
 }
 void wss_Delete(PWebSocketServer self) {
   sock_Method_Delete(self->methodsBundle._onReceive);
   sock_Method_Delete(self->methodsBundle._onConnect);
   sock_Method_Delete(self->methodsBundle._onRelease);
   wss_Tf_Delete(self);
-  arr_Delete(self->pendingConnections);
+  wss_FreeConnectionPayload(self->pendingConnections);
   arr_Delete(self->pendingPingRequests);
   wss_ReleaseActiveConnections(self);
   sock_Delete(self->socketServer);
@@ -10234,9 +10298,9 @@ void wss_Delete(PWebSocketServer self) {
 }
 static inline size_t wss_FindConnectionOnThePull(PWebSocketServer self, PConnection conn, uint8_t *found) {
   *found = 0;
-  Connection *connections = self->pendingConnections->buffer;
+  ConnectionProtocol *connections = self->pendingConnections->buffer;
   for(size_t i = 0, c = self->pendingConnections->size; i < c; i++) {
-    if(conn->fd == connections[i].fd) {
+    if(conn->fd == connections[i].conn.fd) {
       *found = 1;
       return i;
     }
@@ -10295,8 +10359,33 @@ void wss_SendMessage(PWebSocketServer self, PDataFragment dt) {
   sock_Write_Push(self->socketServer, &fragment);
   free(response);
 }
-uint8_t wss_ProcessConnectionRequest(PWebSocketServer self, PDataFragment dt) {
-  PHttpRequest req = http_Request_Parse(dt->data, dt->size);
+static inline ConnectionProtocol *wss_FindConn(const PWebSocketServer self, const PDataFragment dt) {
+  ConnectionProtocol *protocol = self->pendingConnections->buffer;
+  for(size_t i = 0, c = self->pendingConnections->size; i < c; i++) {
+    if(protocol[i].conn.fd == dt->conn.fd) {
+      return &protocol[i];
+    }
+  }
+  return ((void *)0);
+}
+PHttpRequest wss_ProcessHttpRequest(const PWebSocketServer self, const PDataFragment dt, uint8_t *incomplete) {
+  *incomplete = 0;
+  ConnectionProtocol *proto = wss_FindConn(self, dt);
+  if(!proto) {
+    return ((void *)0);
+  }
+  if(!tpd_Push(proto->buff, dt->data, dt->size)) {
+    return ((void *)0);
+  }
+  PHttpRequest req = http_Request_NB_Get(proto->buff);
+  if(!req) {
+    *incomplete = 1;
+    return ((void *)0);
+  }
+  return req;
+}
+uint8_t wss_ProcessConnectionRequest(PWebSocketServer self, PDataFragment dt, uint8_t *incomplete) {
+  PHttpRequest req = wss_ProcessHttpRequest(self, dt, incomplete);
   if(!req) {
     return 0;
   }
@@ -10318,7 +10407,7 @@ uint8_t wss_ProcessConnectionRequest(PWebSocketServer self, PDataFragment dt) {
   return 1;
 }
 PNetworkBuffer wss_FindPayloadChecker(const PWebSocketServer self, const PDataFragment dt) {
-  ActiveConnections *conns = self->activeConnections->buffer;
+  ConnectionProtocol *conns = self->activeConnections->buffer;
   for(size_t i = 0, c = self->activeConnections->size; i < c; i++) {
     if(dt->conn.fd == conns[i].conn.fd) {
       return conns[i].buff;
@@ -10344,11 +10433,7 @@ Array wss_GetObject(const PWebSocketServer self, const PDataFragment dt) {
   return wbs_Public_ParseData(protoBuff);
 }
 static inline void wss_CleanMessages(const Array arr) {
-  WebSocketObject *objs = arr->buffer;
-  for(size_t i = 0, c = arr->size; i < c; i++) {
-    free(objs[i]._fullMessage);
-  }
-  arr_Delete(arr);
+  wbs_Public_FreeParseData(arr);
 }
 int8_t wss_ReceiveMessages(PWebSocketServer self, PDataFragment dt, PSocketMethod routine) {
   Array messages = wss_GetObject(self, dt);
@@ -10418,7 +10503,7 @@ void wss_SetMaxBSizeSocket(PWebSocketServer self, size_t bytesSize) {
   self->maxBSize = bytesSize;
 }
 static inline void wss_AddConnection(const PWebSocketServer self, const Connection conn) {
-  ActiveConnections conns = {
+  ConnectionProtocol conns = {
     .conn = conn,
     .buff = tpd_Create(self->maxBSize)
   };
@@ -10432,8 +10517,13 @@ void _wss_OnReceive(PDataFragment dt, void *buffer) {
     wss_ProcessWsRequests(self, dt, self->onReceiveMessage);
     return ;
   }
-  arr_RemoveElement(self->pendingConnections, connIndex);
-  if(!wss_ProcessConnectionRequest(self, dt)) {
+  uint8_t incomplete;
+  uint8_t request = wss_ProcessConnectionRequest(self, dt, &incomplete);
+  if(incomplete) {
+    return ;
+  }
+  wss_RemoveConnBuffer(self->pendingConnections, connIndex);
+  if(!request) {
     sock_PushCloseConnections(self->socketServer, &dt->conn);
     return ;
   }
@@ -10448,7 +10538,11 @@ size_t wss_ConnectionsCount(PWebSocketServer self) {
 }
 void _wss_OnConnect(Connection connection, void *buffer) {
   PWebSocketServer self = buffer;
-  arr_Push(self->pendingConnections, &connection);
+  ConnectionProtocol conn = {
+    .conn = connection,
+    .buff = tpd_Create(self->maxBSizeForHttpReq)
+  };
+  arr_Push(self->pendingConnections, &conn);
 }
 static inline void wss_RunCloseConnRoutine(PWebSocketServer self, Connection conn) {
   if(self->onRelease) {
@@ -10456,12 +10550,16 @@ static inline void wss_RunCloseConnRoutine(PWebSocketServer self, Connection con
     cMethod(conn, self->onRelease->mirrorBuffer);
   }
 }
+static inline void wss_RemoveConnBuffer(const Array arr, const size_t index) {
+  wss_FreeConn(((ConnectionProtocol *)arr->buffer)[index]);
+  arr_RemoveElement(arr, index);
+}
 void _wss_OnRelease(Connection conn, void *buffer) {
   PWebSocketServer self = buffer;
   uint8_t found;
   size_t connIndex = wss_FindConnectionOnThePull(self, &conn, &found);
   if(found) {
-    arr_RemoveElement(self->pendingConnections, connIndex);
+    wss_RemoveConnBuffer(self->pendingConnections, connIndex);
     return ;
   }
   wss_RunCloseConnRoutine(self, conn);
@@ -10776,4 +10874,11 @@ Array wbs_Public_ParseData(PNetworkBuffer self) {
     sz = tpd_Size(self);
   }
   return response;
+}
+void wbs_Public_FreeParseData(Array arr) {
+  WebSocketObject *objs = arr->buffer;
+  for(size_t i = 0, c = arr->size; i < c; i++) {
+    free(objs[i]._fullMessage);
+  }
+  arr_Delete(arr);
 }
