@@ -878,6 +878,8 @@ typedef JsonObject *PJsonObject;
 typedef struct HttpServer_t {
   PSocketServer server;
   PSocketMethod onReceive;
+  Array connections;
+  size_t maximumRequestSize;
 } HttpServer;
 typedef HttpServer *PHttpServer;
 typedef struct HttpRequestServer_t {
@@ -2131,6 +2133,7 @@ void http_Response_SetJSON(PHttpResponse self);
 PHttpResponse http_Response_Parse(HttpString buffer);
 HttpString http_Response_GetValue(PHttpResponse self, char *buffer);
 PHttpResponse http_Response_Chomp(HttpString bff, char **endBuffer);
+PHttpResponse http_Response_NB_Get(PNetworkBuffer netBuffer);
 
 enum
 {
@@ -2213,30 +2216,39 @@ static inline Hash http_Hash_Create();
 HttpString http_Body_Process(Hash self, char *_endBuffer, PHttpString buffer);
 static inline void http_SetBuffer(HttpString buffer, PHttpString nextPart, char *next);
 PHttpResponse _http_Response_Empty(Hash headers);
+PHttpResponse http_Response_Chomp_t(HttpString *bff);
+PHttpRequest http_Request_Chomp_t(HttpString *bff);
 PHttpRequest http_Request_Parse(char *buffer, size_t sz) {
-  PHttpRequest self = malloc(sizeof(HttpRequest));
-  memset(self, 0, sizeof(HttpRequest));
-  self->headers = http_Hash_Create();
-  self->_endBuffer = buffer + sz;
-  self->metadata = http_InitMetadata();
-  self->url = http_URL_Init();
-  HttpString input = {
+  HttpString req = {
     .buffer = buffer,
     .sz = sz
   };
-  if(!http_Route_Parse(self, &input)) {
+  PHttpRequest self = http_Request_Chomp_t(&req);
+  if(!self) {
+    return ((void *)0);
+  }
+  if(req.sz) {
     http_Request_Delete(self);
     return ((void *)0);
   }
-  if(!http_Header_Parse(self->headers, self->_endBuffer, &input)) {
+  return self;
+}
+PHttpRequest http_Request_Chomp_t(HttpString *bff) {
+  PHttpRequest self = malloc(sizeof(HttpRequest));
+  memset(self, 0, sizeof(HttpRequest));
+  self->headers = http_Hash_Create();
+  self->_endBuffer = bff->buffer + bff->sz;
+  self->metadata = http_InitMetadata();
+  self->url = http_URL_Init();
+  if(!http_Route_Parse(self, bff)) {
     http_Request_Delete(self);
     return ((void *)0);
   }
-  self->body = http_Body_Process(self->headers, self->_endBuffer, &input);
-  if(input.sz) {
+  if(!http_Header_Parse(self->headers, self->_endBuffer, bff)) {
     http_Request_Delete(self);
     return ((void *)0);
   }
+  self->body = http_Body_Process(self->headers, self->_endBuffer, bff);
   return self;
 }
 PHttpRequest http_Request_NB_Get(PNetworkBuffer netBuffer) {
@@ -2254,33 +2266,26 @@ PHttpRequest http_Request_NB_Get(PNetworkBuffer netBuffer) {
   return req;
 }
 PHttpRequest http_Request_Chomp(HttpString bff, char **endBuffer) {
-  if(!bff.sz) {
+  PHttpRequest self = http_Request_Chomp_t(&bff);
+  if(!self) {
     return ((void *)0);
   }
-  for(size_t i = bff.sz; i >= 1; i--) {
-    PHttpRequest httpReq = http_Request_Parse(bff.buffer, i);
-    if(httpReq) {
-      *endBuffer = (char *)bff.buffer + i;
-      return httpReq;
-    }
-  }
-  return ((void *)0);
+  *endBuffer = bff.buffer;
+  return self;
 }
-PHttpResponse http_Response_Chomp(HttpString bff, char **endBuffer) {
-  if(!bff.sz) {
+PHttpResponse http_Response_NB_Get(PNetworkBuffer netBuffer) {
+  char *stBuffer = tpd_StartingBuffer(netBuffer);
+  char *endingBuffer;
+  PHttpResponse res = http_Response_Chomp((HttpString) {
+    .buffer = stBuffer,
+    .sz = tpd_Size(netBuffer)
+  }, &endingBuffer);
+  if(!res) {
     return ((void *)0);
   }
-  for(size_t i = bff.sz; i >= 1; i--) {
-    PHttpResponse httpReq = http_Response_Parse((HttpString) {
-      .buffer = bff.buffer,
-      .sz = i
-    });
-    if(httpReq) {
-      *endBuffer = (char *)bff.buffer + i;
-      return httpReq;
-    }
-  }
-  return ((void *)0);
+  const size_t nextSize = (size_t)(endingBuffer - stBuffer);
+  tpd_Retract(netBuffer, nextSize);
+  return res;
 }
 static inline PURL http_URL_Init() {
   PURL self = malloc(sizeof(URL));
@@ -2935,38 +2940,52 @@ uint8_t http_Response_ParseMessage(PHttpString buffer) {
 uint8_t http_Response_ParseBody(PHttpResponse self, PHttpServer buffer) {
   return 1;
 }
-PHttpResponse http_Response_Parse(HttpString buffer) {
-  HttpString cpyBuffer = buffer;
-  if(!http_Response_ParseCode(&cpyBuffer)) {
+PHttpResponse http_Response_Chomp_t(HttpString *bff) {
+  if(!http_Response_ParseCode(bff)) {
     return ((void *)0);
   }
-  if(!http_Response_ParseEmptySpace(&cpyBuffer)) {
+  if(!http_Response_ParseEmptySpace(bff)) {
     return ((void *)0);
   }
-  char *_endBuffer = buffer.buffer + buffer.sz;
+  char *_endBuffer = bff->buffer + bff->sz;
   PHttpResponse self = http_Response_Empty();
-  if(!http_Response_ParseHttpCode(self, &cpyBuffer)) {
+  if(!http_Response_ParseHttpCode(self, bff)) {
     http_Response_Delete(self);
     return ((void *)0);
   }
-  if(!http_Response_ParseEmptySpace(&cpyBuffer)) {
+  if(!http_Response_ParseEmptySpace(bff)) {
     http_Response_Delete(self);
     return ((void *)0);
   }
-  if(!http_Response_ParseMessage(&cpyBuffer)) {
+  if(!http_Response_ParseMessage(bff)) {
     http_Response_Delete(self);
     return ((void *)0);
   }
-  if(!http_Response_ParseLineSeparator(&cpyBuffer)) {
+  if(!http_Response_ParseLineSeparator(bff)) {
     http_Response_Delete(self);
     return ((void *)0);
   }
-  if(!http_Header_Parse(self->headers, _endBuffer, &cpyBuffer)) {
+  if(!http_Header_Parse(self->headers, _endBuffer, bff)) {
     http_Response_Delete(self);
     return ((void *)0);
   }
-  self->body = http_Body_Process(self->headers, _endBuffer, &cpyBuffer);
-  if(cpyBuffer.sz) {
+  self->body = http_Body_Process(self->headers, _endBuffer, bff);
+  return self;
+}
+PHttpResponse http_Response_Chomp(HttpString bff, char **endBuffer) {
+  PHttpResponse response = http_Response_Chomp_t(&bff);
+  if(!response) {
+    return ((void *)0);
+  }
+  *endBuffer = bff.buffer;
+  return response;
+}
+PHttpResponse http_Response_Parse(HttpString buffer) {
+  PHttpResponse self = http_Response_Chomp_t(&buffer);
+  if(!self) {
+    return ((void *)0);
+  }
+  if(buffer.sz) {
     http_Response_Delete(self);
     return ((void *)0);
   }
@@ -3141,11 +3160,18 @@ void json_Map_Add(JsonElement map, char *key, JsonElement element);
 JsonElement json_Integer_Create(int64_t val);
 JsonElement json_Number_Create(float val);
 JsonElement json_String_Create(char *string);
+typedef struct HttpConnectionProtocol_t {
+  Connection conn;
+  PNetworkBuffer buff;
+} HttpConnectionProtocol;
 void httpS_InitializeMethods(PHttpServer self);
+static void httpS_ReleaseConns(const PHttpServer self);
 PHttpServer httpS_Create(uint16_t port) {
   PHttpServer self = malloc(sizeof(HttpServer));
   memset(self, 0, sizeof(HttpServer));
   self->server = sock_Create(port);
+  self->connections = arr_Init(sizeof(HttpConnectionProtocol));
+  self->maximumRequestSize = 1024 * 1024 * 10;
   httpS_InitializeMethods(self);
   return self;
 }
@@ -3155,6 +3181,21 @@ void httpS_SetMethod(PHttpServer self, PSocketMethod onReceive) {
 PHttpResponse httpS_PrivateCaller(PHttpServer self, PHttpRequest req) {
   PHttpResponse (*caller)(PHttpRequest, void *) = (PHttpResponse (*)(PHttpRequest, void *))self->onReceive->method;
   return caller(req, self->onReceive->mirrorBuffer);
+}
+void remote_OnConnect(Connection conn, void *mirror) {
+  PHttpServer self = mirror;
+  HttpConnectionProtocol proto = {
+    .conn = conn,
+    .buff = tpd_Create(self->maximumRequestSize)
+  };
+  arr_Push(self->connections, &proto);
+}
+static void httpS_ReleaseConns(const PHttpServer self) {
+  HttpConnectionProtocol *conns = self->connections->buffer;
+  for(size_t i = 0, c = self->connections->size; i < c; i++) {
+    tpd_Delete(conns[i].buff);
+  }
+  arr_Delete(self->connections);
 }
 JsonElement httpS_Json_Get(PHttpRequest req) {
   if(!req->body.buffer) {
@@ -3193,13 +3234,43 @@ RequestStruct httpS_Request_StructInit(HttpString ip, uint16_t port) {
   response.port = port;
   return response;
 }
+static HttpConnectionProtocol *httpS_Request_FindConn(const PHttpServer self, const PDataFragment dt) {
+  HttpConnectionProtocol *conns = self->connections->buffer;
+  for(size_t i = 0, c = self->connections->size; i < c; i++) {
+    if(conns[i].conn.fd == dt->conn.fd) {
+      return &conns[i];
+    }
+  }
+  return ((void *)0);
+}
+static PHttpRequest httpS_Request_ParseData(const PHttpServer self, const PDataFragment dt, uint8_t *incomplete) {
+  *incomplete = 0;
+  HttpConnectionProtocol *protocol = httpS_Request_FindConn(self, dt);
+  if(!protocol) {
+    return ((void *)0);
+  }
+  if(!tpd_Push(protocol->buff, dt->data, dt->size)) {
+    return ((void *)0);
+  }
+  PHttpRequest request = http_Request_NB_Get(protocol->buff);
+  if(!request) {
+    *incomplete = 1;
+    return ((void *)0);
+  }
+  return request;
+}
 void remote_OnReceiveMessage(PDataFragment frag, void *buffer) {
   PHttpServer self = buffer;
-  sock_PushCloseConnections(self->server, &frag->conn);
   if(!self->onReceive) {
+    sock_PushCloseConnections(self->server, &frag->conn);
     return ;
   }
-  PHttpRequest req = http_Request_Parse(frag->data, frag->size);
+  uint8_t incomplete;
+  PHttpRequest req = httpS_Request_ParseData(self, frag, &incomplete);
+  if(incomplete) {
+    return ;
+  }
+  sock_PushCloseConnections(self->server, &frag->conn);
   if(!req) {
     return ;
   }
@@ -3225,9 +3296,16 @@ void httpS_InitializeMethods(PHttpServer self) {
     self
   );
   self->server->onReceiveMessage = onReceive;
+  PSocketMethod onConnect = sock_Method_Create(
+    (void *)remote_OnConnect,
+    self
+  );
+  self->server->onConnectionAquire = onConnect;
 }
 void httpS_Delete(PHttpServer self) {
+  sock_Method_Delete(self->server->onConnectionAquire);
   sock_Method_Delete(self->server->onReceiveMessage);
+  httpS_ReleaseConns(self);
   sock_Delete(self->server);
   free(self);
 }
@@ -3261,7 +3339,7 @@ PJsonObject json_Create() {
   return self;
 }
 void json_Add(PJsonObject self, PHttpString key, JsonElement element) {
-  ((void) sizeof ((self->hsh) ? 1 : 0), __extension__ ({ if (self->hsh) ; else __assert_fail ("self->hsh", "bin/svv.c", 1789, __extension__ __PRETTY_FUNCTION__); }));
+  ((void) sizeof ((self->hsh) ? 1 : 0), __extension__ ({ if (self->hsh) ; else __assert_fail ("self->hsh", "bin/svv.c", 1875, __extension__ __PRETTY_FUNCTION__); }));
   hsh_Add(self->hsh, key->buffer, key->sz, &element, sizeof(JsonElement));
 }
 void json_Delete(PJsonObject self) {
@@ -3354,17 +3432,17 @@ void json_PushLeafValue(Array str, JsonElement element) {
       break;
     }
     case JSON_INTEGER: {
-      ((void) sizeof ((element.value) ? 1 : 0), __extension__ ({ if (element.value) ; else __assert_fail ("element.value", "bin/svv.c", 1895, __extension__ __PRETTY_FUNCTION__); }));
+      ((void) sizeof ((element.value) ? 1 : 0), __extension__ ({ if (element.value) ; else __assert_fail ("element.value", "bin/svv.c", 1981, __extension__ __PRETTY_FUNCTION__); }));
       json_Element_PushInteger(str, *(int64_t *)element.value);
       break;
     }
     case JSON_NUMBER: {
-      ((void) sizeof ((element.value) ? 1 : 0), __extension__ ({ if (element.value) ; else __assert_fail ("element.value", "bin/svv.c", 1900, __extension__ __PRETTY_FUNCTION__); }));
+      ((void) sizeof ((element.value) ? 1 : 0), __extension__ ({ if (element.value) ; else __assert_fail ("element.value", "bin/svv.c", 1986, __extension__ __PRETTY_FUNCTION__); }));
       json_Element_PushFloat(str, *(float *)element.value);
       break;
     }
     case JSON_STRING: {
-      ((void) sizeof ((element.value) ? 1 : 0), __extension__ ({ if (element.value) ; else __assert_fail ("element.value", "bin/svv.c", 1905, __extension__ __PRETTY_FUNCTION__); }));
+      ((void) sizeof ((element.value) ? 1 : 0), __extension__ ({ if (element.value) ; else __assert_fail ("element.value", "bin/svv.c", 1991, __extension__ __PRETTY_FUNCTION__); }));
       json_Element_PushString(str, element.value);
       break;
     }
@@ -3541,7 +3619,7 @@ TokenParser json_Parser_Null(TokenParser tck) {
   return tck;
 }
 void json_Map_Add(JsonElement map, char *key, JsonElement element) {
-  ((void) sizeof ((map.type == JSON_JSON) ? 1 : 0), __extension__ ({ if (map.type == JSON_JSON) ; else __assert_fail ("map.type == JSON_JSON", "bin/svv.c", 2096, __extension__ __PRETTY_FUNCTION__); }));
+  ((void) sizeof ((map.type == JSON_JSON) ? 1 : 0), __extension__ ({ if (map.type == JSON_JSON) ; else __assert_fail ("map.type == JSON_JSON", "bin/svv.c", 2182, __extension__ __PRETTY_FUNCTION__); }));
   HttpString str = {
     .buffer = key,
     .sz = strlen(key)
@@ -4003,15 +4081,15 @@ JsonElement json_Array_At(JsonElement arr, size_t index) {
   return ((JsonElement *)vct->buffer)[index];
 }
 size_t json_Array_Size(JsonElement arr) {
-  ((void) sizeof ((arr.type == JSON_ARRAY) ? 1 : 0), __extension__ ({ if (arr.type == JSON_ARRAY) ; else __assert_fail ("arr.type == JSON_ARRAY", "bin/svv.c", 2590, __extension__ __PRETTY_FUNCTION__); }));
+  ((void) sizeof ((arr.type == JSON_ARRAY) ? 1 : 0), __extension__ ({ if (arr.type == JSON_ARRAY) ; else __assert_fail ("arr.type == JSON_ARRAY", "bin/svv.c", 2676, __extension__ __PRETTY_FUNCTION__); }));
   return ((Array)arr.value)->size;
 }
 int64_t json_Integer_Get(JsonElement arr) {
-  ((void) sizeof ((arr.type == JSON_INTEGER) ? 1 : 0), __extension__ ({ if (arr.type == JSON_INTEGER) ; else __assert_fail ("arr.type == JSON_INTEGER", "bin/svv.c", 2595, __extension__ __PRETTY_FUNCTION__); }));
+  ((void) sizeof ((arr.type == JSON_INTEGER) ? 1 : 0), __extension__ ({ if (arr.type == JSON_INTEGER) ; else __assert_fail ("arr.type == JSON_INTEGER", "bin/svv.c", 2681, __extension__ __PRETTY_FUNCTION__); }));
   return *((int64_t *)arr.value);
 }
 float json_Number_Get(JsonElement arr) {
-  ((void) sizeof ((arr.type == JSON_NUMBER) ? 1 : 0), __extension__ ({ if (arr.type == JSON_NUMBER) ; else __assert_fail ("arr.type == JSON_NUMBER", "bin/svv.c", 2600, __extension__ __PRETTY_FUNCTION__); }));
+  ((void) sizeof ((arr.type == JSON_NUMBER) ? 1 : 0), __extension__ ({ if (arr.type == JSON_NUMBER) ; else __assert_fail ("arr.type == JSON_NUMBER", "bin/svv.c", 2686, __extension__ __PRETTY_FUNCTION__); }));
   return *((float *)arr.value);
 }
        
@@ -9636,7 +9714,7 @@ void sock_PushCloseConnMethod(PSocketServer self, Connection conn, size_t index)
   tf_ExecuteAfter(self->timeServer.timeServer, timeFragment, self->timeServer.timeout);
 }
 void sock_SetMaxConnections(PSocketServer self, int32_t maxActiveConnections) {
-  ((void) sizeof ((maxActiveConnections < 1024) ? 1 : 0), __extension__ ({ if (maxActiveConnections < 1024) ; else __assert_fail ("maxActiveConnections < MAX_CONNECTIONS_PER_SERVER", "bin/svv.c", 3186, __extension__ __PRETTY_FUNCTION__); }));
+  ((void) sizeof ((maxActiveConnections < 1024) ? 1 : 0), __extension__ ({ if (maxActiveConnections < 1024) ; else __assert_fail ("maxActiveConnections < MAX_CONNECTIONS_PER_SERVER", "bin/svv.c", 3272, __extension__ __PRETTY_FUNCTION__); }));
   self->maxActiveConnections = maxActiveConnections;
 }
 void sock_Write_Push(PSocketServer self, DataFragment *dt) {

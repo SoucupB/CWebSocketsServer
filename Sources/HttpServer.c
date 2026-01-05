@@ -7,10 +7,10 @@
 #include "NetworkBuffer.h"
 #include "Array.h"
 
-typedef struct ConnectionProtocol_t {
+typedef struct HttpConnectionProtocol_t {
   Connection conn;
   PNetworkBuffer buff;
-} ConnectionProtocol;
+} HttpConnectionProtocol;
 
 void httpS_InitializeMethods(PHttpServer self);
 static void httpS_ReleaseConns(const PHttpServer self);
@@ -19,7 +19,7 @@ PHttpServer httpS_Create(uint16_t port) {
   PHttpServer self = crm_Alloc(sizeof(HttpServer));
   memset(self, 0, sizeof(HttpServer));
   self->server = sock_Create(port);
-  self->connections = arr_Init(sizeof(ConnectionProtocol));
+  self->connections = arr_Init(sizeof(HttpConnectionProtocol));
   self->maximumRequestSize = 1024 * 1024 * 10;
   httpS_InitializeMethods(self);
   return self;
@@ -36,7 +36,7 @@ PHttpResponse httpS_PrivateCaller(PHttpServer self, PHttpRequest req) {
 
 void remote_OnConnect(Connection conn, void *mirror) {
   PHttpServer self = mirror;
-  ConnectionProtocol proto = {
+  HttpConnectionProtocol proto = {
     .conn = conn,
     .buff = tpd_Create(self->maximumRequestSize)
   };
@@ -44,7 +44,7 @@ void remote_OnConnect(Connection conn, void *mirror) {
 }
 
 static void httpS_ReleaseConns(const PHttpServer self) {
-  ConnectionProtocol *conns = self->connections->buffer;
+  HttpConnectionProtocol *conns = self->connections->buffer;
   for(size_t i = 0, c = self->connections->size; i < c; i++) {
     tpd_Delete(conns[i].buff);
   }
@@ -91,8 +91,8 @@ RequestStruct httpS_Request_StructInit(HttpString ip, uint16_t port) {
   return response;
 }
 
-static ConnectionProtocol *httpS_Request_FindConn(const PHttpServer self, const PDataFragment dt) {
-  ConnectionProtocol *conns = self->connections->buffer;
+static HttpConnectionProtocol *httpS_Request_FindConn(const PHttpServer self, const PDataFragment dt) {
+  HttpConnectionProtocol *conns = self->connections->buffer;
   for(size_t i = 0, c = self->connections->size; i < c; i++) {
     if(conns[i].conn.fd == dt->conn.fd) {
       return &conns[i];
@@ -103,7 +103,7 @@ static ConnectionProtocol *httpS_Request_FindConn(const PHttpServer self, const 
 
 static PHttpRequest httpS_Request_ParseData(const PHttpServer self, const PDataFragment dt, uint8_t *incomplete) {
   *incomplete = 0;
-  ConnectionProtocol *protocol = httpS_Request_FindConn(self, dt);
+  HttpConnectionProtocol *protocol = httpS_Request_FindConn(self, dt);
   if(!protocol) {
     return NULL;
   }

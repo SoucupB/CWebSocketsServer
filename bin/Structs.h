@@ -141,9 +141,9 @@ typedef struct SocketServer_t {
   Array inputReads;
   Array outputCommands;
   Array closeConnectionsQueue;
-  PSocketMethod onConnectionRelease;
-  PSocketMethod onConnectionAquire;
-  PSocketMethod onReceiveMessage;
+  PSocketMethod onConnectionRelease; // void (*method)(Connection, void *)
+  PSocketMethod onConnectionAquire; // void (*method)(Connection, void *)
+  PSocketMethod onReceiveMessage; // void (*method)(PDataFragment, void *)
   Timers timeServer;
 } SocketServer;
 
@@ -272,6 +272,8 @@ typedef JsonObject *PJsonObject;
 typedef struct HttpServer_t {
   PSocketServer server;
   PSocketMethod onReceive;
+  Array connections;
+  size_t maximumRequestSize;
 } HttpServer;
 
 typedef HttpServer *PHttpServer;
