@@ -160,6 +160,7 @@ typedef struct WebSocketServer_t {
   Array activeConnections;
   PTimeout timeServer;
   size_t maxBSize;
+  size_t maxBSizeForHttpReq;
 } WebSocketServer;
 
 typedef WebSocketServer *PWebSocketServer;

@@ -50,6 +50,7 @@ PWebSocketServer wss_Create(uint16_t port) {
   self->pendingPingRequests = arr_Init(sizeof(PingConnData));
   self->activeConnections = arr_Init(sizeof(ConnectionProtocol));
   self->maxBSize = 1024 * 1024;
+  self->maxBSizeForHttpReq = 1024 * 4;
   wss_SetMethods(self);
   return self;
 }
@@ -450,7 +451,7 @@ void _wss_OnConnect(Connection connection, void *buffer) {
   PWebSocketServer self = buffer;
   ConnectionProtocol conn = {
     .conn = connection,
-    .buff = tpd_Create(self->maxBSize)
+    .buff = tpd_Create(self->maxBSizeForHttpReq)
   };
   arr_Push(self->pendingConnections, &conn);
 }
