@@ -68,34 +68,27 @@ PHttpRequest http_Request_NB_Get(PNetworkBuffer netBuffer) {
 }
 
 PHttpRequest http_Request_Chomp(HttpString bff, char **endBuffer) {
-  if(!bff.sz) {
+  PHttpRequest self = crm_Alloc(sizeof(HttpRequest));
+  memset(self, 0, sizeof(HttpRequest));
+  self->headers = http_Hash_Create();
+  self->_endBuffer = bff.buffer + bff.sz;
+  self->metadata = http_InitMetadata();
+  self->url = http_URL_Init();
+  HttpString input = {
+    .buffer = bff.buffer,
+    .sz = bff.sz
+  };
+  if(!http_Route_Parse(self, &input)) {
+    http_Request_Delete(self);
     return NULL;
   }
-  for(size_t i = bff.sz; i >= 1; i--) {
-    PHttpRequest httpReq = http_Request_Parse(bff.buffer, i);
-    if(httpReq) {
-      *endBuffer = (char *)bff.buffer + i;
-      return httpReq;
-    }
-  }
-  return NULL;
-}
-
-PHttpResponse http_Response_Chomp(HttpString bff, char **endBuffer) {
-  if(!bff.sz) {
+  if(!http_Header_Parse(self->headers, self->_endBuffer, &input)) {
+    http_Request_Delete(self);
     return NULL;
   }
-  for(size_t i = bff.sz; i >= 1; i--) {
-    PHttpResponse httpReq = http_Response_Parse((HttpString) {
-      .buffer = bff.buffer,
-      .sz = i
-    });
-    if(httpReq) {
-      *endBuffer = (char *)bff.buffer + i;
-      return httpReq;
-    }
-  }
-  return NULL;
+  self->body = http_Body_Process(self->headers, self->_endBuffer, &input);
+  *endBuffer = input.buffer;
+  return self;
 }
 
 PHttpResponse http_Response_NB_Get(PNetworkBuffer netBuffer) {
@@ -849,6 +842,43 @@ uint8_t http_Response_ParseMessage(PHttpString buffer) {
 
 uint8_t http_Response_ParseBody(PHttpResponse self, PHttpServer buffer) {
   return 1;
+}
+
+
+
+PHttpResponse http_Response_Chomp(HttpString bff, char **endBuffer) {
+  HttpString cpyBuffer = bff;
+  if(!http_Response_ParseCode(&cpyBuffer)) {
+    return NULL;
+  }
+  if(!http_Response_ParseEmptySpace(&cpyBuffer)) {
+    return NULL;
+  }
+  char *_endBuffer = bff.buffer + bff.sz;
+  PHttpResponse self = http_Response_Empty();
+  if(!http_Response_ParseHttpCode(self, &cpyBuffer)) {
+    http_Response_Delete(self);
+    return NULL;
+  }
+  if(!http_Response_ParseEmptySpace(&cpyBuffer)) {
+    http_Response_Delete(self);
+    return NULL;
+  }
+  if(!http_Response_ParseMessage(&cpyBuffer)) {
+    http_Response_Delete(self);
+    return NULL;
+  }
+  if(!http_Response_ParseLineSeparator(&cpyBuffer)) {
+    http_Response_Delete(self);
+    return NULL;
+  }
+  if(!http_Header_Parse(self->headers, _endBuffer, &cpyBuffer)) {
+    http_Response_Delete(self);
+    return NULL;
+  }
+  self->body = http_Body_Process(self->headers, _endBuffer, &cpyBuffer);
+  *endBuffer = cpyBuffer.buffer;
+  return self;
 }
 
 PHttpResponse http_Response_Parse(HttpString buffer) {
