@@ -9,6 +9,18 @@
 #include "Array.h"
 #include "NetworkBuffer.h"
 
+
+typedef struct PingConnData_t {
+  Connection conn;
+  uint64_t payload;
+  int64_t remainingTime;
+} PingConnData;
+
+typedef struct ConnectionProtocol_t {
+  Connection conn;
+  PNetworkBuffer buff;
+} ConnectionProtocol;
+
 void wss_SetMethods(PWebSocketServer self);
 void _wss_OnConnect(Connection connection, void *buffer);
 void _wss_OnReceive(PDataFragment dt, void *buffer);
@@ -17,17 +29,9 @@ static inline void wss_RunCloseConnRoutine(PWebSocketServer self, Connection con
 static inline uint8_t wss_RemovePingRequest(PWebSocketServer self, PDataFragment dt);
 static inline uint8_t wss_IsPingRequestIssued(PWebSocketServer self, PDataFragment dt);
 static inline size_t wss_FindConnectionOnThePull(PWebSocketServer self, PConnection conn, uint8_t *found);
-
-typedef struct PingConnData_t {
-  Connection conn;
-  uint64_t payload;
-  int64_t remainingTime;
-} PingConnData;
-
-typedef struct ActiveConnections_t {
-  Connection conn;
-  PNetworkBuffer buff;
-} ActiveConnections;
+static inline void wss_FreeConn(const ConnectionProtocol conn);
+static inline void wss_RemoveConnBuffer(const Array arr, const size_t index);
+static inline ConnectionProtocol *wss_FindConn(const PWebSocketServer self, const PDataFragment dt);
 
 static inline uint64_t _wss_Rand() {
   uint64_t response;
@@ -42,9 +46,9 @@ PWebSocketServer wss_Create(uint16_t port) {
   PWebSocketServer self = crm_Alloc(sizeof(WebSocketServer));
   memset(self, 0, sizeof(WebSocketServer));
   self->socketServer = sock_Create(port);
-  self->pendingConnections = arr_Init(sizeof(Connection));
+  self->pendingConnections = arr_Init(sizeof(ConnectionProtocol));
   self->pendingPingRequests = arr_Init(sizeof(PingConnData));
-  self->activeConnections = arr_Init(sizeof(ActiveConnections));
+  self->activeConnections = arr_Init(sizeof(ConnectionProtocol));
   self->maxBSize = 1024 * 1024;
   wss_SetMethods(self);
   return self;
@@ -149,11 +153,25 @@ void wss_ProcessTimeoutPingRequests(PWebSocketServer self, uint64_t deltaMS) {
 }
 
 static inline void wss_ReleaseActiveConnections(const PWebSocketServer self) {
-  ActiveConnections *conns = self->activeConnections->buffer;
+  ConnectionProtocol *conns = self->activeConnections->buffer;
   for(size_t i = 0, c = self->activeConnections->size; i < c; i++) {
     tpd_Delete(conns[i].buff);
   }
   arr_Delete(self->activeConnections);
+}
+
+static inline void wss_FreeConn(const ConnectionProtocol conn) {
+  if(conn.buff) {
+    tpd_Delete(conn.buff);
+  }
+}
+
+void wss_FreeConnectionPayload(const Array arr) {
+  const ConnectionProtocol *cp = arr->buffer;
+  for(size_t i = 0, c = arr->size; i < c; i++) {
+    wss_FreeConn(cp[i]);
+  }
+  arr_Delete(arr);
 }
 
 void wss_Delete(PWebSocketServer self) {
@@ -161,7 +179,7 @@ void wss_Delete(PWebSocketServer self) {
   sock_Method_Delete(self->methodsBundle._onConnect);
   sock_Method_Delete(self->methodsBundle._onRelease);
   wss_Tf_Delete(self);
-  arr_Delete(self->pendingConnections);
+  wss_FreeConnectionPayload(self->pendingConnections);
   arr_Delete(self->pendingPingRequests);
   wss_ReleaseActiveConnections(self);
   sock_Delete(self->socketServer);
@@ -170,9 +188,9 @@ void wss_Delete(PWebSocketServer self) {
 
 static inline size_t wss_FindConnectionOnThePull(PWebSocketServer self, PConnection conn, uint8_t *found) {
   *found = 0;
-  Connection *connections = self->pendingConnections->buffer;
+  ConnectionProtocol *connections = self->pendingConnections->buffer;
   for(size_t i = 0, c = self->pendingConnections->size; i < c; i++) {
-    if(conn->fd == connections[i].fd) {
+    if(conn->fd == connections[i].conn.fd) {
       *found = 1;
       return i;
     }
@@ -235,7 +253,34 @@ void wss_SendMessage(PWebSocketServer self, PDataFragment dt) {
   crm_Free(response);
 }
 
-uint8_t wss_ProcessConnectionRequest(PWebSocketServer self, PDataFragment dt) {
+static inline ConnectionProtocol *wss_FindConn(const PWebSocketServer self, const PDataFragment dt) {
+  ConnectionProtocol *protocol = self->pendingConnections->buffer;
+  for(size_t i = 0, c = self->pendingConnections->size; i < c; i++) {
+    if(protocol[i].conn.fd == dt->conn.fd) {
+      return &protocol[i];
+    }
+  }
+  return NULL;
+}
+
+PHttpRequest wss_ProcessHttpRequest(const PWebSocketServer self, const PDataFragment dt, uint8_t *incomplete) {
+  *incomplete = 0;
+  ConnectionProtocol *proto = wss_FindConn(self, dt);
+  if(!proto) {
+    return NULL;
+  }
+  if(!tpd_Push(proto->buff, dt->data, dt->size)) {
+    return NULL;
+  }
+  PHttpRequest req = http_Request_NB_Get(proto->buff);
+  if(!req) {
+    *incomplete = 1;
+    return NULL;
+  }
+  return req;
+}
+
+uint8_t wss_ProcessConnectionRequest(PWebSocketServer self, PDataFragment dt, uint8_t *incomplete) {
   PHttpRequest req = http_Request_Parse(dt->data, dt->size);
   if(!req) {
     return 0;
@@ -259,7 +304,7 @@ uint8_t wss_ProcessConnectionRequest(PWebSocketServer self, PDataFragment dt) {
 }
 
 PNetworkBuffer wss_FindPayloadChecker(const PWebSocketServer self, const PDataFragment dt) {
-  ActiveConnections *conns = self->activeConnections->buffer;
+  ConnectionProtocol *conns = self->activeConnections->buffer;
   for(size_t i = 0, c = self->activeConnections->size; i < c; i++) {
     if(dt->conn.fd == conns[i].conn.fd) {
       return conns[i].buff;
@@ -365,7 +410,7 @@ void wss_SetMaxBSizeSocket(PWebSocketServer self, size_t bytesSize) {
 }
 
 static inline void wss_AddConnection(const PWebSocketServer self, const Connection conn) {
-  ActiveConnections conns = {
+  ConnectionProtocol conns = {
     .conn = conn,
     .buff = tpd_Create(self->maxBSize)
   };
@@ -380,8 +425,10 @@ void _wss_OnReceive(PDataFragment dt, void *buffer) {
     wss_ProcessWsRequests(self, dt, self->onReceiveMessage);
     return ;
   }
-  arr_RemoveElement(self->pendingConnections, connIndex);
-  if(!wss_ProcessConnectionRequest(self, dt)) {
+  uint8_t incomplete;
+  uint8_t request = wss_ProcessConnectionRequest(self, dt, &incomplete);
+  wss_RemoveConnBuffer(self->pendingConnections, connIndex);
+  if(!request) {
     sock_PushCloseConnections(self->socketServer, &dt->conn);
     return ;
   }
@@ -398,7 +445,11 @@ size_t wss_ConnectionsCount(PWebSocketServer self) {
 
 void _wss_OnConnect(Connection connection, void *buffer) {
   PWebSocketServer self = buffer;
-  arr_Push(self->pendingConnections, &connection);
+  ConnectionProtocol conn = {
+    .conn = connection,
+    .buff = tpd_Create(self->maxBSize)
+  };
+  arr_Push(self->pendingConnections, &conn);
 }
 
 static inline void wss_RunCloseConnRoutine(PWebSocketServer self, Connection conn) {
@@ -408,12 +459,17 @@ static inline void wss_RunCloseConnRoutine(PWebSocketServer self, Connection con
   }
 }
 
+static inline void wss_RemoveConnBuffer(const Array arr, const size_t index) {
+  wss_FreeConn(((ConnectionProtocol *)arr->buffer)[index]);
+  arr_RemoveElement(arr, index);
+}
+
 void _wss_OnRelease(Connection conn, void *buffer) {
   PWebSocketServer self = buffer;
   uint8_t found;
   size_t connIndex = wss_FindConnectionOnThePull(self, &conn, &found);
   if(found) {
-    arr_RemoveElement(self->pendingConnections, connIndex);
+    wss_RemoveConnBuffer(self->pendingConnections, connIndex);
     return ;
   }
   wss_RunCloseConnRoutine(self, conn);
