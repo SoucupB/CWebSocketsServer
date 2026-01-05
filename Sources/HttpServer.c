@@ -91,13 +91,46 @@ RequestStruct httpS_Request_StructInit(HttpString ip, uint16_t port) {
   return response;
 }
 
+static ConnectionProtocol *httpS_Request_FindConn(const PHttpServer self, const PDataFragment dt) {
+  ConnectionProtocol *conns = self->connections->buffer;
+  for(size_t i = 0, c = self->connections->size; i < c; i++) {
+    if(conns[i].conn.fd == dt->conn.fd) {
+      return &conns[i];
+    }
+  }
+  return NULL;
+}
+
+static PHttpRequest httpS_Request_ParseData(const PHttpServer self, const PDataFragment dt, uint8_t *incomplete) {
+  *incomplete = 0;
+  ConnectionProtocol *protocol = httpS_Request_FindConn(self, dt);
+  if(!protocol) {
+    return NULL;
+  }
+  if(!tpd_Push(protocol->buff, dt->data, dt->size)) {
+    return NULL;
+  }
+  PHttpRequest request = http_Request_NB_Get(protocol->buff);
+  if(!request) {
+    *incomplete = 1;
+    return NULL;
+  }
+  return request;
+}
+
 void remote_OnReceiveMessage(PDataFragment frag, void *buffer) {
   PHttpServer self = buffer;
-  sock_PushCloseConnections(self->server, &frag->conn);
   if(!self->onReceive) {
+    sock_PushCloseConnections(self->server, &frag->conn);
     return ;
   }
-  PHttpRequest req = http_Request_Parse(frag->data, frag->size);
+  uint8_t incomplete;
+  // PHttpRequest req = http_Request_Parse(frag->data, frag->size);
+  PHttpRequest req = httpS_Request_ParseData(self, frag, &incomplete);
+  if(incomplete) {
+    return ;
+  }
+  sock_PushCloseConnections(self->server, &frag->conn);
   if(!req) {
     return ;
   }
