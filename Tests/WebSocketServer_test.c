@@ -11,7 +11,7 @@
 #include "Socket_Helper_test.h"
 #include "WebSocketServer_Helper_Test.h"
 
-uint16_t port = 20000;
+uint16_t port = 50000;
 
 PWebSocketServer newServer() {
   return wss_Create(port--);
@@ -286,6 +286,30 @@ static void test_with_ping_pong_after_timeout(void **state) {
 //   test_Wss_Util_Delete(wssServer);
 // }
 
+void test_fragmented_message(void **state) {
+  PWebSocketServer wssServer = newServer();
+  uint32_t callCount = 0;
+  void onReceiveMessages(PDataFragment dt, void *buffer) {
+    assert_true(dt->size == sizeof("some_test_message") - 1);
+    assert_memory_equal(dt->data, "some_test_message", dt->size);
+    callCount++;
+  }
+  uint8_t onFinish(void *bff) {
+    uint32_t *caller = bff;
+    return *caller;
+  }
+  PSocketMethod onReceiveMethod = sock_Method_Create(
+    onReceiveMessages,
+    wssServer
+  );
+  wssServer->onReceiveMessage = onReceiveMethod;
+  PConnection connection = test_Wss_Util_ExchangeConnection(wssServer);
+  test_Wss_SendFragmentedMessage(wssServer, connection, "some_test_message", sizeof("some_test_message") - 1, onFinish, &callCount);
+  assert_int_equal(callCount, 1);
+  sock_Client_Free(connection);
+  test_Wss_Util_Delete(wssServer);
+}
+
 int main(void) {
   const struct CMUnitTest tests[] = {
     cmocka_unit_test(test_connect_to_wss_server),
@@ -300,6 +324,7 @@ int main(void) {
     cmocka_unit_test(test_on_malformed_message_receive),
     cmocka_unit_test(test_with_ping_pong_before_timeout),
     cmocka_unit_test(test_with_ping_pong_after_timeout),
+    cmocka_unit_test(test_fragmented_message),
     // cmocka_unit_test(test_with_ping_pong_with_pong_callback),
   };
   return cmocka_run_group_tests(tests, NULL, NULL);

@@ -325,7 +325,6 @@ int8_t wss_ReceiveMessages(PWebSocketServer self, PDataFragment dt, PSocketMetho
     void (*cMethod)(PDataFragment, void *) = routine->method;
     cMethod(&responseDt, routine->mirrorBuffer);
   }
-  // arr_Delete(messages);
   wss_CleanMessages(messages);
   return validConnection;
 }

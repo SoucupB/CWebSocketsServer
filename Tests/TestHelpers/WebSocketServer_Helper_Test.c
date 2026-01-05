@@ -72,6 +72,24 @@ void test_Wss_SendMessage(PWebSocketServer wssServer, PConnection conn, char *bu
   free(message);
 }
 
+void test_Wss_SendFragmentedMessage(PWebSocketServer wssServer, PConnection conn, char *buffer, size_t sz, uint8_t (*onFinish)(void *), void *methBuffer) {
+  WebSocketObject wssObj = (WebSocketObject) {
+    .buffer = buffer,
+    .sz = sz,
+    .opcode = OPCODE_BINARY
+  };
+  char *message = wbs_Masked_ToWebSocket(wssObj);
+  const size_t cSz = wbs_FullMessageSize(message);
+  test_Util_SendMessage(wssServer->socketServer, conn, message, cSz / 2);
+  test_Util_SendMessage(wssServer->socketServer, conn, message + (size_t)(cSz / 2), cSz - cSz / 2 - !(cSz % 2));
+  usleep(1000 * 1000);
+  while(!onFinish(methBuffer)) {
+    sock_OnFrame(wssServer->socketServer, 1);
+  }
+  free(message);
+}
+
+
 void test_Wss_SendPing(PWebSocketServer wssServer, PConnection conn) {
   WebSocketObject wssObj = (WebSocketObject) {
     .buffer = "1000",

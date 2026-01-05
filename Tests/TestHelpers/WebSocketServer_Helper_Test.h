@@ -15,3 +15,4 @@ void test_Wss_WaitAndRunUntil(PWebSocketServer sv, int64_t timeout, uint8_t (*me
 void test_Wss_SendPing(PWebSocketServer wssServer, PConnection conn);
 void test_Wss_SendPong(PWebSocketServer wssServer, PConnection conn);
 void test_Wss_PingPong(PWebSocketServer wssServer, PConnection conn, uint64_t pingAt);
+void test_Wss_SendFragmentedMessage(PWebSocketServer wssServer, PConnection conn, char *buffer, size_t sz, uint8_t (*onFinish)(void *), void *methBuffer);
