@@ -14,6 +14,7 @@
 #include "TimeFragment.h"
 #include "HttpParser.h"
 #include "HttpServer_Helper_test.h"
+#include "String.h"
 
 #define EPSILON 1e-5f
 #define SIZE(x) (sizeof(x) / sizeof(x[0]))
@@ -88,11 +89,18 @@ static void test_http_server_stream(void **state) {
     "1131fdsfdsfs",
     "fdsfds",
     "90493fdsfds",
-    "-032324"
+    "-032324",
+    "-032324-fdsfdsfdsgsgs{\"fdfdsfds\": 324242}---kjfdsfhdkjsfhkjdsgs7382183214914791"
   };
   Array resp = http_Helper_StreamRequestStrings(server, requests, SIZE(requests));
-  http_Helper_PrintArray(resp);
-
+  assert_int_equal(resp->size, SIZE(requests));
+  HttpString *bodyStrings = resp->buffer;
+  for(size_t i = 0, c = resp->size; i < c; i++) {
+    HttpString body = http_Response_Helper_Body(bodyStrings[i]);
+    assert_int_equal(body.sz, strlen(requests[i]));
+    assert_memory_equal(body.buffer, requests[i], body.sz);
+    free(body.buffer);
+  }
   sock_Method_Delete(server->onReceive);
   http_Helper_FreeStrArray(resp);
   httpS_Delete(server);

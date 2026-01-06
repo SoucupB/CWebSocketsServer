@@ -21,6 +21,8 @@ static inline void http_SetBuffer(HttpString buffer, PHttpString nextPart, char 
 PHttpResponse _http_Response_Empty(Hash headers);
 PHttpResponse http_Response_Chomp_t(HttpString *bff);
 PHttpRequest http_Request_Chomp_t(HttpString *bff);
+static HttpString http_Body_ProcessWithError(Hash headers, char *_endBuffer, HttpString *bff, uint8_t *valid);
+ssize_t http_Get_Number(Hash self, char *key, uint8_t *isValid);
 
 #define ALPHANUMERIC "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_."
 #define ACCEPTED_ALPHANUMERIC_KEY "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!#$%&'*+-.^_`|~"
@@ -58,8 +60,29 @@ PHttpRequest http_Request_Chomp_t(HttpString *bff) {
     http_Request_Delete(self);
     return NULL;
   }
-  self->body = http_Body_Process(self->headers, self->_endBuffer, bff);
+  uint8_t valid;
+  self->body = http_Body_ProcessWithError(self->headers, self->_endBuffer, bff, &valid);
+  if(!valid) {
+    http_Request_Delete(self);
+    return NULL;
+  }
   return self;
+}
+
+static HttpString http_Body_ProcessWithError(Hash headers, char *_endBuffer, HttpString *bff, uint8_t *valid) {
+  *valid = 1;
+  HttpString response = http_Body_Process(headers, _endBuffer, bff);
+  uint8_t contentLengthChecker;
+  ssize_t contentLength = http_Get_Number(headers, "Content-Length", &contentLengthChecker);
+  if(!contentLengthChecker && response.buffer) {
+    *valid = 0;
+    return response;
+  }
+  if(contentLengthChecker && response.sz != contentLength) {
+    *valid = 0;
+    return response;
+  }
+  return response;
 }
 
 PHttpRequest http_Request_NB_Get(PNetworkBuffer netBuffer) {
@@ -868,7 +891,12 @@ PHttpResponse http_Response_Chomp_t(HttpString *bff) {
     http_Response_Delete(self);
     return NULL;
   }
-  self->body = http_Body_Process(self->headers, _endBuffer, bff);
+  uint8_t valid;
+  self->body = http_Body_ProcessWithError(self->headers, _endBuffer, bff, &valid);
+  if(!valid) {
+    http_Response_Delete(self);
+    return NULL;
+  }
   return self;
 }
 

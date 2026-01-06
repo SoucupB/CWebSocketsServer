@@ -15,3 +15,4 @@ Array http_Helper_StreamRequest(PHttpServer server, Array requests);
 Array http_Helper_StreamRequestStrings(PHttpServer server, char **strs, size_t count);
 void http_Helper_FreeStrArray(const Array arr);
 void http_Helper_PrintArray(Array arr);
+HttpString http_Response_Helper_Body(HttpString str);

@@ -155,24 +155,52 @@ PHttpResponse intermediateCaller(PHttpRequest req, void *mirror) {
   return childResponse;
 }
 
+void http_Helper_SendFragmentedRequest(PConnComm currComm, PConnection conn, HttpString str) {
+  PHttpServer server = currComm->server;
+  char *startingBuffer = str.buffer;
+  int32_t sz = str.sz;
+  uint32_t currentCall = currComm->callerCount;
+  int32_t fragSize = 5;
+  while(currComm->callerCount == currentCall) {
+    int32_t callsCount = 10;
+    int32_t currentFragSize = (sz < fragSize ? sz : fragSize);
+    if(currentFragSize) {
+      DataFragment fr = {
+        .conn = *conn,
+        .data = startingBuffer,
+        .persistent = 0,
+        .size = currentFragSize
+      };
+      sock_Client_SendMessage(&fr);
+      startingBuffer += currentFragSize;
+      sz -= currentFragSize;
+    }
+    while(callsCount--) {
+      httpS_OnFrame(server, 1);
+      usleep(100);
+    }
+  }
+}
+
 void http_Helper_ExtractData(PConnComm currComm, HttpString str) {
   PHttpServer server = currComm->server;
   PConnection conn = sock_Client_Connect(server->server->port, "127.0.0.1");
-  DataFragment fr = {
-    .conn = *conn,
-    .data = str.buffer,
-    .persistent = 0,
-    .size = str.sz
-  };
-  uint32_t currentCall = currComm->callerCount;
-  sock_Client_SendMessage(&fr);
-  HttpString serv;
-  memset(&serv, 0, sizeof(HttpString));
-  while(currComm->callerCount == currentCall) {
-    httpS_OnFrame(server, 1);
-    usleep(100);
-  }
+  http_Helper_SendFragmentedRequest(currComm, conn, str);
   sock_Client_Free(conn);
+}
+
+HttpString http_Response_Helper_Body(HttpString str) {
+  HttpString response = {
+    .buffer = NULL,
+    .sz = 0
+  };
+  PHttpResponse resp = http_Response_Parse(str);
+  if(!resp) {
+    return response;
+  }
+  response = string_DeepCopy(resp->body);
+  http_Response_Delete(resp);
+  return response;
 }
 
 Array http_Helper_StreamRequest(PHttpServer server, Array requests) {
