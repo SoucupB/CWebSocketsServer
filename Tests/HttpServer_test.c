@@ -90,7 +90,12 @@ static void test_http_server_stream(void **state) {
     "fdsfds",
     "90493fdsfds",
     "-032324",
-    "-032324-fdsfdsfdsgsgs{\"fdfdsfds\": 324242}---kjfdsfhdkjsfhkjdsgs7382183214914791"
+    "-032324-fdsfdsfdsgsgs{\"fdfdsfds\": 324242}---kjfdsfhdkjsfhkjdsgs7382183214914791",
+    "-032324-fdsfdsfdsgsgs{\"fdfdsfds\": 324242}---kjfdsfhdkjsfhkjdsgs7382183214914791",
+    "-032324-fdsfdsfd1sgsgs{\"fdfdsfds\": 324242}---kjfdsfhdkjsfhkjdsgs7382183214914791",
+    "-032324-fdsfdsfdsbgsgs{\"fdfdsfds\": 324242}-zzzzzzzzzzzxxxxxdsdfd--kjfdsfhdkjsfhkjdsgs7382183214914791",
+    "-032324-fdsfdsfdsgcsgs{\"fdfdsfds\": 324242}-4342566666--kjfdsfhdkjsfhkjdsgs7382183214914791",
+    "-032324-fdsfdsfdsgsdgsss{\"fdfdsfds\": 324242}--gfdgfdhjdjdjdj-kjfdsfhdkjsfhkjdsgs7382183214914791",
   };
   Array resp = http_Helper_StreamRequestStrings(server, requests, SIZE(requests));
   assert_int_equal(resp->size, SIZE(requests));
