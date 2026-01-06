@@ -11,6 +11,7 @@
 #include "JWT.h"
 #include "JsonParser.h"
 #include "TimeFragment.h"
+#include "String.h"
 
 #define EPSILON 1e-5f
 
@@ -300,16 +301,22 @@ static void test_jwt_parse_correct_invalid_payload(void **state) {
 
 static void test_jwt_decode_special_case(void **state) {
   char *jwtCode = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3Njg3Mzc1ODU4NDMsImlhdCI6MTc2NzczNzU4NTg0MywidXNlcl9pZCI6MzI0fQ.Kdbxhcnhf0tTMrb2QKmoPAS3j1vHRCP4gDQ_NFXI_f4";
-  PJWT jwt = jwt_Parse((HttpString) {
+  HttpString input = (HttpString) {
     .buffer = jwtCode,
     .sz = strlen(jwtCode)
-  }, (HttpString) {
+  };
+  HttpString key = (HttpString) {
     .buffer = "DSjifdsgFDSFggsgsdgFDSAFDSA",
     .sz = strlen("DSjifdsgFDSFggsgsdgFDSAFDSA")
-  });
+  };
+  HttpString cpyInput = string_DeepCopy(input);
+  HttpString cpyKey = string_DeepCopy(key);
+  PJWT jwt = jwt_Parse(cpyInput, cpyKey);
   assert_ptr_not_equal(jwt, NULL);
   assert_int_equal(jwt->header.type, JSON_JSON);
   assert_int_equal(jwt->payload.type, JSON_JSON);
+  free(cpyInput.buffer);
+  free(cpyKey.buffer);
   jwt_Delete(jwt);
 }
 
