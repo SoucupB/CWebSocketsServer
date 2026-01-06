@@ -13,3 +13,5 @@ PHttpResponse http_Helper_Process(PHttpServer server, PHttpRequest req);
 PSocketMethod http_Helper_MirrorMethod(void *mirror);
 Array http_Helper_StreamRequest(PHttpServer server, Array requests);
 Array http_Helper_StreamRequestStrings(PHttpServer server, char **strs, size_t count);
+void http_Helper_FreeStrArray(const Array arr);
+void http_Helper_PrintArray(Array arr);

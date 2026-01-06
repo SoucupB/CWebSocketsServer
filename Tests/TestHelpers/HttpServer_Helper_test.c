@@ -4,6 +4,7 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include "Array.h"
+#include "String.h"
 
 typedef struct CheckerStruct_t {
   uint32_t *hasExecuted;
@@ -154,6 +155,7 @@ PHttpResponse intermediateCaller(PHttpRequest req, void *mirror) {
   PHttpResponse childResponse = childCaller(req, currentCom->child->mirrorBuffer);
   HttpString respString = http_Response_ToString(childResponse);
   arr_Push(currentCom->response, &respString);
+  currentCom->callerCount++;
   return childResponse;
 }
 
@@ -224,4 +226,12 @@ Array http_Helper_StreamRequestStrings(PHttpServer server, char **strs, size_t c
   Array response = http_Helper_StreamRequest(server, strings);
   http_Helper_FreeStrArray(strings);
   return response;
+}
+
+void http_Helper_PrintArray(Array arr) {
+  HttpString *str = arr->buffer;
+  for(size_t i = 0, c = arr->size; i < c; i++) {
+    string_Print(str[i]);
+    printf("\n");
+  }
 }

@@ -16,6 +16,7 @@
 #include "HttpServer_Helper_test.h"
 
 #define EPSILON 1e-5f
+#define SIZE(x) (sizeof(x) / sizeof(x[0]))
 
 uint16_t port = 10000;
 
@@ -77,12 +78,30 @@ static void test_http_server_request_response(void **state) {
   httpS_Delete(server);
 }
 
+static void test_http_server_stream(void **state) {
+  const uint16_t cPort = port--;
+  PHttpServer server = httpS_Create(cPort);
+  server->onReceive = http_Helper_MirrorMethod(server);
+  char *requests[] = {
+    "fdsfdsfgggggs",
+    // "dsafd",
+    // "1131fdsfdsfs"
+  };
+  Array resp = http_Helper_StreamRequestStrings(server, requests, SIZE(requests));
+  http_Helper_PrintArray(resp);
+  
+  sock_Method_Delete(server->onReceive);
+  http_Helper_FreeStrArray(resp);
+  httpS_Delete(server);
+}
+
 int main() {
   const struct CMUnitTest tests[] = {
     cmocka_unit_test_prestate(test_http_server_creation, NULL),
     cmocka_unit_test_prestate(test_http_server_push_method, NULL),
     cmocka_unit_test_prestate(test_http_server_parse_request, NULL),
     cmocka_unit_test_prestate(test_http_server_request_response, NULL),
+    cmocka_unit_test_prestate(test_http_server_stream, NULL),
   };
   const uint32_t value = cmocka_run_group_tests(tests, NULL, NULL);
   return value;
