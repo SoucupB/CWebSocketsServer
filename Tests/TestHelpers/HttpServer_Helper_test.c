@@ -69,7 +69,7 @@ PHttpResponse http_Helper_Send(uint16_t port, PHttpRequest req, PSocketMethod me
     httpS_Request_OnFrame(reqServer, 1);
     usleep(1 * 1000);
   }
-  free(reqData.query.buffer);
+  crm_Free(reqData.query.buffer);
   httpS_Request_Delete(reqServer);
   sock_Method_Delete(onReceive);
   if(!hasExecuted) {
@@ -131,7 +131,7 @@ HttpString http_Helper_SendBlockingRequest(PHttpServer server, uint16_t port, Ht
     }
     httpS_OnFrame(server, 1);
     usleep(1000);
-    free(serv.buffer);
+    crm_Free(serv.buffer);
   }
   return serv;
 }
@@ -229,7 +229,7 @@ Array http_Helper_StreamRequest(PHttpServer server, Array requests) {
 void http_Helper_FreeStrArray(const Array arr) {
   HttpString *strss = arr->buffer;
   for(size_t i = 0; i < arr->size; i++) {
-    free(strss[i].buffer);
+    crm_Free(strss[i].buffer);
   }
   arr_Delete(arr);
 }

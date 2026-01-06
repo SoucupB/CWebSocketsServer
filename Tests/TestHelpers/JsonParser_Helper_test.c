@@ -12,7 +12,7 @@ HttpString json_Helper_Add(char *buffer) {
 }
 
 JsonElement json_Helper_Integer(int64_t element) {
-  int64_t *bff = malloc(sizeof(int64_t));
+  int64_t *bff = crm_Alloc(sizeof(int64_t));
   memcpy(bff, &element, sizeof(int64_t));
   return (JsonElement){
     .value = bff,
@@ -21,7 +21,7 @@ JsonElement json_Helper_Integer(int64_t element) {
 }
 
 JsonElement json_Helper_Number(float element) {
-  float *bff = malloc(sizeof(float));
+  float *bff = crm_Alloc(sizeof(float));
   memcpy(bff, &element, sizeof(float));
   return (JsonElement){
     .value = bff,
@@ -55,9 +55,9 @@ void json_Helper_Array_Push(JsonElement elemArr, JsonElement elem) {
 
 JsonElement json_Helper_String(char *nmb) {
   const size_t sz = strlen(nmb);
-  char *buffer = malloc(sz * sizeof(char));
+  char *buffer = crm_Alloc(sz * sizeof(char));
   memcpy(buffer, nmb, sz * sizeof(char));
-  PHttpString crt = malloc(sizeof(HttpString));
+  PHttpString crt = crm_Alloc(sizeof(HttpString));
   crt->buffer = buffer;
   crt->sz = sz;
   return (JsonElement){

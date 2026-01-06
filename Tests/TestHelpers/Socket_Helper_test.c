@@ -62,7 +62,7 @@ void test_Util_Expect(PConnection conn, char *buffer, size_t sz) {
   DataFragment dt = sock_Client_Receive(conn);
   assert_true(sz == dt.size);
   assert_true(memcmp(dt.data, buffer, sz) == 0);
-  free(dt.data);
+  crm_Free(dt.data);
 }
 
 PConnection test_Util_Connect(PSocketServer server) {

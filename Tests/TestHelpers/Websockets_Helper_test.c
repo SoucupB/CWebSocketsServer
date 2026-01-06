@@ -4,7 +4,7 @@
 
 WebSocketObject test_Util_Transform(char *buffer, size_t sz) {
   WebSocketObject sockObj = (WebSocketObject) {
-    .buffer = malloc(sz),
+    .buffer = crm_Alloc(sz),
     .sz = sz,
     .opcode = OPCODE_BINARY
   };
@@ -13,11 +13,11 @@ WebSocketObject test_Util_Transform(char *buffer, size_t sz) {
 }
 
 void test_Util_Delete(WebSocketObject obj) {
-  free(obj.buffer);
+  crm_Free(obj.buffer);
 }
 
 char *test_Util_RepeatMessage(char *msg, size_t sz, size_t count) {
-  char *response = malloc(count * sz + 1);
+  char *response = crm_Alloc(count * sz + 1);
   for(size_t i = 0, c = 0; i < count; i++) {
     for(size_t j = 0; j < sz; j++) {
       response[c++] = msg[j];
@@ -37,7 +37,7 @@ WebSocketObject test_Util_CreateMessages(char **messages, size_t sz, uint8_t mas
   for(size_t i = 0; i < sz; i++) {
     totalSize += strlen(messages[i]);
   }
-  char *response = malloc(2 * (totalSize + 1));
+  char *response = crm_Alloc(2 * (totalSize + 1));
   memset(response, 0, 2 * (totalSize + 1));
   char *rspCpy = response;
   for(size_t i = 0; i < sz; i++) {
@@ -48,7 +48,7 @@ WebSocketObject test_Util_CreateMessages(char **messages, size_t sz, uint8_t mas
     response += msgSize;
     finalMessageSize += msgSize;
     test_Util_Delete(drr);
-    free(newMessage);
+    crm_Free(newMessage);
   }
   return (WebSocketObject) {
     .buffer = rspCpy,

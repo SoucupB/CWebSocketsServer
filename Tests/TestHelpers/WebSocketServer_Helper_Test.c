@@ -51,7 +51,7 @@ void test_Wss_BufferMessage(PWebSocketServer wssServer, PConnection conn, char *
   };
   char *message = wbs_Masked_ToWebSocket(wssObj);
   test_Util_BufferMessage(wssServer->socketServer, conn, message, wbs_FullMessageSize(message));
-  free(message);
+  crm_Free(message);
 }
 
 void test_Wss_PingPong(PWebSocketServer wssServer, PConnection conn, uint64_t pingAt) {
@@ -69,7 +69,7 @@ void test_Wss_SendMessage(PWebSocketServer wssServer, PConnection conn, char *bu
   };
   char *message = wbs_Masked_ToWebSocket(wssObj);
   test_Util_SendMessage(wssServer->socketServer, conn, message, wbs_FullMessageSize(message));
-  free(message);
+  crm_Free(message);
 }
 
 void test_Wss_SendFragmentedMessage(PWebSocketServer wssServer, PConnection conn, char *buffer, size_t sz, uint8_t (*onFinish)(void *), void *methBuffer) {
@@ -85,7 +85,7 @@ void test_Wss_SendFragmentedMessage(PWebSocketServer wssServer, PConnection conn
   while(!onFinish(methBuffer)) {
     sock_OnFrame(wssServer->socketServer, 1);
   }
-  free(message);
+  crm_Free(message);
 }
 
 
@@ -97,7 +97,7 @@ void test_Wss_SendPing(PWebSocketServer wssServer, PConnection conn) {
   };
   char *message = wbs_Masked_ToWebSocket(wssObj);
   test_Util_SendMessage(wssServer->socketServer, conn, message, wbs_FullMessageSize(message));
-  free(message);
+  crm_Free(message);
 }
 
 void test_Wss_SendPong(PWebSocketServer wssServer, PConnection conn) {
@@ -108,7 +108,7 @@ void test_Wss_SendPong(PWebSocketServer wssServer, PConnection conn) {
   };
   char *message = wbs_Masked_ToWebSocket(wssObj);
   test_Util_SendMessage(wssServer->socketServer, conn, message, wbs_FullMessageSize(message));
-  free(message);
+  crm_Free(message);
 }
 
 void test_Wss_WaitAndRunUntil(PWebSocketServer sv, int64_t timeout, uint8_t (*method)(void *), void *buffer) {
@@ -153,6 +153,6 @@ void test_Wss_Expect(PConnection conn, char *buffer, size_t sz) {
     }
   }
   assert_true(objectFound);
-  free(dt.data);
+  crm_Free(dt.data);
   arr_Delete(receivedData);
 }

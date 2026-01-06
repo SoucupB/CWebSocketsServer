@@ -25,7 +25,7 @@ void test_Util_Evs_SendClearMessage(PEventServer evServer, PConnection conn, cha
   };
   EventBuffer toSend = evm_New_Transform(&toSendMsg);
   test_Wss_SendMessage(evServer->wsServer, conn, toSend.buffer, toSend.size);
-  free(toSend.buffer);
+  crm_Free(toSend.buffer);
 }
 
 void test_Util_Evs_SendAuthMessage(PEventServer evServer, PConnection conn, char *msg, uint32_t sz, char *authCode, uint32_t code) {
@@ -42,5 +42,5 @@ void test_Util_Evs_SendAuthMessage(PEventServer evServer, PConnection conn, char
   };
   EventBuffer toSend = evm_New_Transform(&toSendMsg);
   test_Wss_SendMessage(evServer->wsServer, conn, toSend.buffer, toSend.size);
-  free(toSend.buffer);
+  crm_Free(toSend.buffer);
 }

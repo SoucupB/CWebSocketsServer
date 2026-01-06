@@ -16,7 +16,7 @@ size_t test_Util_RandomElement() {
 }
 
 size_t *test_Util_CreateBuffer(size_t size) {
-  size_t *buffer = malloc(sizeof(size_t) * size);
+  size_t *buffer = crm_Alloc(sizeof(size_t) * size);
   for(size_t i = 0; i < size; i++) {
     buffer[i] = test_Util_RandomElement();
   }
