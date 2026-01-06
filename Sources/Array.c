@@ -31,7 +31,7 @@ Array arr_InitWithSize(size_t objSize, size_t count) {
   return self;
 }
 
-void copyData(Array self, void *buffer) {
+void arr_CopyData(Array self, void *buffer) {
   memcpy(self->buffer + (self->size * self->objSize), buffer, self->objSize);
   self->size++;
 }
@@ -41,7 +41,7 @@ void arr_Push(Array self, void *buffer) {
     self->capacity <<= 1;
     self->buffer = crm_Realloc(self->buffer, self->capacity * self->objSize);
   }
-  copyData(self, buffer);
+  arr_CopyData(self, buffer);
 }
 
 void arr_RemoveElement(Array self, size_t index) {

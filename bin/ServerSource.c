@@ -1558,7 +1558,7 @@ Array arr_InitWithSize(size_t objSize, size_t count) {
   self->objSize = objSize;
   return self;
 }
-void copyData(Array self, void *buffer) {
+void arr_CopyData(Array self, void *buffer) {
   memcpy(self->buffer + (self->size * self->objSize), buffer, self->objSize);
   self->size++;
 }
@@ -1567,7 +1567,7 @@ void arr_Push(Array self, void *buffer) {
     self->capacity <<= 1;
     self->buffer = realloc(self->buffer, self->capacity * self->objSize);
   }
-  copyData(self, buffer);
+  arr_CopyData(self, buffer);
 }
 void arr_RemoveElement(Array self, size_t index) {
   ((void) sizeof ((self->size != 0) ? 1 : 0), __extension__ ({ if (self->size != 0) ; else __assert_fail ("self->size != 0", "bin/svv.c", 48, __extension__ __PRETTY_FUNCTION__); }));
@@ -8390,9 +8390,9 @@ uint8_t jwt_IsPayloadValid(HttpString str) {
   size_t headerSize = jwt_ExtractStringChecker(str);
   HttpString payloadString = {
     .buffer = headerSize + str.buffer + 1,
-    .sz = str.sz - headerSize
+    .sz = str.sz - headerSize - 1
   };
-  ssize_t cSz = payloadString.sz;
+  ssize_t cSz = payloadString.sz - 1;
   while(cSz >= 0 && payloadString.buffer[cSz] != '.') {
     cSz--;
   }
