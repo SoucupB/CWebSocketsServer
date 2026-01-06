@@ -84,12 +84,15 @@ static void test_http_server_stream(void **state) {
   server->onReceive = http_Helper_MirrorMethod(server);
   char *requests[] = {
     "fdsfdsfgggggs",
-    // "dsafd",
-    // "1131fdsfdsfs"
+    "dsafd",
+    "1131fdsfdsfs",
+    "fdsfds",
+    "90493fdsfds",
+    "-032324"
   };
   Array resp = http_Helper_StreamRequestStrings(server, requests, SIZE(requests));
   http_Helper_PrintArray(resp);
-  
+
   sock_Method_Delete(server->onReceive);
   http_Helper_FreeStrArray(resp);
   httpS_Delete(server);

@@ -95,11 +95,7 @@ PHttpResponse http_Helper_Process(PHttpServer server, PHttpRequest req) {
 
 PHttpResponse _caller(PHttpRequest req, void *mirror) {
   PHttpResponse empty = http_Response_Empty();
-  HttpString str = {
-    .buffer = "SOME_BUFFER_SOMER_BUFFER",
-    .sz = sizeof("SOME_BUFFER_SOMER_BUFFER") - 1
-  };
-  http_Response_SetBody(empty, &str);
+  http_Response_SetBody(empty, &req->body);
   return empty;
 }
 
