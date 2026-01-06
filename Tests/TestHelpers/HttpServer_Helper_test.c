@@ -3,6 +3,7 @@
 #include "HttpParser.h"
 #include <stdlib.h>
 #include <unistd.h>
+#include "Array.h"
 
 typedef struct CheckerStruct_t {
   uint32_t *hasExecuted;
@@ -114,6 +115,113 @@ void http_Helper_Free(PHttpServer server) {
   httpS_Delete(server);
 }
 
-void http_Helper_StressTest(PHttpServer server, size_t requestCounts, uint8_t (*finishCondition)(void *), void *buffer) {
-  // to do
+HttpString http_Helper_SendBlockingRequest(PHttpServer server, uint16_t port, HttpString str) {
+  PConnection conn = sock_Client_Connect(port, "127.0.0.1");
+  DataFragment fr = {
+    .conn = *conn,
+    .data = str.buffer,
+    .persistent = 0,
+    .size = str.sz
+  };
+  sock_Client_SendMessage(&fr);
+  HttpString serv;
+  memset(&serv, 0, sizeof(HttpString));
+  int32_t totalTries = 5000;
+  while(totalTries--) {
+    serv = sock_Client_ReceiveWithErrors(conn);
+    if(serv.sz) {
+      break;
+    }
+    httpS_OnFrame(server, 1);
+    usleep(1000);
+    free(serv.buffer);
+  }
+  return serv;
+}
+
+typedef struct ConnComm_t {
+  PSocketMethod child;
+  PHttpServer server;
+  Array response;
+  uint32_t callerCount;
+} ConnComm;
+
+typedef ConnComm *PConnComm;
+
+PHttpResponse intermediateCaller(PHttpRequest req, void *mirror) {
+  PConnComm currentCom = mirror;
+  PHttpResponse (*childCaller)(PHttpRequest, void *) = currentCom->child->method;
+  PHttpResponse childResponse = childCaller(req, currentCom->child->mirrorBuffer);
+  HttpString respString = http_Response_ToString(childResponse);
+  arr_Push(currentCom->response, &respString);
+  return childResponse;
+}
+
+void http_Helper_ExtractData(PConnComm currComm, HttpString str) {
+  PHttpServer server = currComm->server;
+  PConnection conn = sock_Client_Connect(server->server->port, "127.0.0.1");
+  DataFragment fr = {
+    .conn = *conn,
+    .data = str.buffer,
+    .persistent = 0,
+    .size = str.sz
+  };
+  uint32_t currentCall = currComm->callerCount;
+  sock_Client_SendMessage(&fr);
+  HttpString serv;
+  memset(&serv, 0, sizeof(HttpString));
+  while(currComm->callerCount == currentCall) {
+    httpS_OnFrame(server, 1);
+    usleep(100);
+  }
+  sock_Client_Free(conn);
+}
+
+Array http_Helper_StreamRequest(PHttpServer server, Array requests) {
+  Array response = arr_Init(sizeof(HttpString));
+  PSocketMethod currentMethod = server->onReceive;
+  ConnComm currComm = {
+    .child = currentMethod,
+    .server = server,
+    .response = response,
+    .callerCount = 0
+  };
+  PSocketMethod nextMethod = sock_Method_Create(
+    (void *)intermediateCaller,
+    &currComm
+  );
+  server->onReceive = nextMethod;
+  HttpString *strReq = requests->buffer;
+  for(size_t i = 0, c = requests->size; i < c; i++) {
+    http_Helper_ExtractData(&currComm, strReq[i]);
+  }
+  server->onReceive = currentMethod;
+  sock_Method_Delete(nextMethod);
+  return response;
+}
+
+void http_Helper_FreeStrArray(const Array arr) {
+  HttpString *strss = arr->buffer;
+  for(size_t i = 0; i < arr->size; i++) {
+    free(strss[i].buffer);
+  }
+  arr_Delete(arr);
+}
+
+Array http_Helper_StreamRequestStrings(PHttpServer server, char **strs, size_t count) {
+  Array strings = arr_Init(sizeof(HttpString));
+  for(size_t i = 0; i < count; i++) {
+    HttpString currentString = {
+      .buffer = strs[i],
+      .sz = strlen(strs[i])
+    };
+    PHttpRequest req = http_Request_Basic();
+    http_Request_SetBody(req, currentString);
+    HttpString str = http_Request_ToString(req);
+    arr_Push(strings, &str);
+    http_Request_Delete(req);
+  }
+  Array response = http_Helper_StreamRequest(server, strings);
+  http_Helper_FreeStrArray(strings);
+  return response;
 }
