@@ -298,6 +298,21 @@ static void test_jwt_parse_correct_invalid_payload(void **state) {
   assert_ptr_equal(jwt, NULL);
 }
 
+static void test_jwt_decode_special_case(void **state) {
+  char *jwtCode = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3Njg3Mzc1ODU4NDMsImlhdCI6MTc2NzczNzU4NTg0MywidXNlcl9pZCI6MzI0fQ.Kdbxhcnhf0tTMrb2QKmoPAS3j1vHRCP4gDQ_NFXI_f4";
+  PJWT jwt = jwt_Parse((HttpString) {
+    .buffer = jwtCode,
+    .sz = strlen(jwtCode)
+  }, (HttpString) {
+    .buffer = "DSjifdsgFDSFggsgsdgFDSAFDSA",
+    .sz = strlen("DSjifdsgFDSFggsgsdgFDSAFDSA")
+  });
+  assert_ptr_not_equal(jwt, NULL);
+  assert_int_equal(jwt->header.type, JSON_JSON);
+  assert_int_equal(jwt->payload.type, JSON_JSON);
+  jwt_Delete(jwt);
+}
+
 int main() {
   const struct CMUnitTest tests[] = {
     cmocka_unit_test_prestate(test_jwt_hmac_create, NULL),
@@ -325,6 +340,7 @@ int main() {
     cmocka_unit_test_prestate(test_jwt_parse_correct, NULL),
     cmocka_unit_test_prestate(test_jwt_parse_correct_invalid_header, NULL),
     cmocka_unit_test_prestate(test_jwt_parse_correct_invalid_payload, NULL),
+    cmocka_unit_test_prestate(test_jwt_decode_special_case, NULL),
   };
   const uint32_t value = cmocka_run_group_tests(tests, NULL, NULL);
   return value;

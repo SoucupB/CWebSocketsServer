@@ -239,9 +239,9 @@ uint8_t jwt_IsPayloadValid(HttpString str) {
   size_t headerSize = jwt_ExtractStringChecker(str);
   HttpString payloadString = {
     .buffer = headerSize + str.buffer + 1,
-    .sz = str.sz - headerSize
+    .sz = str.sz - headerSize - 1
   };
-  ssize_t cSz = payloadString.sz;
+  ssize_t cSz = payloadString.sz - 1;
   while(cSz >= 0 && payloadString.buffer[cSz] != '.') {
     cSz--;
   }
