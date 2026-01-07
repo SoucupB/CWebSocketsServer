@@ -494,6 +494,19 @@ DSDSAFAFAFAFAsome_other_text\
   tpd_Delete(bff);
 }
 
+static void test_http_parser_more_bytes_per_conn(void **state) {
+  char *request = "\
+GET /test_test HTTP/1.0\r\n\
+Connection: close\r\n\
+Content-Length: 50\r\n\
+Content-Type: text/plain\r\n\
+\r\n\
+Hello, World!\
+";
+  PHttpRequest httpObj = http_Request_Parse(request, strlen(request));
+  assert_null(httpObj);
+}
+
 int main(void) {
   const struct CMUnitTest tests[] = {
     cmocka_unit_test(test_http_parser_full_http_body),
@@ -528,6 +541,7 @@ int main(void) {
     cmocka_unit_test(test_http_parser_request_chomp_invalid),
     cmocka_unit_test(test_http_parser_request_chomp_network_buffer),
     cmocka_unit_test(test_http_parser_request_chomp_network_buffer_invalid),
+    cmocka_unit_test(test_http_parser_more_bytes_per_conn),
   };
   return cmocka_run_group_tests(tests, NULL, NULL);
 }
