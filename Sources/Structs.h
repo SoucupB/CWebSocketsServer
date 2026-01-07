@@ -151,9 +151,9 @@ typedef SocketServer *PSocketServer;
 
 typedef struct WebSocketServer_t {
   PSocketServer socketServer;
-  PSocketMethod onConnect;
-  PSocketMethod onReceiveMessage;
-  PSocketMethod onRelease; // (*cMethod)(PConnection, void *)
+  PSocketMethod onConnect; // void (*method)(PConnection, void *)
+  PSocketMethod onReceiveMessage; // void (*method)(PDataFragment, void *)
+  PSocketMethod onRelease; // void (*method)(PConnection, void *)
   PrivateMethodsBundle methodsBundle;
   Array pendingConnections;
   Array pendingPingRequests;
