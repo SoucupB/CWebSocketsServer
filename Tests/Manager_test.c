@@ -63,11 +63,29 @@ static void test_manager_login_helper_higher_level(void **state) {
   sock_Client_Free(cnn);
 }
 
+static void test_manager_login_helper_failed_login(void **state) {
+  const uint16_t cPort = port--;
+  char *secret = "DSjifdsgFDSFggsgsdgFDSAFDSA";
+  PManager self = man_Create(cPort);
+  man_Helper_AddUser(self, 324);
+  man_SetSecret(self, (HttpString) {
+    .buffer = secret,
+    .sz = strlen(secret)
+  });
+  PConnection cnn = man_Helper_LoginHigherLevel(self, 324, secret);
+  assert_ptr_not_equal(cnn, NULL);
+  PUser currentUser = man_User_Get(self, 324);
+  assert_true(currentUser->active);
+  man_Delete(self);
+  sock_Client_Free(cnn);
+}
+
 int main(void) {
   const struct CMUnitTest tests[] = {
     cmocka_unit_test(test_manager_create),
     cmocka_unit_test(test_manager_login_succesfully),
     cmocka_unit_test(test_manager_login_helper_higher_level),
+    cmocka_unit_test(test_manager_login_helper_failed_login),
   };
   return cmocka_run_group_tests(tests, NULL, NULL);
 }

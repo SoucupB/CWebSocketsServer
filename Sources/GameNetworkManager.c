@@ -44,7 +44,7 @@ void man_DeleteTimeoutConn(const PGameConnTimeout gameConnTimeout) {
 }
 
 static inline void man_RunOnLogin(const PManager self, const PUser user) {
-  if(!self->onLogin && user) {
+  if(!self->onLogin || !user) {
     return ;
   }
   void (*method)(PUser, void *) = self->onLogin->method;
