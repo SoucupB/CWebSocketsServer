@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Manager.h"
+#include "GameNetworkManager.h"
 #include "JsonParser.h"
 
 PConnection man_Helper_Login(PManager self, uint16_t port, JsonElement payload, char *secret);

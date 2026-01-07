@@ -1,4 +1,4 @@
-#include "Manager.h"
+#include "GameNetworkManager.h"
 #include "JsonParser.h"
 #include "JWT.h"
 #include <string.h>

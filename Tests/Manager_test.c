@@ -7,7 +7,7 @@
 #include <stdio.h>
 #include "HttpParser.h"
 #include <stdlib.h>
-#include "Manager.h"
+#include "GameNetworkManager.h"
 #include "Manager_Helper_test.h"
 #include "Socket_Helper_test.h"
 #include "SocketClient.h"
