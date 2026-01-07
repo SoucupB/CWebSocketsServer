@@ -383,6 +383,18 @@ JsonElement json_String_Create(char *string) {
   };
 }
 
+JsonElement json_String_CreateFromHttpString(HttpString string) {
+  PHttpString str = crm_Alloc(sizeof(HttpString));
+  str->sz = string.sz;
+  str->buffer = crm_Alloc(str->sz);
+  memcpy(str->buffer, string.buffer, str->sz);
+
+  return (JsonElement) {
+    .type = JSON_STRING,
+    .value = str
+  };
+}
+
 JsonElement json_Number_Create(float val) {
   JsonElement element = {
     .type = JSON_NUMBER,

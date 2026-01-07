@@ -46,10 +46,27 @@ static void test_manager_login_succesfully(void **state) {
   json_DeleteElement(payload);
 }
 
+static void test_manager_login_helper_higher_level(void **state) {
+  const uint16_t cPort = port--;
+  char *secret = "DSjifdsgFDSFggsgsdgFDSAFDSA";
+  PManager self = man_Create(cPort);
+  man_Helper_AddUser(self, 324);
+  man_SetSecret(self, (HttpString) {
+    .buffer = secret,
+    .sz = strlen(secret)
+  });
+  PConnection cnn = man_Helper_LoginHigherLevel(self, 324, secret);
+
+  man_Delete(self);
+  sock_Client_Free(cnn);
+  // json_DeleteElement(payload);
+}
+
 int main(void) {
   const struct CMUnitTest tests[] = {
     cmocka_unit_test(test_manager_create),
     cmocka_unit_test(test_manager_login_succesfully),
+    cmocka_unit_test(test_manager_login_helper_higher_level),
   };
   return cmocka_run_group_tests(tests, NULL, NULL);
 }

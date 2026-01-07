@@ -24,3 +24,4 @@ void json_Map_Add(JsonElement map, char *key, JsonElement element);
 JsonElement json_Integer_Create(int64_t val);
 JsonElement json_Number_Create(float val);
 JsonElement json_String_Create(char *string);
+JsonElement json_String_CreateFromHttpString(HttpString string);
