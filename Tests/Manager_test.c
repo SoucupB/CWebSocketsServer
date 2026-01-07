@@ -56,10 +56,11 @@ static void test_manager_login_helper_higher_level(void **state) {
     .sz = strlen(secret)
   });
   PConnection cnn = man_Helper_LoginHigherLevel(self, 324, secret);
-
+  assert_ptr_not_equal(cnn, NULL);
+  PUser currentUser = man_User_Get(self, 324);
+  assert_true(currentUser->active);
   man_Delete(self);
   sock_Client_Free(cnn);
-  // json_DeleteElement(payload);
 }
 
 int main(void) {
