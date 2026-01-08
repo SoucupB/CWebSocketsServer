@@ -337,6 +337,7 @@ typedef struct Manager_t {
   PSocketMethod onLogin; // void (*method)(PUser, void *mirror);
   PSocketMethod onReceive; // void (*method)(PDataFragment, PUser, void *)
   PSocketMethod onDisconnect; // void (*method)(PUser, void *)
+  PSocketMethod onUserRegister; // uint8_t (*method)(void *, uint64_t userID)
 } Manager;
 
 typedef Manager *PManager;

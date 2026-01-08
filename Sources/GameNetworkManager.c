@@ -66,6 +66,14 @@ static inline HttpString man_HTTP_GetAuthCode(const HttpString auth) {
   };
 }
 
+static inline uint8_t man_HTTP_OnUserRegister(const PManager self, const uint64_t userID) {
+  if(!self->onUserRegister) {
+    return 1;
+  }
+  uint8_t (*method)(void *, uint64_t) = self->onUserRegister->method;
+  return method(self->onUserRegister->mirrorBuffer, userID);
+}
+
 static inline uint8_t man_HTTP_ApproveAndRegister(const PManager self, const PJWT jwt) {
   JsonElement userIDValue = json_Map_Get(jwt->payload, (HttpString) {
     .buffer = "user_id",
@@ -82,6 +90,9 @@ static inline uint8_t man_HTTP_ApproveAndRegister(const PManager self, const PJW
     return 0;
   }
   int64_t userID = json_Integer_Get(userIDValue);
+  if(!man_HTTP_OnUserRegister(self, userID)) {
+    return 0;
+  }
   return man_User_Register(self, userID);
 }
 
