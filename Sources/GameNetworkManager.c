@@ -205,7 +205,8 @@ static inline PUser man_ProcessPendingMessage(const PManager self, const PDataFr
   return currentUser;
 }
 
-static inline PUser man_ProcessPendingConnection(const PManager self, const PDataFragment dt) {
+static inline PUser man_ProcessPendingConnection(const PManager self, const PDataFragment dt, uint8_t *pendingConn) {
+  *pendingConn = 1;
   uint8_t found;
   size_t plyIndex = man_GetConn(self, dt, &found);
   if(!found) {
@@ -215,6 +216,7 @@ static inline PUser man_ProcessPendingConnection(const PManager self, const PDat
   if(!currentUser->active) {
     return NULL;
   }
+  *pendingConn = 0;
   return currentUser;
 }
 
@@ -235,12 +237,15 @@ static inline void man_RunOnRelease(const PManager self, const PUser user) {
 }
 
 static inline void man_OnReceive(const PManager self, const PDataFragment dt) {
-  const PUser currentUser = man_ProcessPendingConnection(self, dt);
+  uint8_t pendingConn;
+  const PUser currentUser = man_ProcessPendingConnection(self, dt, &pendingConn);
   if(!currentUser) {
     sock_PushCloseConnections(self->server->socketServer, &dt->conn);
     return ;
   }
-  man_RunOnReceiveCommand(self, dt, currentUser);
+  if(!pendingConn) {
+    man_RunOnReceiveCommand(self, dt, currentUser);
+  }
 }
 
 void _man_OnReceive(PDataFragment dt, void *mirror) {
