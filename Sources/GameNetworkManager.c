@@ -3,6 +3,7 @@
 #include "JWT.h"
 #include <string.h>
 #include <assert.h>
+#include "HttpParser.h"
 
 void man_SetupMethods(PManager self);
 static inline void man_RemoveConnection(const PManager self, const Connection conn);
@@ -123,6 +124,25 @@ static inline void man_RemoveConnection(const PManager self, const Connection co
       return ;
     }
   }
+}
+
+void man_SendMessage(const PManager self, const PDataFragment dt) {
+  wss_SendMessage(self->server, dt);
+}
+
+void man_Response_SendMessage(const PManager self, PConnection conn, JsonElement element) {
+  if(element.type != JSON_JSON) {
+    return ;
+  }
+  HttpString message = json_Element_ToString(element);
+  DataFragment frag = {
+    .conn = *conn,
+    .data = message.buffer,
+    .persistent = 1,
+    .size = message.sz
+  };
+  man_SendMessage(self, &frag);
+  crm_Free(message.buffer);
 }
 
 static inline PUser man_ProcessPendingMessage(const PManager self, const PDataFragment dt) {

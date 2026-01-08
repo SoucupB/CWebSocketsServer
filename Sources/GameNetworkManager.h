@@ -15,3 +15,4 @@ void man_Delete(PManager self);
 void man_OnFrame(PManager self, uint64_t deltaMS);
 void man_SetSecret(PManager self, HttpString hmacKey);
 PUser man_User_Get(PManager self, uint64_t ID);
+void man_SendMessage(const PManager self, const PDataFragment dt);
