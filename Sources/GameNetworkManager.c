@@ -5,12 +5,13 @@
 #include <assert.h>
 
 void man_SetupMethods(PManager self);
-static inline void man_RemoveConnection(const PManager self, const PConnection conn);
+static inline void man_RemoveConnection(const PManager self, const Connection conn);
 static inline void man_RunOnLogin(const PManager self, const PUser user);
+static inline void man_PushClosingConnection(const PManager self, Connection conn);
 
 typedef struct GameConnTimeout_t {
   PManager man;
-  PConnection conn;
+  Connection conn;
 } GameConnTimeout;
 
 typedef GameConnTimeout *PGameConnTimeout;
@@ -19,7 +20,7 @@ PManager man_Create(uint16_t port) {
   PManager self = crm_Alloc(sizeof(Manager));
   memset(self, 0, sizeof(Manager));
   self->server = wss_Create(port);
-  self->pendingConnections = arr_Init(sizeof(PConnection));
+  self->pendingConnections = arr_Init(sizeof(Connection));
   self->timeoutConnectionCheckers = arr_Init(sizeof(PGameConnTimeout));
   self->timeServer = tf_Create();
   self->userData = usrs_Create();
@@ -35,7 +36,7 @@ void man_DeleteTimeoutConn(const PGameConnTimeout gameConnTimeout) {
   const PManager self = gameConnTimeout->man;
   PGameConnTimeout *buffer = self->timeoutConnectionCheckers->buffer;
   for(size_t i = 0, c = self->timeoutConnectionCheckers->size; i < c; i++) {
-    if((void *)buffer[i]->conn == (void *)gameConnTimeout) {
+    if(buffer[i] == gameConnTimeout) {
       crm_Free(buffer[i]);
       arr_RemoveElement(self->timeoutConnectionCheckers, i);
       return ;
@@ -59,8 +60,13 @@ static inline void man_DeleteRemainingConns(const PManager self) {
   arr_Delete(self->timeoutConnectionCheckers);
 }
 
+static inline void man_PushClosingConnection(const PManager self, Connection conn) {
+  sock_PushCloseConnections(self->server->socketServer, &conn);
+}
+
 void _man_ExecuteAfterMS(void *buffer) {
   PGameConnTimeout gameConnTimeout = buffer;
+  man_PushClosingConnection(gameConnTimeout->man, gameConnTimeout->conn);
   man_RemoveConnection(gameConnTimeout->man, gameConnTimeout->conn);
   man_DeleteTimeoutConn(gameConnTimeout);
 }
@@ -73,7 +79,7 @@ void man_SetSecret(PManager self, HttpString hmacKey) {
 
 void man_PushConnTimeout(const PManager self, const PConnection conn, uint64_t afterMS) {
   PGameConnTimeout gameConnTimeout = crm_Alloc(sizeof(GameConnTimeout));
-  gameConnTimeout->conn = conn;
+  gameConnTimeout->conn = *conn;
   gameConnTimeout->man = self;
   TimeMethod tm = {
     .buffer = gameConnTimeout,
@@ -84,7 +90,7 @@ void man_PushConnTimeout(const PManager self, const PConnection conn, uint64_t a
 }
 
 void man_OnConnect(PManager self, PConnection conn) {
-  arr_Push(self->pendingConnections, &conn);
+  arr_Push(self->pendingConnections, conn);
   man_PushConnTimeout(self, conn, 2500);
 }
 
@@ -108,11 +114,11 @@ static inline uint8_t man_ProcessJWT(const PManager self, const HttpString jwt, 
   return 1;
 }
 
-static inline void man_RemoveConnection(const PManager self, const PConnection conn) {
+static inline void man_RemoveConnection(const PManager self, const Connection conn) {
   Array pendingConns = self->pendingConnections;
-  PConnection *conns = pendingConns->buffer;
+  Connection *conns = pendingConns->buffer;
   for(size_t i = 0, c = pendingConns->size; i < c; i++) {
-    if(conn->fd == conns[i]->fd) {
+    if(conn.fd == conns[i].fd) {
       arr_RemoveElement(pendingConns, i);
       return ;
     }
@@ -144,7 +150,7 @@ static inline PUser man_ProcessPendingMessage(const PManager self, const PDataFr
   }
   json_DeleteElement(currentElement);
   PUser activatedUser = usrs_Activate(self->userData, userID, &dt->conn);
-  man_RemoveConnection(self, &dt->conn);
+  man_RemoveConnection(self, dt->conn);
   man_RunOnLogin(self, activatedUser);
   return activatedUser;
 }
@@ -209,7 +215,7 @@ void _man_OnRelease(Connection conn, void *mirror) {
   PManager self = mirror;
   PUser currentUser = usrs_ByConnection(self->userData, &conn);
   usr_Deactivate(currentUser);
-  man_RemoveConnection(self, &conn);
+  man_RemoveConnection(self, conn);
   man_RunOnRelease(self, currentUser);
 }
 

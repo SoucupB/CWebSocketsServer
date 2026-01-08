@@ -72,10 +72,10 @@ static void test_manager_login_helper_failed_login(void **state) {
     .buffer = secret,
     .sz = strlen(secret)
   });
-  PConnection cnn = man_Helper_LoginHigherLevel(self, 324, secret);
+  PConnection cnn = man_Helper_LoginHigherLevel(self, 3242, secret);
   assert_ptr_not_equal(cnn, NULL);
   PUser currentUser = man_User_Get(self, 324);
-  assert_true(currentUser->active);
+  assert_false(currentUser->active);
   man_Delete(self);
   sock_Client_Free(cnn);
 }

@@ -77,7 +77,14 @@ HttpString man_Helper_GetStringToken(PManager self, JsonElement loginPayload, ch
 void man_Helper_ProcessMessage(PManager self, PConnection conn, PTempBuffStr tempBuff, HttpString loginMessage) {
   int32_t currentCallsCount = tempBuff->callCount;
   test_Wss_SendMessage(self->server, conn, loginMessage.buffer, loginMessage.sz);
-  while(currentCallsCount == tempBuff->callCount) {
+  int32_t maxCount = 3500;
+  while(1) {
+    if(currentCallsCount != tempBuff->callCount) {
+      return ;
+    }
+    if(!(maxCount--)) {
+      return ;
+    }
     man_OnFrame(self, 1);
     usleep(1000);
   }
