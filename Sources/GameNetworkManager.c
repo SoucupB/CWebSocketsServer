@@ -145,6 +145,12 @@ void man_Response_SendMessage(const PManager self, PConnection conn, JsonElement
   crm_Free(message.buffer);
 }
 
+static inline void man_SendAckMessage(const PManager self, const PDataFragment dt) {
+  JsonElement response = json_Map_Create();
+  json_Map_String_String_Add(response, "response", "ok");
+  man_Response_SendMessage(self, &dt->conn, response);
+}
+
 static inline PUser man_ProcessPendingMessage(const PManager self, const PDataFragment dt) {
   char *endBuffer;
   JsonElement currentElement = json_Parse((HttpString) {
@@ -195,6 +201,7 @@ static inline PUser man_ProcessPendingConnection(const PManager self, const PDat
   if(!currentUser->active) {
     return NULL;
   }
+  man_SendAckMessage(self, dt);
   return currentUser;
 }
 

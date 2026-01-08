@@ -395,6 +395,14 @@ JsonElement json_String_CreateFromHttpString(HttpString string) {
   };
 }
 
+void json_Map_String_String_Add(JsonElement map, char *key, char *value) {
+  if(map.type != JSON_JSON) {
+    return ;
+  }
+  JsonElement element = json_String_Create(value);
+  json_Map_Add(map, key, element);
+}
+
 JsonElement json_Number_Create(float val) {
   JsonElement element = {
     .type = JSON_NUMBER,
