@@ -15,6 +15,10 @@ void onDisconnect(PUser user, void *mirror) {
   printf("User %ld disconnected!\n", user->ID);
 }
 
+void onReceiveData(PDataFragment dt, PUser user, void *mirror) {
+  printf("User %ld receive message %.*s!\n", user->ID, dt->size, dt->data);
+}
+
 int main()
 {
   PManager manager = man_Create(8080);
@@ -24,7 +28,7 @@ int main()
   });
   man_UserRegister(manager, 32455);
   printf("Server initialized!\n");
-  PSocketMethod onReceive = sock_Method_Create(
+  PSocketMethod onLoginMethod = sock_Method_Create(
     (void *)onLogin,
     manager
   );
@@ -32,8 +36,13 @@ int main()
     (void *)onDisconnect,
     manager
   );
-  manager->onLogin = onReceive;
+  PSocketMethod onReceiveMethod = sock_Method_Create(
+    (void *)onReceiveData,
+    manager
+  );
+  manager->onLogin = onLoginMethod;
   manager->onDisconnect = onRelease;
+  manager->onReceive = onReceiveMethod;
   uint64_t currentTimestamp = tf_CurrentTimeMS();
   while (1)
   {
@@ -43,7 +52,9 @@ int main()
     usleep(64 * 1000);
   }
   man_Delete(manager);
-  sock_Method_Delete(onReceive);
+  sock_Method_Delete(onLoginMethod);
+  sock_Method_Delete(onRelease);
+  sock_Method_Delete(onReceiveMethod);
   // PHttpServer server = httpS_Create(8080);
   // printf("Server initialized!\n");
   // PSocketMethod onReceive = sock_Method_Create(
