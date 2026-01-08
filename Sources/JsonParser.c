@@ -403,6 +403,14 @@ void json_Map_String_String_Add(JsonElement map, char *key, char *value) {
   json_Map_Add(map, key, element);
 }
 
+void json_Map_String_Integer_Add(JsonElement map, char *key, int64_t value) {
+  if(map.type != JSON_JSON) {
+    return ;
+  }
+  JsonElement element = json_Integer_Create(value);
+  json_Map_Add(map, key, element);
+}
+
 JsonElement json_Number_Create(float val) {
   JsonElement element = {
     .type = JSON_NUMBER,

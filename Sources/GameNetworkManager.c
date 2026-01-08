@@ -145,13 +145,14 @@ void man_Response_SendMessage(const PManager self, PConnection conn, JsonElement
   crm_Free(message.buffer);
 }
 
-static inline void man_SendAckMessage(const PManager self, const PDataFragment dt) {
+void man_SendResponseMessage(const PManager self, const PDataFragment dt, int64_t code) {
   JsonElement response = json_Map_Create();
-  json_Map_String_String_Add(response, "response", "ok");
+  json_Map_String_Integer_Add(response, "statue", code);
   man_Response_SendMessage(self, &dt->conn, response);
+  json_DeleteElement(response);
 }
 
-static inline PUser man_ProcessPendingMessage(const PManager self, const PDataFragment dt) {
+static inline PUser man_ProcessPendingMessage_t(const PManager self, const PDataFragment dt) {
   char *endBuffer;
   JsonElement currentElement = json_Parse((HttpString) {
     .buffer = dt->data,
@@ -191,6 +192,16 @@ PUser man_User_Get(PManager self, uint64_t ID) {
   return usrs_Get(self->userData, ID);
 }
 
+static inline PUser man_ProcessPendingMessage(const PManager self, const PDataFragment dt) {
+  PUser currentUser = man_ProcessPendingMessage_t(self, dt);
+  if(!currentUser) {
+    man_SendResponseMessage(self, dt, 401);
+  } else {
+    man_SendResponseMessage(self, dt, 200);
+  }
+  return currentUser;
+}
+
 static inline PUser man_ProcessPendingConnection(const PManager self, const PDataFragment dt) {
   uint8_t found;
   size_t plyIndex = man_GetConn(self, dt, &found);
@@ -201,7 +212,6 @@ static inline PUser man_ProcessPendingConnection(const PManager self, const PDat
   if(!currentUser->active) {
     return NULL;
   }
-  man_SendAckMessage(self, dt);
   return currentUser;
 }
 

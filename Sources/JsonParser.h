@@ -21,6 +21,7 @@ float json_Number_Get(JsonElement arr);
 JsonElement json_Map_GetString(JsonElement jsonMap, const char *key);
 void json_Map_Add(JsonElement map, char *key, JsonElement element);
 void json_Map_String_String_Add(JsonElement map, char *key, char *value);
+void json_Map_String_Integer_Add(JsonElement map, char *key, int64_t value);
 
 JsonElement json_Integer_Create(int64_t val);
 JsonElement json_Number_Create(float val);
