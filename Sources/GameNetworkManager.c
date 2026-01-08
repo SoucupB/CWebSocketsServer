@@ -128,10 +128,6 @@ PHttpResponse _man_HTTP_AddUser(PHttpRequest req, void *mirror) {
   PManager self = mirror;
   switch (man_HTTP_AddUser(self, req))
   {
-    case SUCCESS:
-      return http_Response_Basic(200);
-      break;
-
     case BAD_REQUEST:
       return http_Response_Basic(400);
       break;
