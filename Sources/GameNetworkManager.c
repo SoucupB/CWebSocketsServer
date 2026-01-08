@@ -4,6 +4,7 @@
 #include <string.h>
 #include <assert.h>
 #include "HttpParser.h"
+#include "String.h"
 
 void man_SetupMethods(PManager self);
 uint8_t man_RemoveConnection(const PManager self, const Connection conn);
