@@ -151,9 +151,9 @@ typedef SocketServer *PSocketServer;
 
 typedef struct WebSocketServer_t {
   PSocketServer socketServer;
-  PSocketMethod onConnect;
-  PSocketMethod onReceiveMessage;
-  PSocketMethod onRelease; // (*cMethod)(PConnection, void *)
+  PSocketMethod onConnect; // void (*method)(PConnection, void *)
+  PSocketMethod onReceiveMessage; // void (*method)(PDataFragment, void *)
+  PSocketMethod onRelease; // void (*method)(PConnection, void *)
   PrivateMethodsBundle methodsBundle;
   Array pendingConnections;
   Array pendingPingRequests;
@@ -311,3 +311,32 @@ typedef struct NetworkBuffer_t {
 } NetworkBuffer;
 
 typedef NetworkBuffer *PNetworkBuffer;
+
+typedef struct User_t {
+  uint64_t ID;
+  PConnection conn;
+  uint8_t active;
+} User;
+
+typedef User *PUser;
+
+typedef struct UserData_t {
+  Array /*User*/users;
+} UserData;
+
+typedef UserData *PUserData;
+
+typedef struct Manager_t {
+  PUserData userData;
+  PWebSocketServer server;
+  PHttpServer httpServer;
+  HttpString hmacKey;
+  Array pendingConnections;
+  Array timeoutConnectionCheckers;
+  PTimeServer timeServer;
+  PSocketMethod onLogin; // void (*method)(PUser, void *mirror);
+  PSocketMethod onReceive; // void (*method)(PDataFragment, PUser, void *)
+  PSocketMethod onDisconnect; // void (*method)(PUser, void *)
+} Manager;
+
+typedef Manager *PManager;

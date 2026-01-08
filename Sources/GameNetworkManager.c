@@ -248,6 +248,10 @@ void _man_OnConnect(PConnection conn, void *mirror) {
   man_OnConnect(mirror, conn);
 }
 
+void man_UserRegister(PManager self, uint64_t userID) {
+  usrs_AddUser(self->userData, userID);
+}
+
 void _man_OnRelease(Connection conn, void *mirror) {
   PManager self = mirror;
   PUser currentUser = usrs_ByConnection(self->userData, &conn);

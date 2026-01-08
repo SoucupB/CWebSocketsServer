@@ -23,6 +23,14 @@ static void usrs_DeleteAllUsers(const PUserData self) {
   arr_Delete(self->users);
 }
 
+void usrs_AddUser(PUserData self, uint64_t ID) {
+  PUser usr = crm_Alloc(sizeof(User));
+  usr->active = 0;
+  usr->conn = NULL;
+  usr->ID = ID;
+  arr_Push(self->users, &usr);
+}
+
 void usrs_Delete(PUserData self) {
   usrs_DeleteAllUsers(self);
   crm_Free(self);
