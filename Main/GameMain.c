@@ -8,7 +8,7 @@
 #include "GameNetworkManager.h"
 
 void onLogin(PUser user, void *mirror) {
-  printf("User logged on!");
+  printf("User %ld logged on!\n", user->ID);
 }
 
 int main()

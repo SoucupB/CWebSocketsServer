@@ -6,7 +6,7 @@
 #include "HttpParser.h"
 
 void man_SetupMethods(PManager self);
-static inline void man_RemoveConnection(const PManager self, const Connection conn);
+uint8_t man_RemoveConnection(const PManager self, const Connection conn);
 static inline void man_RunOnLogin(const PManager self, const PUser user);
 static inline void man_PushClosingConnection(const PManager self, Connection conn);
 
@@ -67,8 +67,9 @@ static inline void man_PushClosingConnection(const PManager self, Connection con
 
 void _man_ExecuteAfterMS(void *buffer) {
   PGameConnTimeout gameConnTimeout = buffer;
-  man_PushClosingConnection(gameConnTimeout->man, gameConnTimeout->conn);
-  man_RemoveConnection(gameConnTimeout->man, gameConnTimeout->conn);
+  if(man_RemoveConnection(gameConnTimeout->man, gameConnTimeout->conn)) {
+    man_PushClosingConnection(gameConnTimeout->man, gameConnTimeout->conn);
+  }
   man_DeleteTimeoutConn(gameConnTimeout);
 }
 
@@ -115,15 +116,16 @@ static inline uint8_t man_ProcessJWT(const PManager self, const HttpString jwt, 
   return 1;
 }
 
-static inline void man_RemoveConnection(const PManager self, const Connection conn) {
+uint8_t man_RemoveConnection(const PManager self, const Connection conn) {
   Array pendingConns = self->pendingConnections;
   Connection *conns = pendingConns->buffer;
   for(size_t i = 0, c = pendingConns->size; i < c; i++) {
     if(conn.fd == conns[i].fd) {
       arr_RemoveElement(pendingConns, i);
-      return ;
+      return 1;
     }
   }
+  return 0;
 }
 
 void man_SendMessage(const PManager self, const PDataFragment dt) {
@@ -177,7 +179,7 @@ static inline PUser man_ProcessPendingMessage_t(const PManager self, const PData
   }
   json_DeleteElement(currentElement);
   PUser activatedUser = usrs_Activate(self->userData, userID, &dt->conn);
-  man_RemoveConnection(self, dt->conn);
+  (void)!man_RemoveConnection(self, dt->conn);
   man_RunOnLogin(self, activatedUser);
   return activatedUser;
 }
