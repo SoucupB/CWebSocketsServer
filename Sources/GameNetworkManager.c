@@ -11,6 +11,12 @@ uint8_t man_RemoveConnection(const PManager self, const Connection conn);
 static inline void man_RunOnLogin(const PManager self, const PUser user);
 static inline void man_PushClosingConnection(const PManager self, Connection conn);
 
+typedef enum ResponseTypes_t {
+  SUCCESS,
+  FAILED_AUTH,
+  BAD_REQUEST
+} ResponseTypes;
+
 typedef struct GameConnTimeout_t {
   PManager man;
   Connection conn;
@@ -74,7 +80,7 @@ static inline uint8_t man_HTTP_OnUserRegister(const PManager self, const uint64_
   return method(self->onUserRegister->mirrorBuffer, userID);
 }
 
-static inline uint8_t man_HTTP_ApproveAndRegister(const PManager self, const PJWT jwt) {
+static inline uint8_t man_HTTP_IsValidUser(const PManager self, const PJWT jwt, uint64_t *userID) {
   JsonElement userIDValue = json_Map_Get(jwt->payload, (HttpString) {
     .buffer = "user_id",
     .sz = sizeof("user_id") - 1
@@ -89,37 +95,55 @@ static inline uint8_t man_HTTP_ApproveAndRegister(const PManager self, const PJW
   if(isAdmin.type != JSON_BOOLEAN || !isAdmin.value) {
     return 0;
   }
-  int64_t userID = json_Integer_Get(userIDValue);
-  if(!man_HTTP_OnUserRegister(self, userID)) {
-    return 0;
-  }
-  return man_User_Register(self, userID);
+  *userID = json_Integer_Get(userIDValue);
+  return 1;
 }
 
-static inline uint8_t man_HTTP_AddUser(const PManager self, const PHttpRequest req) {
+static inline ResponseTypes man_HTTP_AddUser(const PManager self, const PHttpRequest req) {
   if(!self->hmacKey.buffer) {
-    return 0;
+    return FAILED_AUTH;
   }
   HttpString auth = http_Request_GetValue(req, "Authorization");
   if(!auth.buffer) {
-    return 0;
+    return FAILED_AUTH;
   }
   HttpString authAddress = man_HTTP_GetAuthCode(auth);
   PJWT currentJwt = jwt_Parse(authAddress, self->hmacKey);
   if(!currentJwt) {
-    return 0;
+    return FAILED_AUTH;
   }
-  uint8_t jwtApproved = man_HTTP_ApproveAndRegister(self, currentJwt);
+  uint64_t userID;
+  uint8_t jwtApproved = man_HTTP_IsValidUser(self, currentJwt, &userID);
   jwt_Delete(currentJwt);
-  return jwtApproved;
+  if(!jwtApproved) {
+    return FAILED_AUTH;
+  }
+  if(!man_HTTP_OnUserRegister(self, userID) || !man_User_Register(self, userID)) {
+    return BAD_REQUEST;
+  }
+  return SUCCESS;
 }
 
 PHttpResponse _man_HTTP_AddUser(PHttpRequest req, void *mirror) {
   PManager self = mirror;
-  if(man_HTTP_AddUser(self, req)) {
-    return http_Response_Basic(200);
+  switch (man_HTTP_AddUser(self, req))
+  {
+    case SUCCESS:
+      return http_Response_Basic(200);
+      break;
+
+    case BAD_REQUEST:
+      return http_Response_Basic(400);
+      break;
+
+    case FAILED_AUTH:
+      return http_Response_Basic(401);
+      break;
+    
+    default:
+      break;
   }
-  return http_Response_Basic(401);
+  return http_Response_Basic(200);
 }
 
 static inline void man_InitHTTPMethods(const PManager self) {
