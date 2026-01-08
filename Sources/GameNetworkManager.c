@@ -46,14 +46,75 @@ void man_DeleteTimeoutConn(const PGameConnTimeout gameConnTimeout) {
   }
 }
 
-PHttpResponse http_AddUser(PHttpRequest req, void *mirror) {
-  return http_Response_Empty();
+static inline HttpString man_HTTP_GetAuthCode(const HttpString auth) {
+  const size_t total = auth.sz;
+  size_t index = 0;
+  while(index < total && auth.buffer[index] != ' ') {
+    index++;
+  }
+  index++;
+  if(index >= total) {
+    return (HttpString) {
+      .buffer = NULL,
+      .sz = 0
+    };
+  }
+  return (HttpString) {
+    .buffer = auth.buffer + index,
+    .sz = total - index
+  };
+}
+
+static inline uint8_t man_HTTP_ApproveAndRegister(const PManager self, const PJWT jwt) {
+  JsonElement userIDValue = json_Map_Get(jwt->payload, (HttpString) {
+    .buffer = "user_id",
+    .sz = sizeof("user_id") - 1
+  });
+  if(userIDValue.type != JSON_INTEGER) {
+    return 0;
+  }
+  JsonElement isAdmin = json_Map_Get(jwt->payload, (HttpString) {
+    .buffer = "admin",
+    .sz = sizeof("admin") - 1
+  });
+  if(isAdmin.type != JSON_BOOLEAN || !isAdmin.value) {
+    return 0;
+  }
+  int64_t userID = json_Integer_Get(userIDValue);
+  man_UserRegister(self, userID);
+  return 1;
+}
+
+static inline uint8_t man_HTTP_AddUser(const PManager self, const PHttpRequest req) {
+  if(!self->hmacKey.buffer) {
+    return 0;
+  }
+  HttpString auth = http_Request_GetValue(req, "Authorization");
+  if(!auth.buffer) {
+    return 0;
+  }
+  HttpString authAddress = man_HTTP_GetAuthCode(auth);
+  PJWT currentJwt = jwt_Parse(authAddress, self->hmacKey);
+  if(!currentJwt) {
+    return 0;
+  }
+  uint8_t jwtApproved = man_HTTP_ApproveAndRegister(self, currentJwt);
+  jwt_Delete(currentJwt);
+  return jwtApproved;
+}
+
+PHttpResponse _man_HTTP_AddUser(PHttpRequest req, void *mirror) {
+  PManager self = mirror;
+  if(man_HTTP_AddUser(self, req)) {
+    return http_Response_Basic(200);
+  }
+  return http_Response_Basic(401);
 }
 
 static inline void man_InitHTTPMethods(const PManager self) {
   PHttpServer server = self->httpServer;
   PSocketMethod method = sock_Method_Create(
-    (void *)http_AddUser,
+    (void *)_man_HTTP_AddUser,
     self
   );
   server->onReceive = method;

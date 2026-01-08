@@ -18,7 +18,7 @@ static inline char *http_ChompLineSeparator(PHttpString buffer);
 static inline Hash http_Hash_Create();
 HttpString http_Body_Process(Hash self, char *_endBuffer, PHttpString buffer);
 static inline void http_SetBuffer(HttpString buffer, PHttpString nextPart, char *next);
-PHttpResponse _http_Response_Empty(Hash headers);
+PHttpResponse _http_Response_Empty(Hash headers, uint16_t code);
 PHttpResponse http_Response_Chomp_t(HttpString *bff);
 PHttpRequest http_Request_Chomp_t(HttpString *bff);
 static HttpString http_Body_ProcessWithError(Hash headers, char *_endBuffer, HttpString *bff, uint8_t *valid);
@@ -360,9 +360,8 @@ static inline char *http_ChompString(PHttpString buff, char *like, uint8_t repea
 
 PHttpResponse http_Response_DeepCopy(PHttpResponse self) {
   Hash newHeaders = http_Hash_DeepCopy(self->headers);
-  PHttpResponse newResponse = _http_Response_Empty(newHeaders);
+  PHttpResponse newResponse = _http_Response_Empty(newHeaders, self->response);
   newResponse->httpCode = self->httpCode;
-  newResponse->response = self->response;
   newResponse->body = string_DeepCopy(self->body);
   return newResponse;
 }
@@ -757,26 +756,24 @@ void http_Response_Set(PHttpResponse self, char *key, size_t keySize, char *valu
   http_Hash_Add(self->headers, key, keySize, value, valueSize);
 }
 
-PHttpResponse _http_Response_Empty(Hash headers) {
+PHttpResponse _http_Response_Empty(Hash headers, uint16_t code) {
   PHttpResponse self = crm_Alloc(sizeof(HttpResponse));
   memset(self, 0, sizeof(HttpResponse));
   self->headers = headers;
   self->httpCode = "HTTP/1.1";
-  self->response = 200;
+  self->response = code;
   http_Response_SetBodySize(self, 0);
   return self;
 }
 
 PHttpResponse http_Response_Empty() {
   Hash newHash = http_Hash_Create();
-  return _http_Response_Empty(newHash);
-  // PHttpResponse self = crm_Alloc(sizeof(HttpResponse));
-  // memset(self, 0, sizeof(HttpResponse));
-  // self->headers = http_Hash_Create();
-  // self->httpCode = "HTTP/1.1";
-  // self->response = 200;
-  // http_Response_SetBodySize(self, 0);
-  // return self;
+  return _http_Response_Empty(newHash, 200);
+}
+
+PHttpResponse http_Response_Basic(uint16_t code) {
+  Hash newHash = http_Hash_Create();
+  return _http_Response_Empty(newHash, code);
 }
 
 uint8_t http_Response_ParseCurrentToken(PHttpString buffer, PHttpString token, PHttpString nextPart) {
