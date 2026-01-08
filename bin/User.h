@@ -11,5 +11,5 @@ PUser usrs_ByIndex(PUserData self, uint64_t index);
 PUser usrs_ByConnection(PUserData self, PConnection conn);
 void usrs_Deactivate(PUserData self, PConnection conn);
 void usrs_Delete(PUserData self);
-void usrs_AddUser(PUserData self, uint64_t ID);
+uint8_t usrs_AddUser(PUserData self, uint64_t ID) ;
 void usr_Deactivate(PUser self);

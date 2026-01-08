@@ -16,5 +16,5 @@ void man_OnFrame(PManager self, uint64_t deltaMS);
 void man_SetSecret(PManager self, HttpString hmacKey);
 PUser man_User_Get(PManager self, uint64_t ID);
 void man_SendMessage(const PManager self, const PDataFragment dt);
-void man_UserRegister(PManager self, uint64_t userID);
+uint8_t man_User_Register(PManager self, uint64_t userID);
 void man_InitHTTPServer(PManager self, uint16_t port);

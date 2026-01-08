@@ -2,6 +2,8 @@
 #include <string.h>
 #include "Array.h"
 
+static PUser usrs_PlyByID(PUserData self, uint64_t ID);
+
 PUser usr_Create(PUserData parent) {
   PUser self = crm_Alloc(sizeof(User));
   memset(self, 0, sizeof(User));
@@ -11,7 +13,7 @@ PUser usr_Create(PUserData parent) {
 PUserData usrs_Create() {
   PUserData self = crm_Alloc(sizeof(UserData));
   memset(self, 0, sizeof(UserData));
-  self->users = arr_Init(sizeof(User));
+  self->users = arr_Init(sizeof(PUser));
   return self;
 }
 
@@ -23,12 +25,16 @@ static void usrs_DeleteAllUsers(const PUserData self) {
   arr_Delete(self->users);
 }
 
-void usrs_AddUser(PUserData self, uint64_t ID) {
+uint8_t usrs_AddUser(PUserData self, uint64_t ID) {
+  if(usrs_PlyByID(self, ID)) {
+    return 0;
+  }
   PUser usr = crm_Alloc(sizeof(User));
   usr->active = 0;
   usr->conn = NULL;
   usr->ID = ID;
   arr_Push(self->users, &usr);
+  return 1;
 }
 
 void usrs_Delete(PUserData self) {
@@ -36,7 +42,7 @@ void usrs_Delete(PUserData self) {
   crm_Free(self);
 }
 
-static inline PUser usrs_PlyByID(PUserData self, uint64_t ID) {
+static PUser usrs_PlyByID(PUserData self, uint64_t ID) {
   PUser *users = self->users->buffer;
   for(size_t i = 0, c = self->users->size; i < c; i++) {
     if(users[i]->ID == ID) {
