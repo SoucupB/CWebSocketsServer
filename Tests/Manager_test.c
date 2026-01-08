@@ -98,6 +98,19 @@ static void test_manager_login_helper_failed_login_invalid_key(void **state) {
   sock_Client_Free(cnn);
 }
 
+static void test_manager_http_server_init(void **state) {
+  const uint16_t cPort = port--;
+  char *secret = "DSjifdsgFDSFggsgsdgFDSAFDSA";
+  PManager self = man_Create(cPort);
+  man_InitHTTPServer(self, 10000);
+  man_SetSecret(self, (HttpString) {
+    .buffer = secret,
+    .sz = strlen(secret)
+  });
+  assert_ptr_not_equal(self->httpServer, NULL);
+  man_Delete(self);
+}
+
 int main(void) {
   const struct CMUnitTest tests[] = {
     cmocka_unit_test(test_manager_create),
@@ -105,6 +118,7 @@ int main(void) {
     cmocka_unit_test(test_manager_login_helper_higher_level),
     cmocka_unit_test(test_manager_login_helper_failed_login_missing_user),
     cmocka_unit_test(test_manager_login_helper_failed_login_invalid_key),
+    cmocka_unit_test(test_manager_http_server_init),
   };
   return cmocka_run_group_tests(tests, NULL, NULL);
 }

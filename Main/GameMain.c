@@ -27,6 +27,7 @@ int main()
     .sz = sizeof("IDHhudhgiusghUGYIYFFdsaf33312244444444444444223214141")
   });
   man_UserRegister(manager, 32455);
+  man_InitHTTPServer(manager, 8081);
   printf("Server initialized!\n");
   PSocketMethod onLoginMethod = sock_Method_Create(
     (void *)onLogin,

@@ -46,6 +46,25 @@ void man_DeleteTimeoutConn(const PGameConnTimeout gameConnTimeout) {
   }
 }
 
+PHttpResponse http_AddUser(PHttpRequest req, void *mirror) {
+  return http_Response_Empty();
+}
+
+static inline void man_InitHTTPMethods(const PManager self) {
+  PHttpServer server = self->httpServer;
+  PSocketMethod method = sock_Method_Create(
+    (void *)http_AddUser,
+    self
+  );
+  server->onReceive = method;
+}
+
+void man_InitHTTPServer(PManager self, uint16_t port) {
+  assert(port != self->server->socketServer->port);
+  self->httpServer = httpS_Create(port);
+  man_InitHTTPMethods(self);
+}
+
 static inline void man_RunOnLogin(const PManager self, const PUser user) {
   if(!self->onLogin || !user) {
     return ;
@@ -286,6 +305,14 @@ void man_SetupMethods(PManager self) {
   self->server->onRelease = onRelease;
 }
 
+static inline void man_HTTPS_Delete(const PHttpServer self) {
+  if(!self) {
+    return ;
+  }
+  sock_Method_Delete(self->onReceive);
+  httpS_Delete(self);
+}
+
 void man_Delete(PManager self) {
   sock_Method_Delete(self->server->onReceiveMessage);
   sock_Method_Delete(self->server->onRelease);
@@ -298,10 +325,19 @@ void man_Delete(PManager self) {
   if(self->hmacKey.buffer) {
     crm_Free(self->hmacKey.buffer);
   }
+  man_HTTPS_Delete(self->httpServer);
   crm_Free(self);
+}
+
+static inline void man_HTTPS_OnFrame(const PManager self, const uint64_t deltaMS) {
+  if(!self->httpServer) {
+    return ;
+  }
+  httpS_OnFrame(self->httpServer, deltaMS);
 }
 
 void man_OnFrame(PManager self, uint64_t deltaMS) {
   wss_OnFrame(self->server, deltaMS);
   tf_OnFrame(self->timeServer, deltaMS);
+  man_HTTPS_OnFrame(self, deltaMS);
 }
