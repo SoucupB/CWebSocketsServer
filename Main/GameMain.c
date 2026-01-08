@@ -11,6 +11,10 @@ void onLogin(PUser user, void *mirror) {
   printf("User %ld logged on!\n", user->ID);
 }
 
+void onDisconnect(PUser user, void *mirror) {
+  printf("User %ld disconnected!\n", user->ID);
+}
+
 int main()
 {
   PManager manager = man_Create(8080);
@@ -24,7 +28,12 @@ int main()
     (void *)onLogin,
     manager
   );
+  PSocketMethod onRelease = sock_Method_Create(
+    (void *)onDisconnect,
+    manager
+  );
   manager->onLogin = onReceive;
+  manager->onDisconnect = onRelease;
   uint64_t currentTimestamp = tf_CurrentTimeMS();
   while (1)
   {

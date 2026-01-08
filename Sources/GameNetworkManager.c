@@ -25,6 +25,7 @@ PManager man_Create(uint16_t port) {
   self->timeoutConnectionCheckers = arr_Init(sizeof(PGameConnTimeout));
   self->timeServer = tf_Create();
   self->userData = usrs_Create();
+  wss_EnablePingPongTimeout(self->server, 10000);
   man_SetupMethods(self);
   return self;
 }
