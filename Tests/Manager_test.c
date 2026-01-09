@@ -132,6 +132,74 @@ static void test_manager_http_request_register_player(void **state) {
   man_Delete(self);
 }
 
+static void test_manager_http_request_register_player_duplicate(void **state) {
+  const uint16_t cPort = port--;
+  const uint16_t cHttpPort = httpPort--;
+  char *secret = "DSjifdsgFDSFggsgsdgFDSAFDSA";
+  PManager self = man_Create(cPort);
+  man_InitHTTPServer(self, cHttpPort);
+  man_Helper_AddUser(self, 324);
+  man_SetSecret(self, (HttpString) {
+    .buffer = secret,
+    .sz = strlen(secret)
+  });
+  PHttpResponse response = man_Helper_RegisterPlayer(self, 324, secret);
+  assert_ptr_not_equal(self->httpServer, NULL);
+  assert_ptr_not_equal(response, NULL);
+  assert_int_equal(response->response, 400);
+  assert_int_equal(man_Users(self)->size, 1);
+  http_Response_Delete(response);
+  man_Delete(self);
+}
+
+uint8_t method(void *mirror, uint64_t userID) {
+  return 0;
+}
+
+static void test_manager_http_request_register_player_with_invalid_method(void **state) {
+  const uint16_t cPort = port--;
+  const uint16_t cHttpPort = httpPort--;
+  char *secret = "DSjifdsgFDSFggsgsdgFDSAFDSA";
+  PManager self = man_Create(cPort);
+  man_InitHTTPServer(self, cHttpPort);
+  man_SetSecret(self, (HttpString) {
+    .buffer = secret,
+    .sz = strlen(secret)
+  });
+  PSocketMethod onRegMethod = sock_Method_Create(
+    (void *)method,
+    NULL
+  );
+  self->onUserRegister = onRegMethod;
+  PHttpResponse response = man_Helper_RegisterPlayer(self, 324, secret);
+  assert_ptr_not_equal(self->httpServer, NULL);
+  assert_ptr_not_equal(response, NULL);
+  assert_int_equal(response->response, 400);
+  assert_int_equal(man_Users(self)->size, 0);
+  http_Response_Delete(response);
+  sock_Method_Delete(onRegMethod);
+  man_Delete(self);
+}
+
+static void test_manager_http_request_register_and_login(void **state) {
+  const uint16_t cPort = port--;
+  const uint16_t cHttpPort = httpPort--;
+  char *secret = "DSjifdsgFDSFggsgsdgFDSAFDSA";
+  PManager self = man_Create(cPort);
+  uint64_t userID = 324;
+  man_InitHTTPServer(self, cHttpPort);
+  man_SetSecret(self, (HttpString) {
+    .buffer = secret,
+    .sz = strlen(secret)
+  });
+  http_Response_Delete(man_Helper_RegisterPlayer(self, userID, secret));
+  PConnection conn = man_Helper_LoginHigherLevel(self, userID, secret);
+  PUser currentUser = man_User_Get(self, userID);
+  assert_true(currentUser->active);
+  sock_Client_Free(conn);
+  man_Delete(self);
+}
+
 int main(void) {
   const struct CMUnitTest tests[] = {
     cmocka_unit_test(test_manager_create),
@@ -141,6 +209,9 @@ int main(void) {
     cmocka_unit_test(test_manager_login_helper_failed_login_invalid_key),
     cmocka_unit_test(test_manager_http_server_init),
     cmocka_unit_test(test_manager_http_request_register_player),
+    cmocka_unit_test(test_manager_http_request_register_player_duplicate),
+    cmocka_unit_test(test_manager_http_request_register_player_with_invalid_method),
+    cmocka_unit_test(test_manager_http_request_register_and_login),
   };
   return cmocka_run_group_tests(tests, NULL, NULL);
 }
