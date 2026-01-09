@@ -262,7 +262,38 @@ Array man_Helper_SendRequest(PManager self, ManInput *message, size_t count) {
   return tmp.mirror;
 }
 
-void man_Helper_DeleteArray(Array arr) {
+HttpString _randomString(size_t count) {
+  char *response = crm_Alloc(count);
+  for(size_t i = 0; i < count; i++) {
+    response[i] = rand() % ('z' - 'a') + 'a';
+  }
+  return (HttpString) {
+    .buffer = response,
+    .sz = count
+  };
+}
+
+Array man_Helper_FakeRequests(PConnection conn, size_t reqCounts) {
+  Array query = arr_Init(sizeof(ManInput));
+  for(size_t i = 0; i < reqCounts; i++) {
+    ManInput current = {
+      .conn = conn,
+      .str = _randomString(16)
+    };
+    arr_Push(query, &current);
+  }
+  return query;
+}
+
+void man_Helper_DeleteFakeRequest(Array arr) {
+  ManInput *rsp = arr->buffer;
+  for(size_t i = 0, c = arr->size; i < c; i++) {
+    crm_Free(rsp[i].str.buffer);
+  }
+  arr_Delete(arr);
+}
+
+void man_Helper_DeleteMessageArray(Array arr) {
   MessageResponse *rsp = arr->buffer;
   for(size_t i = 0, c = arr->size; i < c; i++) {
     crm_Free(rsp[i].str.buffer);

@@ -261,7 +261,7 @@ static void test_manager_login_helper_send_messages(void **state) {
   assert_int_equal(inputs[0].str.sz, msg[0].str.sz);
   assert_memory_equal(msg[0].str.buffer, "some_msg_1", msg[0].str.sz);
 
-  man_Helper_DeleteArray(response);
+  man_Helper_DeleteMessageArray(response);
   man_Delete(self);
   sock_Client_Free(cnn);
 }

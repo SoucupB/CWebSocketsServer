@@ -18,4 +18,6 @@ void man_Helper_AddUser(PManager self, uint64_t userID);
 PConnection man_Helper_LoginHigherLevel(PManager self, uint64_t userID, char *secret);
 PHttpResponse man_Helper_RegisterPlayer(PManager self, uint64_t userID, uint8_t admin, char *secret);
 Array man_Helper_SendRequest(PManager self, ManInput *message, size_t count);
-void man_Helper_DeleteArray(Array arr);
+void man_Helper_DeleteMessageArray(Array arr);
+Array man_Helper_FakeRequests(PConnection conn, size_t reqCounts);
+void man_Helper_DeleteFakeRequest(Array arr);
