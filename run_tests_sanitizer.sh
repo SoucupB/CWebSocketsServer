@@ -4,10 +4,10 @@ if [ -z "$1" ]; then
   exit 1
 fi
 
-./_compile_specs.sh $1
+./_compile_specs_sanitize.sh $1
 
 
-valgrind --error-exitcode=1 --track-fds=yes --quiet -s --leak-check=full TestBinaries/$1
+TestBinaries/$1
 RESULT=$?
 
 if [ $RESULT -eq 0 ]; then

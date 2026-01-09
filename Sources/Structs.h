@@ -1,6 +1,7 @@
 #pragma once
 #include <stdint.h>
 #include <stddef.h>
+#include <stdlib.h>
 
 #define PVOID void*
 #define crm_Alloc malloc
@@ -311,3 +312,33 @@ typedef struct NetworkBuffer_t {
 } NetworkBuffer;
 
 typedef NetworkBuffer *PNetworkBuffer;
+
+typedef struct User_t {
+  uint64_t ID;
+  Connection conn;
+  uint8_t active;
+} User;
+
+typedef User *PUser;
+
+typedef struct UserData_t {
+  Array /*User*/users;
+} UserData;
+
+typedef UserData *PUserData;
+
+typedef struct Manager_t {
+  PUserData userData;
+  PWebSocketServer server;
+  PHttpServer httpServer;
+  HttpString hmacKey;
+  Array pendingConnections;
+  Array timeoutConnectionCheckers;
+  PTimeServer timeServer;
+  PSocketMethod onLogin; // void (*method)(PUser, void *mirror);
+  PSocketMethod onReceive; // void (*method)(PDataFragment, PUser, void *)
+  PSocketMethod onDisconnect; // void (*method)(PUser, void *)
+  PSocketMethod onUserRegister; // uint8_t (*method)(void *, uint64_t)
+} Manager;
+
+typedef Manager *PManager;

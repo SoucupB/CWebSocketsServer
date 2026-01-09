@@ -383,12 +383,56 @@ JsonElement json_String_Create(char *string) {
   };
 }
 
+JsonElement json_String_CreateFromHttpString(HttpString string) {
+  PHttpString str = crm_Alloc(sizeof(HttpString));
+  str->sz = string.sz;
+  str->buffer = crm_Alloc(str->sz);
+  memcpy(str->buffer, string.buffer, str->sz);
+
+  return (JsonElement) {
+    .type = JSON_STRING,
+    .value = str
+  };
+}
+
+void json_Map_String_String_Add(JsonElement map, char *key, char *value) {
+  if(map.type != JSON_JSON) {
+    return ;
+  }
+  JsonElement element = json_String_Create(value);
+  json_Map_Add(map, key, element);
+}
+
+void json_Map_String_Integer_Add(JsonElement map, char *key, int64_t value) {
+  if(map.type != JSON_JSON) {
+    return ;
+  }
+  JsonElement element = json_Integer_Create(value);
+  json_Map_Add(map, key, element);
+}
+
+void json_Map_String_Boolean_Add(JsonElement map, char *key, uint8_t value) {
+  if(map.type != JSON_JSON) {
+    return ;
+  }
+  JsonElement element = json_Boolean_Create(value);
+  json_Map_Add(map, key, element);
+}
+
 JsonElement json_Number_Create(float val) {
   JsonElement element = {
     .type = JSON_NUMBER,
     .value = crm_Alloc(sizeof(float))
   };
   *(float *)element.value = val;
+  return element;
+}
+
+JsonElement json_Boolean_Create(uint8_t val) {
+  JsonElement element = {
+    .type = JSON_BOOLEAN,
+    .value = (void *)(size_t)val
+  };
   return element;
 }
 

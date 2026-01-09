@@ -20,7 +20,12 @@ int64_t json_Integer_Get(JsonElement arr);
 float json_Number_Get(JsonElement arr);
 JsonElement json_Map_GetString(JsonElement jsonMap, const char *key);
 void json_Map_Add(JsonElement map, char *key, JsonElement element);
+void json_Map_String_String_Add(JsonElement map, char *key, char *value);
+void json_Map_String_Integer_Add(JsonElement map, char *key, int64_t value);
+void json_Map_String_Boolean_Add(JsonElement map, char *key, uint8_t value);
 
 JsonElement json_Integer_Create(int64_t val);
 JsonElement json_Number_Create(float val);
+JsonElement json_Boolean_Create(uint8_t val);
 JsonElement json_String_Create(char *string);
+JsonElement json_String_CreateFromHttpString(HttpString string);

@@ -21,6 +21,7 @@ PHttpRequest http_Request_NB_Get(PNetworkBuffer netBuffer);
 HttpString http_Hash_GetValue(Hash self, char *buffer, size_t bufferLen);
 
 PHttpResponse http_Response_Create();
+PHttpResponse http_Response_Basic(uint16_t code);
 PHttpResponse http_Response_DeepCopy(PHttpResponse self);
 void http_Response_SetBody(PHttpResponse self, PHttpString buffer);
 void http_Response_Delete(PHttpResponse self);
