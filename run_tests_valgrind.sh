@@ -15,8 +15,6 @@ if [ $RESULT -eq 0 ]; then
 else
   echo "❌ Memory errors detected!"
   echo "---- Valgrind Report ----"
-  cat /tmp/valgrind_out
-  echo "-------------------------"
   exit 1
 fi
 
