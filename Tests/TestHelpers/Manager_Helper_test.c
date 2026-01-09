@@ -131,16 +131,6 @@ PConnection man_Helper_LoginHigherLevel(PManager self, uint64_t userID, char *se
   return conn;
 }
 
-uint8_t onRegister(void *mirror, uint64_t userID) {
-  PTempBuffStr tmp = mirror;
-  tmp->callCount++;
-  if(!tmp->parent) {
-    return 1;
-  }
-  uint8_t (*method)(void *, uint64_t) = tmp->parent->method;
-  return method(mirror, userID);
-}
-
 HttpString man_Helper_CreateJWT(char *secret, JsonElement payload) {
   return jwt_Encode(payload, (HttpString) {
     .buffer = secret,
@@ -165,15 +155,67 @@ PHttpRequest man_Helper_Http_Admin_CreateRequest(uint64_t userID, char *secret) 
   return req;
 }
 
-PHttpResponse man_Helper_RegisterPlayer(PManager self, uint64_t userID, char *secret) {
-  // JsonElement jsn = json_Map_Create();
-  // json_Map_String_Integer_Add(jsn, "user_id", userID);
-  // json_Map_String_Boolean_Add(jsn, "admin", 1);
-  // PHttpRequest req = test_Helper_Json_Create(jsn);
-  // json_DeleteElement(jsn);
-  PHttpRequest req = man_Helper_Http_Admin_CreateRequest(userID, secret);
-  // http_Request_Print(req);
-  http_Request_Delete(req);
+uint8_t onRegister(void *mirror, uint64_t userID) {
+  PTempBuffStr tmp = mirror;
+  tmp->callCount++;
+  if(!tmp->parent) {
+    return 1;
+  }
+  uint8_t (*method)(void *, uint64_t) = tmp->parent->method;
+  return method(mirror, userID);
+}
 
-  return NULL;
+static void _man_Helper_SendMessage(PConnection conn, PHttpRequest req) {
+  HttpString strReq = http_Request_ToString(req);
+  DataFragment dt = {
+    .conn = *conn,
+    .data = strReq.buffer,
+    .persistent = 1,
+    .size = strReq.sz
+  };
+  sock_Client_SendMessage(&dt);
+  crm_Free(strReq.buffer);
+}
+
+static PHttpResponse _man_Helper_RetrieveMessage(PConnection conn) {
+  // sock_Client_Receive();
+  HttpString respString = sock_Client_ReceiveWithErrors(conn);
+  while(!respString.buffer) {
+    respString = sock_Client_ReceiveWithErrors(conn);
+  }
+  PHttpResponse response = http_Response_Parse(respString);
+  crm_Free(respString.buffer);
+  return response;
+}
+
+PHttpResponse man_Helper_RegisterPlayer(PManager self, uint64_t userID, char *secret) {
+  TempBuffStr tmp = {
+    .manager = self,
+    .parent = self->onUserRegister,
+    .mirror = NULL,
+    .callCount = 0
+  };
+  PHttpRequest req = man_Helper_Http_Admin_CreateRequest(userID, secret);
+  PSocketMethod lastSocketMethod = self->onUserRegister;
+  PSocketMethod onRegisterMethod = sock_Method_Create(
+    (void *)onRegister,
+    &tmp
+  );
+  self->onUserRegister = onRegisterMethod;
+  int32_t totalTicks = 5000;
+  PConnection conn = sock_Client_Connect(self->httpServer->server->port, "127.0.0.1");
+  _man_Helper_SendMessage(conn, req);
+  while(totalTicks--) {
+    if(tmp.callCount) {
+      break;
+    }
+    man_OnFrame(self, 1);
+    usleep(1000);
+  }
+  PHttpResponse resp = _man_Helper_RetrieveMessage(conn);
+  sock_Method_Delete(onRegisterMethod);
+  self->onUserRegister = lastSocketMethod;
+  sock_Client_Free(conn);
+  http_Request_Delete(req);
+  return resp;
 }

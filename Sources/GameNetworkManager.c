@@ -379,6 +379,10 @@ void _man_OnRelease(Connection conn, void *mirror) {
   man_RunOnRelease(self, currentUser);
 }
 
+Array man_Users(PManager self) {
+  return self->userData->users;
+}
+
 void man_SetupMethods(PManager self) {
   PSocketMethod onConnectMethod = sock_Method_Create(
     _man_OnConnect,

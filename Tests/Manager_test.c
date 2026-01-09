@@ -123,8 +123,12 @@ static void test_manager_http_request_register_player(void **state) {
     .buffer = secret,
     .sz = strlen(secret)
   });
-  man_Helper_RegisterPlayer(self, 342455, secret);
+  PHttpResponse response = man_Helper_RegisterPlayer(self, 342455, secret);
   assert_ptr_not_equal(self->httpServer, NULL);
+  assert_ptr_not_equal(response, NULL);
+  assert_int_equal(response->response, 200);
+  assert_int_equal(man_Users(self)->size, 1);
+  http_Response_Delete(response);
   man_Delete(self);
 }
 
