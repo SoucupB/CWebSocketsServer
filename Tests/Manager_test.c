@@ -123,7 +123,7 @@ static void test_manager_http_request_register_player(void **state) {
     .buffer = secret,
     .sz = strlen(secret)
   });
-  PHttpResponse response = man_Helper_RegisterPlayer(self, 342455, secret);
+  PHttpResponse response = man_Helper_RegisterPlayer(self, 342455, 1, secret);
   assert_ptr_not_equal(self->httpServer, NULL);
   assert_ptr_not_equal(response, NULL);
   assert_int_equal(response->response, 200);
@@ -143,7 +143,7 @@ static void test_manager_http_request_register_player_duplicate(void **state) {
     .buffer = secret,
     .sz = strlen(secret)
   });
-  PHttpResponse response = man_Helper_RegisterPlayer(self, 324, secret);
+  PHttpResponse response = man_Helper_RegisterPlayer(self, 324, 1, secret);
   assert_ptr_not_equal(self->httpServer, NULL);
   assert_ptr_not_equal(response, NULL);
   assert_int_equal(response->response, 400);
@@ -171,7 +171,7 @@ static void test_manager_http_request_register_player_with_invalid_method(void *
     NULL
   );
   self->onUserRegister = onRegMethod;
-  PHttpResponse response = man_Helper_RegisterPlayer(self, 324, secret);
+  PHttpResponse response = man_Helper_RegisterPlayer(self, 324, 1, secret);
   assert_ptr_not_equal(self->httpServer, NULL);
   assert_ptr_not_equal(response, NULL);
   assert_int_equal(response->response, 400);
@@ -192,7 +192,7 @@ static void test_manager_http_request_register_and_login(void **state) {
     .buffer = secret,
     .sz = strlen(secret)
   });
-  http_Response_Delete(man_Helper_RegisterPlayer(self, userID, secret));
+  http_Response_Delete(man_Helper_RegisterPlayer(self, userID, 1, secret));
   PConnection conn = man_Helper_LoginHigherLevel(self, userID, secret);
   PUser currentUser = man_User_Get(self, userID);
   assert_true(currentUser->active);
@@ -211,7 +211,23 @@ static void test_manager_http_request_failed_secret_registration(void **state) {
     .buffer = secret,
     .sz = strlen(secret)
   });
-  PHttpResponse response = man_Helper_RegisterPlayer(self, 342455, fakeSecret);
+  PHttpResponse response = man_Helper_RegisterPlayer(self, 342455, 1, fakeSecret);
+  assert_int_equal(response->response, 401);
+  http_Response_Delete(response);
+  man_Delete(self);
+}
+
+static void test_manager_http_request_register_player_without_admin(void **state) {
+  const uint16_t cPort = port--;
+  const uint16_t cHttpPort = httpPort--;
+  char *secret = "DSjifdsgFDSFggsgsdgFDSAFDSA";
+  PManager self = man_Create(cPort);
+  man_InitHTTPServer(self, cHttpPort);
+  man_SetSecret(self, (HttpString) {
+    .buffer = secret,
+    .sz = strlen(secret)
+  });
+  PHttpResponse response = man_Helper_RegisterPlayer(self, 342455, 0, secret);
   assert_int_equal(response->response, 401);
   http_Response_Delete(response);
   man_Delete(self);
@@ -230,6 +246,7 @@ int main(void) {
     cmocka_unit_test(test_manager_http_request_register_player_with_invalid_method),
     cmocka_unit_test(test_manager_http_request_register_and_login),
     cmocka_unit_test(test_manager_http_request_failed_secret_registration),
+    cmocka_unit_test(test_manager_http_request_register_player_without_admin),
   };
   return cmocka_run_group_tests(tests, NULL, NULL);
 }

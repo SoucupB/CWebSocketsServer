@@ -138,10 +138,10 @@ HttpString man_Helper_CreateJWT(char *secret, JsonElement payload) {
   }, 1000000000);
 }
 
-PHttpRequest man_Helper_Http_Admin_CreateRequest(uint64_t userID, char *secret) {
+PHttpRequest man_Helper_Http_Admin_CreateRequest(uint64_t userID, char *secret, uint8_t admin) {
   JsonElement jsn = json_Map_Create();
   json_Map_String_Integer_Add(jsn, "user_id", userID);
-  json_Map_String_Boolean_Add(jsn, "admin", 1);
+  json_Map_String_Boolean_Add(jsn, "admin", admin);
   HttpString jwt = man_Helper_CreateJWT(secret, jsn);
   PHttpRequest req = http_Request_Basic();
   const size_t buffSize = jwt.sz + 64;
@@ -188,14 +188,14 @@ static PHttpResponse _man_Helper_RetrieveMessage(PConnection conn) {
   return response;
 }
 
-PHttpResponse man_Helper_RegisterPlayer(PManager self, uint64_t userID, char *secret) {
+PHttpResponse man_Helper_RegisterPlayer(PManager self, uint64_t userID, uint8_t admin, char *secret) {
   TempBuffStr tmp = {
     .manager = self,
     .parent = self->onUserRegister,
     .mirror = NULL,
     .callCount = 0
   };
-  PHttpRequest req = man_Helper_Http_Admin_CreateRequest(userID, secret);
+  PHttpRequest req = man_Helper_Http_Admin_CreateRequest(userID, secret, admin);
   PSocketMethod lastSocketMethod = self->onUserRegister;
   PSocketMethod onRegisterMethod = sock_Method_Create(
     (void *)onRegister,
