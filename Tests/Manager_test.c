@@ -266,6 +266,28 @@ static void test_manager_login_helper_send_messages(void **state) {
   sock_Client_Free(cnn);
 }
 
+static void test_manager_login_helper_send_multiple_messages(void **state) {
+  const uint16_t cPort = port--;
+  char *secret = "DSjifdsgFDSFggsgsdgFDSAFDSA";
+  PManager self = man_Create(cPort);
+  uint64_t userID = 324;
+  man_Helper_AddUser(self, userID);
+  man_SetSecret(self, (HttpString) {
+    .buffer = secret,
+    .sz = strlen(secret)
+  });
+  size_t messageCount = 10000;
+  PConnection cnn = man_Helper_LoginHigherLevel(self, userID, secret);
+  Array inputs = man_Helper_FakeRequests(cnn, messageCount);
+  Array response = man_Helper_SendRequest(self, inputs->buffer, inputs->size);
+  assert_int_equal(response->size, messageCount);
+
+  man_Helper_DeleteMessageArray(response);
+  man_Helper_DeleteFakeRequest(inputs);
+  man_Delete(self);
+  sock_Client_Free(cnn);
+}
+
 int main(void) {
   const struct CMUnitTest tests[] = {
     cmocka_unit_test(test_manager_create),
@@ -281,6 +303,7 @@ int main(void) {
     cmocka_unit_test(test_manager_http_request_failed_secret_registration),
     cmocka_unit_test(test_manager_http_request_register_player_without_admin),
     cmocka_unit_test(test_manager_login_helper_send_messages),
+    cmocka_unit_test(test_manager_login_helper_send_multiple_messages),
   };
   return cmocka_run_group_tests(tests, NULL, NULL);
 }

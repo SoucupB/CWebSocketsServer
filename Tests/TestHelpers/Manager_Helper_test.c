@@ -278,7 +278,7 @@ Array man_Helper_FakeRequests(PConnection conn, size_t reqCounts) {
   for(size_t i = 0; i < reqCounts; i++) {
     ManInput current = {
       .conn = conn,
-      .str = _randomString(16)
+      .str = _randomString(32)
     };
     arr_Push(query, &current);
   }
