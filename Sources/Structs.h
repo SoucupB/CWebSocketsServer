@@ -1,6 +1,7 @@
 #pragma once
 #include <stdint.h>
 #include <stddef.h>
+#include <stdlib.h>
 
 #define PVOID void*
 #define crm_Alloc malloc

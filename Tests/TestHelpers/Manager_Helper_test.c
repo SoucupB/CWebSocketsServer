@@ -1,15 +1,18 @@
 #include "Manager_Helper_test.h"
 #include "SocketServer.h"
+#include "Structs.h"
 #include "WebSocketServer_Helper_Test.h"
 #include "JWT.h"
 #include <string.h>
 #include "Json_Helper_test.h"
 #include "String.h"
 #include <unistd.h>
+#include "HttpParser.h"
 
 typedef struct TempBuffStr_t {
   PManager manager;
   PSocketMethod parent;
+  void *mirror;
   int32_t callCount;
 } TempBuffStr;
 
@@ -104,6 +107,7 @@ PConnection man_Helper_LoginHigherLevel(PManager self, uint64_t userID, char *se
   TempBuffStr tempBuffer = {
     .manager = self,
     .parent = oldLoginMethod,
+    .mirror = NULL,
     .callCount = 0
   };
   PSocketMethod newLoginMethod = sock_Method_Create(
@@ -125,4 +129,51 @@ PConnection man_Helper_LoginHigherLevel(PManager self, uint64_t userID, char *se
   crm_Free(loginString.buffer);
   self->onLogin = oldLoginMethod;
   return conn;
+}
+
+uint8_t onRegister(void *mirror, uint64_t userID) {
+  PTempBuffStr tmp = mirror;
+  tmp->callCount++;
+  if(!tmp->parent) {
+    return 1;
+  }
+  uint8_t (*method)(void *, uint64_t) = tmp->parent->method;
+  return method(mirror, userID);
+}
+
+HttpString man_Helper_CreateJWT(char *secret, JsonElement payload) {
+  return jwt_Encode(payload, (HttpString) {
+    .buffer = secret,
+    .sz = strlen(secret)
+  }, 1000000000);
+}
+
+PHttpRequest man_Helper_Http_Admin_CreateRequest(uint64_t userID, char *secret) {
+  JsonElement jsn = json_Map_Create();
+  json_Map_String_Integer_Add(jsn, "user_id", userID);
+  json_Map_String_Boolean_Add(jsn, "admin", 1);
+  HttpString jwt = man_Helper_CreateJWT(secret, jsn);
+  PHttpRequest req = http_Request_Basic();
+  const size_t buffSize = jwt.sz + 64;
+  char *codeResp = crm_Alloc(buffSize);
+  memset(codeResp, 0, buffSize);
+  snprintf(codeResp, buffSize, "Bearer %.*s", (int32_t)jwt.sz, jwt.buffer);
+  http_Request_AddHeader(req, "Authorization", codeResp);
+  crm_Free(jwt.buffer);
+  crm_Free(codeResp);
+  json_DeleteElement(jsn);
+  return req;
+}
+
+PHttpResponse man_Helper_RegisterPlayer(PManager self, uint64_t userID, char *secret) {
+  // JsonElement jsn = json_Map_Create();
+  // json_Map_String_Integer_Add(jsn, "user_id", userID);
+  // json_Map_String_Boolean_Add(jsn, "admin", 1);
+  // PHttpRequest req = test_Helper_Json_Create(jsn);
+  // json_DeleteElement(jsn);
+  PHttpRequest req = man_Helper_Http_Admin_CreateRequest(userID, secret);
+  // http_Request_Print(req);
+  http_Request_Delete(req);
+
+  return NULL;
 }

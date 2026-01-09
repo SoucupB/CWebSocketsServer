@@ -17,6 +17,7 @@ void http_Request_AddHeader(PHttpRequest self, char *key, char *value);
 PHttpRequest http_Request_Basic();
 PHttpRequest http_Request_Chomp(HttpString bff, char **endBuffer);
 PHttpRequest http_Request_NB_Get(PNetworkBuffer netBuffer);
+void http_Request_Print(PHttpRequest self);
 
 HttpString http_Hash_GetValue(Hash self, char *buffer, size_t bufferLen);
 

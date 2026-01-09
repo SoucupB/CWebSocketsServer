@@ -411,12 +411,28 @@ void json_Map_String_Integer_Add(JsonElement map, char *key, int64_t value) {
   json_Map_Add(map, key, element);
 }
 
+void json_Map_String_Boolean_Add(JsonElement map, char *key, uint8_t value) {
+  if(map.type != JSON_JSON) {
+    return ;
+  }
+  JsonElement element = json_Boolean_Create(value);
+  json_Map_Add(map, key, element);
+}
+
 JsonElement json_Number_Create(float val) {
   JsonElement element = {
     .type = JSON_NUMBER,
     .value = crm_Alloc(sizeof(float))
   };
   *(float *)element.value = val;
+  return element;
+}
+
+JsonElement json_Boolean_Create(uint8_t val) {
+  JsonElement element = {
+    .type = JSON_BOOLEAN,
+    .value = (void *)(size_t)val
+  };
   return element;
 }
 

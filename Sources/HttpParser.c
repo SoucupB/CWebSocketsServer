@@ -69,6 +69,12 @@ PHttpRequest http_Request_Chomp_t(HttpString *bff) {
   return self;
 }
 
+void http_Request_Print(PHttpRequest self) {
+  HttpString str = http_Request_ToString(self);
+  string_Print(str);
+  crm_Free(str.buffer);
+}
+
 static HttpString http_Body_ProcessWithError(Hash headers, char *_endBuffer, HttpString *bff, uint8_t *valid) {
   *valid = 1;
   HttpString response = http_Body_Process(headers, _endBuffer, bff);

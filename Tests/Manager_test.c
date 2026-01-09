@@ -14,6 +14,7 @@
 #include "Json_Helper_test.h"
 
 uint16_t port = 34321;
+uint16_t httpPort = 64000;
 
 static void test_manager_create(void **state) {
   const uint16_t cPort = port--;
@@ -100,13 +101,29 @@ static void test_manager_login_helper_failed_login_invalid_key(void **state) {
 
 static void test_manager_http_server_init(void **state) {
   const uint16_t cPort = port--;
+  const uint16_t cHttpPort = httpPort--;
   char *secret = "DSjifdsgFDSFggsgsdgFDSAFDSA";
   PManager self = man_Create(cPort);
-  man_InitHTTPServer(self, 10000);
+  man_InitHTTPServer(self, cHttpPort);
   man_SetSecret(self, (HttpString) {
     .buffer = secret,
     .sz = strlen(secret)
   });
+  assert_ptr_not_equal(self->httpServer, NULL);
+  man_Delete(self);
+}
+
+static void test_manager_http_request_register_player(void **state) {
+  const uint16_t cPort = port--;
+  const uint16_t cHttpPort = httpPort--;
+  char *secret = "DSjifdsgFDSFggsgsdgFDSAFDSA";
+  PManager self = man_Create(cPort);
+  man_InitHTTPServer(self, cHttpPort);
+  man_SetSecret(self, (HttpString) {
+    .buffer = secret,
+    .sz = strlen(secret)
+  });
+  man_Helper_RegisterPlayer(self, 342455, secret);
   assert_ptr_not_equal(self->httpServer, NULL);
   man_Delete(self);
 }
@@ -119,6 +136,7 @@ int main(void) {
     cmocka_unit_test(test_manager_login_helper_failed_login_missing_user),
     cmocka_unit_test(test_manager_login_helper_failed_login_invalid_key),
     cmocka_unit_test(test_manager_http_server_init),
+    cmocka_unit_test(test_manager_http_request_register_player),
   };
   return cmocka_run_group_tests(tests, NULL, NULL);
 }
