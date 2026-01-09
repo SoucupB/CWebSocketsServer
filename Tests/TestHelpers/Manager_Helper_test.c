@@ -219,3 +219,53 @@ PHttpResponse man_Helper_RegisterPlayer(PManager self, uint64_t userID, uint8_t 
   http_Request_Delete(req);
   return resp;
 }
+
+void onReceive(PDataFragment dt, PUser user, void *mirror) {
+  PTempBuffStr tmp = mirror;
+  MessageResponse response = {
+    .user = user,
+    .str = string_DeepCopy((HttpString) {
+      .buffer = dt->data,
+      .sz = dt->size
+    })
+  };
+  tmp->callCount++;
+  arr_Push(tmp->mirror, &response);
+  if(!tmp->parent) {
+    return ;
+  }
+  void (*method)(PDataFragment, PUser, void *) = tmp->parent->method;
+  method(dt, user, mirror);
+}
+
+Array man_Helper_SendRequest(PManager self, PConnection conn, ManInput *message, size_t count) {
+  TempBuffStr tmp = {
+    .manager = self,
+    .parent = self->onReceive,
+    .mirror = arr_Init(sizeof(MessageResponse)),
+    .callCount = 0
+  };
+  PSocketMethod meth = sock_Method_Create(
+    (void *)onReceive,
+    &tmp
+  );
+  self->onReceive = meth;
+  for(size_t i = 0; i < count; i++) {
+    test_Wss_SendMessage(self->server, message[i].conn, message[i].str.buffer, message[i].str.sz);
+  }
+  while(tmp.callCount < count) {
+    man_OnFrame(self, 1);
+    usleep(1000);
+  }
+  sock_Method_Delete(meth);
+  self->onReceive = tmp.parent;
+  return tmp.mirror;
+}
+
+void man_Helper_DeleteArray(Array arr) {
+  MessageResponse *rsp = arr->buffer;
+  for(size_t i = 0, c = arr->size; i < c; i++) {
+    crm_Free(rsp[i].str.buffer);
+  }
+  arr_Delete(arr);
+}
