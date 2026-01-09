@@ -53,7 +53,7 @@ void loginMethod(PUser user, void *mirror) {
 void man_Helper_AddUser(PManager self, uint64_t userID) {
   PUser usr = crm_Alloc(sizeof(User));
   usr->active = 0;
-  usr->conn = NULL;
+  usr->conn = sock_InvalidConnection();
   usr->ID = userID;
   arr_Push(self->userData->users, &usr);
 }
@@ -238,7 +238,7 @@ void onReceive(PDataFragment dt, PUser user, void *mirror) {
   method(dt, user, mirror);
 }
 
-Array man_Helper_SendRequest(PManager self, PConnection conn, ManInput *message, size_t count) {
+Array man_Helper_SendRequest(PManager self, ManInput *message, size_t count) {
   TempBuffStr tmp = {
     .manager = self,
     .parent = self->onReceive,

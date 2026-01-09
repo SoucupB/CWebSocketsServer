@@ -31,7 +31,7 @@ uint8_t usrs_AddUser(PUserData self, uint64_t ID) {
   }
   PUser usr = crm_Alloc(sizeof(User));
   usr->active = 0;
-  usr->conn = NULL;
+  usr->conn = sock_InvalidConnection();
   usr->ID = ID;
   arr_Push(self->users, &usr);
   return 1;
@@ -56,7 +56,7 @@ size_t usrs_ConnID(PUserData self, PConnection conn, uint8_t *ok) {
   PUser *users = self->users->buffer;
   *ok = 0;
   for(size_t i = 0, c = self->users->size; i < c; i++) {
-    if(users[i]->conn && users[i]->conn->fd == conn->fd) {
+    if(!sock_IsInvalid(users[i]->conn) && users[i]->conn.fd == conn->fd) {
       *ok = 1;
       return i;
     }
@@ -72,7 +72,7 @@ PUser usrs_ByIndex(PUserData self, uint64_t index) {
   return users[index];
 }
 
-PUser usrs_Activate(PUserData self, uint64_t ID, PConnection conn) {
+PUser usrs_Activate(PUserData self, uint64_t ID, Connection conn) {
   PUser currentUser = usrs_PlyByID(self, ID);
   if(!currentUser) {
     return 0;
@@ -89,8 +89,8 @@ PUser usrs_Get(PUserData self, uint64_t ID) {
 void usrs_Deactivate(PUserData self, PConnection conn) {
   User *users = self->users->buffer;
   for(size_t i = 0, c = self->users->size; i < c; i++) {
-    if(users[i].conn->fd == conn->fd) {
-      users[i].conn = NULL;
+    if(users[i].conn.fd == conn->fd) {
+      users[i].conn = sock_InvalidConnection();
       users[i].active = 0;
       return ;
     }
@@ -98,14 +98,14 @@ void usrs_Deactivate(PUserData self, PConnection conn) {
 }
 
 void usr_Deactivate(PUser self) {
-  self->conn = NULL;
+  self->conn = sock_InvalidConnection();
   self->active = 0;
 }
 
 PUser usrs_ByConnection(PUserData self, PConnection conn) {
   PUser *users = self->users->buffer;
   for(size_t i = 0, c = self->users->size; i < c; i++) {
-    if(users[i]->conn->fd == conn->fd) {
+    if(users[i]->conn.fd == conn->fd) {
       return users[i];
     }
   }

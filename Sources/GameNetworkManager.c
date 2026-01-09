@@ -289,7 +289,7 @@ static inline PUser man_ProcessPendingMessage_t(const PManager self, const PData
     return NULL;
   }
   json_DeleteElement(currentElement);
-  PUser activatedUser = usrs_Activate(self->userData, userID, &dt->conn);
+  PUser activatedUser = usrs_Activate(self->userData, userID, dt->conn);
   (void)!man_RemoveConnection(self, dt->conn);
   man_RunOnLogin(self, activatedUser);
   return activatedUser;

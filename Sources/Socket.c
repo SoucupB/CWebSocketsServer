@@ -412,6 +412,10 @@ static inline void sock_Delete_OutputCommands(PSocketServer self) {
   arr_Delete(self->outputCommands);
 }
 
+uint8_t sock_IsInvalid(Connection conn) {
+  return conn.fd == -1;
+}
+
 void sock_Delete(PSocketServer self) {
   arr_Delete(self->inputReads);
   sock_ClearConnections(self);

@@ -5,7 +5,7 @@
 
 PUserData usrs_Create();
 size_t usrs_ConnID(PUserData self, PConnection conn, uint8_t *ok);
-PUser usrs_Activate(PUserData self, uint64_t ID, PConnection conn);
+PUser usrs_Activate(PUserData self, uint64_t ID, Connection conn);
 PUser usrs_Get(PUserData self, uint64_t ID);
 PUser usrs_ByIndex(PUserData self, uint64_t index);
 PUser usrs_ByConnection(PUserData self, PConnection conn);

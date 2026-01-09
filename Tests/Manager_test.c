@@ -16,6 +16,8 @@
 uint16_t port = 34321;
 uint16_t httpPort = 64000;
 
+#define SIZE(x) (sizeof(x) / sizeof(x[0]))
+
 static void test_manager_create(void **state) {
   const uint16_t cPort = port--;
   PManager manager = man_Create(cPort);
@@ -244,7 +246,22 @@ static void test_manager_login_helper_send_messages(void **state) {
     .sz = strlen(secret)
   });
   PConnection cnn = man_Helper_LoginHigherLevel(self, userID, secret);
+  ManInput inputs[] = {
+    (ManInput) {
+      .conn = cnn,
+      .str = (HttpString) {
+        .buffer = "some_msg_1",
+        .sz = sizeof("some_msg_1") - 1
+      }
+    }
+  };
+  Array response = man_Helper_SendRequest(self, inputs, SIZE(inputs));
+  assert_int_equal(response->size, 1);
+  MessageResponse *msg = response->buffer;
+  assert_int_equal(inputs[0].str.sz, msg[0].str.sz);
+  assert_memory_equal(msg[0].str.buffer, "some_msg_1", msg[0].str.sz);
 
+  man_Helper_DeleteArray(response);
   man_Delete(self);
   sock_Client_Free(cnn);
 }

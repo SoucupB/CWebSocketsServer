@@ -69,3 +69,11 @@ PSocketMethod sock_Method_Create(void *method, void *mirrorBuffer);
  * Releases the method that was created by `sock_Method_Create`
  */
 void sock_Method_Delete(PSocketMethod self);
+/*
+ * An invalid socket method
+ */
+Connection sock_InvalidConnection();
+/*
+ * An invalid socket checker
+ */
+uint8_t sock_IsInvalid(Connection conn);
