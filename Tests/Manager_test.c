@@ -200,6 +200,23 @@ static void test_manager_http_request_register_and_login(void **state) {
   man_Delete(self);
 }
 
+static void test_manager_http_request_failed_secret_registration(void **state) {
+  const uint16_t cPort = port--;
+  const uint16_t cHttpPort = httpPort--;
+  char *secret = "DSjifdsgFDSFggsgsdgFDSAFDSA";
+  char *fakeSecret = "DSjifdsgFDSFggsgsdgFDSAFDSA_";
+  PManager self = man_Create(cPort);
+  man_InitHTTPServer(self, cHttpPort);
+  man_SetSecret(self, (HttpString) {
+    .buffer = secret,
+    .sz = strlen(secret)
+  });
+  PHttpResponse response = man_Helper_RegisterPlayer(self, 342455, fakeSecret);
+  assert_int_equal(response->response, 401);
+  http_Response_Delete(response);
+  man_Delete(self);
+}
+
 int main(void) {
   const struct CMUnitTest tests[] = {
     cmocka_unit_test(test_manager_create),
@@ -212,6 +229,7 @@ int main(void) {
     cmocka_unit_test(test_manager_http_request_register_player_duplicate),
     cmocka_unit_test(test_manager_http_request_register_player_with_invalid_method),
     cmocka_unit_test(test_manager_http_request_register_and_login),
+    cmocka_unit_test(test_manager_http_request_failed_secret_registration),
   };
   return cmocka_run_group_tests(tests, NULL, NULL);
 }
