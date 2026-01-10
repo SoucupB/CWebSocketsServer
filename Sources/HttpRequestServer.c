@@ -107,7 +107,6 @@ static inline uint8_t httpS_Request_ProcessCurrentFragment(const PHttpRequestSer
     return 0;
   }
   uint8_t incomplete;
-  // PHttpResponse httpResponse = http_Response_Parse(response);
   PHttpResponse httpResponse = httpS_Response_Process(self, response, metadata, &incomplete);
   if(incomplete) {
     crm_Free(response.buffer);

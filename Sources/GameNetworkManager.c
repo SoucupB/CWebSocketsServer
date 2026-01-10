@@ -117,7 +117,7 @@ static inline ResponseTypes man_HTTP_AddUser(const PManager self, const PHttpReq
   if(!jwtApproved) {
     return FAILED_AUTH;
   }
-  if(!man_HTTP_OnUserRegister(self, userID) || !man_User_Register(self, userID)) {
+  if(!man_User_Register(self, userID) || !man_HTTP_OnUserRegister(self, userID)) {
     return BAD_REQUEST;
   }
   return SUCCESS;
