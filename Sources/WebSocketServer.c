@@ -349,7 +349,7 @@ int8_t wss_ReceiveMessages(PWebSocketServer self, PDataFragment dt, PSocketMetho
     .persistent = 0,
     .size = 0
   };
-  uint8_t validConnection = !wss_IsPingRequestIssued(self, &responseDt);
+  uint8_t pingIssued = wss_IsPingRequestIssued(self, &responseDt); // Needs more specs.
   for(size_t i = 0, c = messages->size; i < c; i++) {
     responseDt.data = objects[i].buffer;
     responseDt.size = objects[i].sz;
@@ -357,8 +357,7 @@ int8_t wss_ReceiveMessages(PWebSocketServer self, PDataFragment dt, PSocketMetho
       wss_CloseConnections(self, responseDt.conn);
       continue;
     }
-    if(!validConnection && objects[i].opcode == OPCODE_PONG && wss_RemovePingRequest(self, &responseDt)) {
-      validConnection = 1;
+    if(pingIssued && objects[i].opcode == OPCODE_PONG && wss_RemovePingRequest(self, &responseDt)) {
       continue;
     }
     if(!routine || (objects[i].opcode != OPCODE_BINARY && objects[i].opcode != OPCODE_TEXT_FRAME)) {
@@ -368,7 +367,7 @@ int8_t wss_ReceiveMessages(PWebSocketServer self, PDataFragment dt, PSocketMetho
     cMethod(&responseDt, routine->mirrorBuffer);
   }
   wss_CleanMessages(messages);
-  return validConnection;
+  return 1;
 }
 
 static inline void wss_ProcessReleaseMethod(PWebSocketServer self, PDataFragment dt, PSocketMethod routine) {
