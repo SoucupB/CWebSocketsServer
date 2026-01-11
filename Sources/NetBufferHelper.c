@@ -40,6 +40,10 @@ void ntb_Write_PushString(NetBufferHelperWriter self, HttpString str) {
   ntb_Write_PushBuffer(self, str.buffer, str.sz);
 }
 
+void *ntb_Write_Buffer(NetBufferHelperWriter self) {
+  return tpd_StartingBuffer(self.buff);
+}
+
 void ntb_Writer_Delete(NetBufferHelperWriter self) {
   tpd_Delete(self.buff);
 }
@@ -109,7 +113,7 @@ float ntp_Reader_FLOAT32(PNetBufferHelperReader self) {
 
 double ntp_Reader_FLOAT64(PNetBufferHelperReader self) {
   if(self->bufferSize + sizeof(double) >= self->bufferSize) {
-    return 0.0f;
+    return 0.0;
   }
   double response;
   memcpy(&response, self->currentBuffer, sizeof(double));

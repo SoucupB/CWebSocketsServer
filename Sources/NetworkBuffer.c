@@ -24,6 +24,10 @@ void tpd_Delete(PNetworkBuffer self) {
   crm_Free(self);
 }
 
+void tpd_DeleteWOBuffer(PNetworkBuffer self) {
+  crm_Free(self);
+}
+
 size_t tpd_Size(PNetworkBuffer self) {
   return self->size;
 }
