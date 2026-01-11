@@ -342,3 +342,16 @@ typedef struct Manager_t {
 } Manager;
 
 typedef Manager *PManager;
+
+typedef struct {
+  PNetworkBuffer buff;
+} NetBufferHelperWriter;
+
+typedef struct {
+  char *startingBuffer;
+  char *currentBuffer;
+  size_t bufferSize;
+  size_t readCount;
+} NetBufferHelperReader;
+
+typedef NetBufferHelperReader *PNetBufferHelperReader;
