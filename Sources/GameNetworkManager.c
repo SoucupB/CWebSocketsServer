@@ -98,6 +98,10 @@ static inline uint8_t man_HTTP_IsValidUser(const PManager self, const PJWT jwt, 
   return 1;
 }
 
+PUser man_UserByID(PManager self, uint64_t ID) {
+  return usrs_Get(self->userData, ID);
+}
+
 static inline ResponseTypes man_HTTP_AddUser(const PManager self, const PHttpRequest req) {
   if(!self->hmacKey.buffer) {
     return FAILED_AUTH;
@@ -117,7 +121,10 @@ static inline ResponseTypes man_HTTP_AddUser(const PManager self, const PHttpReq
   if(!jwtApproved) {
     return FAILED_AUTH;
   }
-  if(!man_User_Register(self, userID) || !man_HTTP_OnUserRegister(self, userID)) {
+  if(man_UserByID(self, userID)) {
+    return BAD_REQUEST;
+  }
+  if(!man_HTTP_OnUserRegister(self, userID) || !man_User_Register(self, userID)) {
     return BAD_REQUEST;
   }
   return SUCCESS;
@@ -260,7 +267,7 @@ void man_Response_SendMessage(const PManager self, PConnection conn, JsonElement
 
 void man_SendResponseMessage(const PManager self, const PDataFragment dt, int64_t code) {
   JsonElement response = json_Map_Create();
-  json_Map_String_Integer_Add(response, "statue", code);
+  json_Map_String_Integer_Add(response, "status", code);
   man_Response_SendMessage(self, &dt->conn, response);
   json_DeleteElement(response);
 }
@@ -373,8 +380,11 @@ uint8_t man_User_Register(PManager self, uint64_t userID) {
 void _man_OnRelease(Connection conn, void *mirror) {
   PManager self = mirror;
   PUser currentUser = usrs_ByConnection(self->userData, &conn);
-  usr_Deactivate(currentUser);
   (void)!man_RemoveConnection(self, conn);
+  if(!currentUser) {
+    return ;
+  }
+  usr_Deactivate(currentUser);
   man_RunOnRelease(self, currentUser);
 }
 

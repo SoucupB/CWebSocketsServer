@@ -21,13 +21,13 @@ void onReceiveData(PDataFragment dt, PUser user, void *mirror) {
 
 int main()
 {
-  PManager manager = man_Create(8080);
+  PManager manager = man_Create(8081);
   man_SetSecret(manager, (HttpString) {
     .buffer = "IDHhudhgiusghUGYIYFFdsaf33312244444444444444223214141",
-    .sz = sizeof("IDHhudhgiusghUGYIYFFdsaf33312244444444444444223214141")
+    .sz = sizeof("IDHhudhgiusghUGYIYFFdsaf33312244444444444444223214141") - 1
   });
   man_User_Register(manager, 32455);
-  man_InitHTTPServer(manager, 8081);
+  man_InitHTTPServer(manager, 8082);
   printf("Server initialized!\n");
   PSocketMethod onLoginMethod = sock_Method_Create(
     (void *)onLogin,

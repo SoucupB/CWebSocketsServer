@@ -1,6 +1,7 @@
 #pragma once
 #include <stdint.h>
 #include <stddef.h>
+#include <stdlib.h>
 
 #define PVOID void*
 #define crm_Alloc malloc
@@ -314,7 +315,7 @@ typedef NetworkBuffer *PNetworkBuffer;
 
 typedef struct User_t {
   uint64_t ID;
-  PConnection conn;
+  Connection conn;
   uint8_t active;
 } User;
 
