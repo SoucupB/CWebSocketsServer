@@ -306,7 +306,7 @@ static inline PUser man_ProcessPendingMessage_t(const PManager self, const PData
     return NULL;
   }
   json_DeleteElement(currentElement);
-  man_DeactivatePreviousConnection(self, userID); // needs specs
+  man_DeactivatePreviousConnection(self, userID); // needs tests
   PUser activatedUser = usrs_Activate(self->userData, userID, dt->conn);
   (void)!man_RemoveConnection(self, dt->conn);
   man_RunOnLogin(self, activatedUser);

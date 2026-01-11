@@ -349,7 +349,7 @@ int8_t wss_ReceiveMessages(PWebSocketServer self, PDataFragment dt, PSocketMetho
     .persistent = 0,
     .size = 0
   };
-  uint8_t pingIssued = wss_IsPingRequestIssued(self, &responseDt); // Needs more specs.
+  uint8_t pingIssued = wss_IsPingRequestIssued(self, &responseDt); // Needs more tests.
   for(size_t i = 0, c = messages->size; i < c; i++) {
     responseDt.data = objects[i].buffer;
     responseDt.size = objects[i].sz;
