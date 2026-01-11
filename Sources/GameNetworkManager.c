@@ -98,10 +98,6 @@ static inline uint8_t man_HTTP_IsValidUser(const PManager self, const PJWT jwt, 
   return 1;
 }
 
-PUser man_UserByID(PManager self, uint64_t ID) {
-  return usrs_Get(self->userData, ID);
-}
-
 static inline ResponseTypes man_HTTP_AddUser(const PManager self, const PHttpRequest req) {
   if(!self->hmacKey.buffer) {
     return FAILED_AUTH;
@@ -121,7 +117,7 @@ static inline ResponseTypes man_HTTP_AddUser(const PManager self, const PHttpReq
   if(!jwtApproved) {
     return FAILED_AUTH;
   }
-  if(man_UserByID(self, userID)) {
+  if(man_User_Get(self, userID)) { // Needs testing
     return BAD_REQUEST;
   }
   if(!man_HTTP_OnUserRegister(self, userID) || !man_User_Register(self, userID)) {
@@ -272,6 +268,20 @@ void man_SendResponseMessage(const PManager self, const PDataFragment dt, int64_
   json_DeleteElement(response);
 }
 
+void man_PushClosingConn(PManager self, Connection conn) {
+  if(sock_IsInvalid(conn)) {
+    return ;
+  }
+  sock_PushCloseConnections(self->server->socketServer, &conn);
+}
+
+static inline void man_DeactivatePreviousConnection(const PManager self, const uint64_t userID) {
+  PUser currentUser = man_User_Get(self, userID);
+  if(currentUser && currentUser->active) {
+    man_PushClosingConn(self, currentUser->conn);
+  }
+}
+
 static inline PUser man_ProcessPendingMessage_t(const PManager self, const PDataFragment dt) {
   char *endBuffer;
   JsonElement currentElement = json_Parse((HttpString) {
@@ -296,6 +306,7 @@ static inline PUser man_ProcessPendingMessage_t(const PManager self, const PData
     return NULL;
   }
   json_DeleteElement(currentElement);
+  man_DeactivatePreviousConnection(self, userID); // needs specs
   PUser activatedUser = usrs_Activate(self->userData, userID, dt->conn);
   (void)!man_RemoveConnection(self, dt->conn);
   man_RunOnLogin(self, activatedUser);
