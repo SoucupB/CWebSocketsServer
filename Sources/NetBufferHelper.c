@@ -35,6 +35,10 @@ void ntb_Write_PushINT64(NetBufferHelperWriter self, int64_t number) {
   tpd_Push(self.buff, &number, sizeof(int64_t));
 }
 
+size_t ntb_Write_Size(NetBufferHelperWriter self) {
+  return tpd_Size(self.buff);
+}
+
 void ntb_Write_PushString(NetBufferHelperWriter self, HttpString str) {
   ntb_Write_PushINT64(self, str.sz);
   ntb_Write_PushBuffer(self, str.buffer, str.sz);
@@ -57,8 +61,8 @@ NetBufferHelperReader ntb_Reader_Create(char *buffer, size_t size) {
   return self;
 }
 
-int64_t ntp_Reader_INT64(PNetBufferHelperReader self) {
-  if(self->bufferSize + sizeof(int64_t) >= self->bufferSize) {
+int64_t ntb_Reader_INT64(PNetBufferHelperReader self) {
+  if(self->readCount + sizeof(int64_t) > self->bufferSize) {
     return 0;
   }
   int64_t response;
@@ -68,8 +72,8 @@ int64_t ntp_Reader_INT64(PNetBufferHelperReader self) {
   return response;
 }
 
-int32_t ntp_Reader_INT32(PNetBufferHelperReader self) {
-  if(self->bufferSize + sizeof(int32_t) >= self->bufferSize) {
+int32_t ntb_Reader_INT32(PNetBufferHelperReader self) {
+  if(self->readCount + sizeof(int32_t) > self->bufferSize) {
     return 0;
   }
   int32_t response;
@@ -79,8 +83,8 @@ int32_t ntp_Reader_INT32(PNetBufferHelperReader self) {
   return response;
 }
 
-int16_t ntp_Reader_INT16(PNetBufferHelperReader self) {
-  if(self->bufferSize + sizeof(int16_t) >= self->bufferSize) {
+int16_t ntb_Reader_INT16(PNetBufferHelperReader self) {
+  if(self->readCount + sizeof(int16_t) > self->bufferSize) {
     return 0;
   }
   int16_t response;
@@ -90,8 +94,8 @@ int16_t ntp_Reader_INT16(PNetBufferHelperReader self) {
   return response;
 }
 
-int8_t ntp_Reader_INT8(PNetBufferHelperReader self) {
-  if(self->bufferSize + sizeof(int8_t) >= self->bufferSize) {
+int8_t ntb_Reader_INT8(PNetBufferHelperReader self) {
+  if(self->readCount + sizeof(int8_t) > self->bufferSize) {
     return 0;
   }
   int8_t response = *(int8_t *)self->currentBuffer;
@@ -100,8 +104,8 @@ int8_t ntp_Reader_INT8(PNetBufferHelperReader self) {
   return response;
 }
 
-float ntp_Reader_FLOAT32(PNetBufferHelperReader self) {
-  if(self->bufferSize + sizeof(float) >= self->bufferSize) {
+float ntb_Reader_FLOAT32(PNetBufferHelperReader self) {
+  if(self->readCount + sizeof(float) > self->bufferSize) {
     return 0.0f;
   }
   float response;
@@ -111,8 +115,8 @@ float ntp_Reader_FLOAT32(PNetBufferHelperReader self) {
   return response;
 }
 
-double ntp_Reader_FLOAT64(PNetBufferHelperReader self) {
-  if(self->bufferSize + sizeof(double) >= self->bufferSize) {
+double ntb_Reader_FLOAT64(PNetBufferHelperReader self) {
+  if(self->readCount + sizeof(double) > self->bufferSize) {
     return 0.0;
   }
   double response;
@@ -122,13 +126,13 @@ double ntp_Reader_FLOAT64(PNetBufferHelperReader self) {
   return response;
 }
 
-HttpString ntp_Reader_String(PNetBufferHelperReader self) {
+HttpString ntb_Reader_String(PNetBufferHelperReader self) {
   HttpString response = {
     .buffer = NULL,
     .sz = 0
   };
-  size_t strSize = ntp_Reader_INT64(self);
-  if(strSize + self->readCount >= self->bufferSize) {
+  size_t strSize = ntb_Reader_INT64(self);
+  if(strSize + self->readCount > self->bufferSize) {
     return response;
   }
   char *startingBuffer = self->currentBuffer;
@@ -138,7 +142,7 @@ HttpString ntp_Reader_String(PNetBufferHelperReader self) {
   return response;
 }
 
-uint8_t ntp_Reader_IsComplete(PNetBufferHelperReader self) {
+uint8_t ntb_Reader_IsComplete(PNetBufferHelperReader self) {
   return self->currentBuffer == self->startingBuffer + self->bufferSize;
 }
 
