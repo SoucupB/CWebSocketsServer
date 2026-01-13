@@ -1,4 +1,4 @@
-class NetworkBuffer {
+export default class NetworkBuffer {
   constructor() {
     
   }
