@@ -52,11 +52,29 @@ static void test_buffer_float_data(void **state) {
   ntb_Writer_Delete(dw);
 }
 
+static void test_buffer_string(void **state) {
+  NetBufferHelperWriter dw = ntb_Writer_Create(1024 * 1024);
+  char *someBuffer = "some data that is a string but not that kind of string";
+  size_t someBufferSize = strlen(someBuffer);
+  ntb_Write_PushString(dw, (HttpString) {
+    .buffer = someBuffer,
+    .sz = someBufferSize
+  });
+  char *currentBuffer = ntb_Write_Buffer(dw);
+  NetBufferHelperReader dr = ntb_Reader_Create(currentBuffer, ntb_Write_Size(dw));
+  HttpString response = ntb_Reader_String(&dr);
+  assert_int_equal(someBufferSize, response.sz);
+  assert_memory_equal(response.buffer, someBuffer, response.sz);
+  assert_true(ntb_Reader_IsComplete(&dr));
+  ntb_Writer_Delete(dw);
+}
+
 int main(void) {
   const struct CMUnitTest tests[] = {
     cmocka_unit_test(test_buffer_push_data),
     cmocka_unit_test(test_buffer_invalid_data),
     cmocka_unit_test(test_buffer_float_data),
+    cmocka_unit_test(test_buffer_string),
   };
   return cmocka_run_group_tests(tests, NULL, NULL);
 }

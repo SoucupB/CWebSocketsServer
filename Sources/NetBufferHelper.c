@@ -137,6 +137,7 @@ HttpString ntb_Reader_String(PNetBufferHelperReader self) {
   }
   char *startingBuffer = self->currentBuffer;
   self->readCount += strSize;
+  self->currentBuffer += strSize;
   response.sz = strSize;
   response.buffer = startingBuffer;
   return response;
