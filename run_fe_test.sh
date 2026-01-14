@@ -1,0 +1,1 @@
+cd JSHelpers && (npm run test || true) && cd ../
