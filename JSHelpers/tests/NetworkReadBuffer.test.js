@@ -35,3 +35,15 @@ test('big endian 32 bits integer', () => {
   let bff = new NetworkReadBuffer(bytes, false);
   expect(bff.integer_32_bits()).toBe(16909060);
 });
+
+test('little endian 32 bits float', () => {
+  const bytes = new Uint8Array([20, 174, 135, 64, 6, 0, 0]);
+  let bff = new NetworkReadBuffer(bytes);
+  expect(bff.float_32_bits()).toBeCloseTo(4.24, 5);
+});
+
+test('big endian 32 bits float', () => {
+  const bytes = new Uint8Array([64, 135, 174, 20, 6, 0, 0]);
+  let bff = new NetworkReadBuffer(bytes, false);
+  expect(bff.float_32_bits()).toBeCloseTo(4.24, 5);
+});
