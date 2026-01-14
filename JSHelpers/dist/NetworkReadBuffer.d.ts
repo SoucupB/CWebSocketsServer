@@ -1,10 +1,11 @@
-export declare class NetworkReadBuffer {
+export default class NetworkReadBuffer {
     input: Uint8Array<ArrayBufferLike>;
     littleEndian: boolean;
     currentCount: number;
     view: DataView;
     constructor(input: Uint8Array, littleEndian?: boolean);
     reset(): void;
+    valid(): boolean;
     integer_8_bits(): number;
     integer_16_bits(): number;
     integer_32_bits(): number;

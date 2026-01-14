@@ -1,4 +1,4 @@
-export class NetworkReadBuffer {
+export default class NetworkReadBuffer {
     constructor(input, littleEndian = true) {
         this.input = input;
         this.littleEndian = littleEndian;
@@ -7,6 +7,9 @@ export class NetworkReadBuffer {
     }
     reset() {
         this.currentCount = 0;
+    }
+    valid() {
+        return this.currentCount == this.input.length;
     }
     integer_8_bits() {
         if (this.currentCount + 1 > this.input.length) {
@@ -62,6 +65,6 @@ export class NetworkReadBuffer {
         if (this.littleEndian) {
             return this._integer_64_bits_little_endian(first, second);
         }
-        return this._integer_64_bits_big_endian(first, second);
+        return this._integer_64_bits_little_endian(first, second);
     }
 }

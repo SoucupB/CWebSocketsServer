@@ -1,4 +1,4 @@
-export class NetworkReadBuffer {
+export default class NetworkReadBuffer {
   input: Uint8Array<ArrayBufferLike>;
   littleEndian: boolean;
   currentCount: number;
@@ -13,6 +13,10 @@ export class NetworkReadBuffer {
 
   reset(): void {
     this.currentCount = 0;
+  }
+
+  valid(): boolean {
+    return this.currentCount == this.input.length;
   }
 
   integer_8_bits(): number {
@@ -76,6 +80,6 @@ export class NetworkReadBuffer {
     if(this.littleEndian) {
       return this._integer_64_bits_little_endian(first, second);
     }
-    return this._integer_64_bits_big_endian(first, second);
+    return this._integer_64_bits_little_endian(first, second);
   }
 }
