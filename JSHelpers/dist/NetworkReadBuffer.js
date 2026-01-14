@@ -51,20 +51,20 @@ export default class NetworkReadBuffer {
         return value;
     }
     _integer_64_bits_little_endian(first, second) {
-        return first | (second ** 32);
+        return first + (second * 2 ** 32);
     }
     _integer_64_bits_big_endian(first, second) {
-        return second | (first ** 32);
+        return second + (first * 2 ** 32);
     }
     integer_64_bits() {
         if (this.currentCount + 4 > this.input.length) {
             return 0;
         }
-        const first = this.view.getInt32(this.currentCount, this.littleEndian);
-        const second = this.view.getInt32(this.currentCount, this.littleEndian);
+        const first = this.integer_32_bits();
+        const second = this.integer_32_bits();
         if (this.littleEndian) {
             return this._integer_64_bits_little_endian(first, second);
         }
-        return this._integer_64_bits_little_endian(first, second);
+        return this._integer_64_bits_big_endian(first, second);
     }
 }
