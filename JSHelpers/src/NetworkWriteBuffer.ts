@@ -79,6 +79,15 @@ export default class NetworkWriteBuffer {
     this.byteViewSize += offset;
   }
 
+  string(value: string): void {
+    const encoder = new TextEncoder();
+    const stringBuffer = encoder.encode(value);
+    this.integer_64_bits(stringBuffer.length);
+    for(let i = 0, c = stringBuffer.length; i < c; i++) {
+      this.integer_8_bits(stringBuffer[i])
+    }
+  }
+
   uintArray() {
     return this.buffer.slice(0, this.size);
   }

@@ -95,3 +95,26 @@ test('big endian 64 bits float', () => {
   bff.float_64_bits(324.0352);
   memTest(expected, bff.uintArray());
 });
+
+test('little endian string', () => {
+  let bff = new NetworkWriteBuffer();
+  let expected = [2, 0, 0, 0, 0, 0, 0, 0, 97, 98];
+  bff.string("ab");
+  memTest(expected, bff.uintArray());
+});
+
+test('big endian string', () => {
+  let bff = new NetworkWriteBuffer(false);
+  let expected = [0, 0, 0, 0, 0, 0, 0, 2, 97, 98];
+  bff.string("ab");
+  memTest(expected, bff.uintArray());
+});
+
+test('little endian special chars string', () => {
+  let bff = new NetworkWriteBuffer();
+  let expected = [6, 0, 0, 0, 0, 0, 0, 0, 97, 98, 240, 159, 140, 141];
+  bff.string("ab🌍");
+  memTest(expected, bff.uintArray());
+});
+
+

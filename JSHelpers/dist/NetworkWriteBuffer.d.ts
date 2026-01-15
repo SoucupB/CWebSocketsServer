@@ -15,5 +15,6 @@ export default class NetworkWriteBuffer {
     integer_64_bits(value: number): void;
     float_32_bits(value: number): void;
     float_64_bits(value: number): void;
+    string(value: string): void;
     uintArray(): Uint8Array<ArrayBuffer>;
 }
