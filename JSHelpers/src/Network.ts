@@ -1,11 +1,20 @@
-export class Network {
-  constructor(url) {
+export default class Network {
+  url: string;
+  jwt: string | null;
+  onReceive: any;
+  onDisconnect: any;
+  opened: boolean;
+  loggedIN: boolean;
+  ws: WebSocket | null;
+
+  constructor(url: string) {
     this.url = url;
     this.jwt = null;
     this.onReceive = null;
     this.onDisconnect = null;
     this.opened = false;
     this.loggedIN = false;
+    this.ws = null;
   }
 
   connect() {
@@ -13,7 +22,7 @@ export class Network {
     this.setMethods();
   }
 
-  _ftypeOf(value) {
+  _ftypeOf(value: any) {
     if (typeof value === "string") { 
       return "string";
     }
@@ -26,19 +35,19 @@ export class Network {
     return "other";
   }
 
-  _getBytes_String(payload) {
+  _getBytes_String(payload: any) {
     return new TextEncoder().encode(payload);
   }
 
-  _getBytes_Array(payload) {
+  _getBytes_Array(payload: any) {
     return new Uint8Array(payload)
   }
 
-  _getBytes_Object(payload) {
+  _getBytes_Object(payload: any) {
     return this._getBytes_String(JSON.stringify(payload))
   }
 
-  _getBytes(payload) {
+  _getBytes(payload: any) {
     const type = this._ftypeOf(payload);
     switch(type) {
       case "string": {
@@ -54,15 +63,17 @@ export class Network {
     return null;
   }
 
-  send(data) {
+  send(data: any) {
     const bytes = this._getBytes(data)
     if(!bytes) {
       return ;
     }
-    this.ws.send(bytes)
+    if(this.ws) {
+      this.ws.send(bytes);
+    }
   }
 
-  extractData(response) {
+  extractData(response: any) {
     const decoder = new TextDecoder("utf-8");
     const code = JSON.parse(decoder.decode(response))
     return code['status'] === 200
@@ -70,6 +81,9 @@ export class Network {
 
   setMethods() {
     let parent = this;
+    if(!this.ws) {
+      return ;
+    }
     this.ws.binaryType = "arraybuffer";
     this.ws.onopen = () => {
       parent.opened = true;
@@ -77,17 +91,17 @@ export class Network {
     };
 
     this.ws.onmessage = (event) => {
-      if(!this.loggedIN && this.extractData(event.data)) {
-        this.loggedIN = true;
+      if(!parent.loggedIN && parent.extractData(event.data)) {
+        parent.loggedIN = true;
         return ;
       }
-      if(!this.loggedIN) {
-        this.ws.close();
+      if(parent.ws && !parent.loggedIN) {
+        parent.ws.close();
       }
-      if(!this.onReceive) {
+      if(!parent.onReceive) {
         return ;
       }
-      this.onReceive(event.data);
+      parent.onReceive(event.data);
     };
 
     this.ws.onerror = (err) => {
@@ -96,19 +110,19 @@ export class Network {
 
     this.ws.onclose = (event) => {
       console.log("Disconnected!")
-      if(!this.onDisconnect) {
+      if(!parent.onDisconnect) {
         return ;
       }
-      this.onDisconnect(event.code, event.reason);
+      parent.onDisconnect(event.code, event.reason);
     };
   }
 
-  addJWTAuth(jwt) {
+  addJWTAuth(jwt: string) {
     this.jwt = jwt;
   }
 
   login() {
-    if(!this.jwt || !this.opened) {
+    if(!this.jwt || !this.opened || !this.ws) {
       return ;
     }
     const encoder = new TextEncoder(); 
