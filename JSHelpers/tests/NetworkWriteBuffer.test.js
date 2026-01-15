@@ -117,4 +117,40 @@ test('little endian special chars string', () => {
   memTest(expected, bff.uintArray());
 });
 
+test('little endian big array size', () => {
+  let bff = new NetworkWriteBuffer();
+  let count = 70211;
+  bff.integer_32_bits(count);
+  for(let i = 0; i < count; i++) {
+    bff.integer_32_bits(i * 3);
+  }
+  bff.string("The string code is finised!!!!");
+  let bfr = new NetworkReadBuffer(bff.uintArray());
+  let readCount = bfr.integer_32_bits();
+  expect(readCount).toBe(count);
+  for(let i = 0; i < readCount; i++) {
+    expect(bfr.integer_32_bits()).toBe(i * 3);
+  }
+  expect(bfr.string()).toEqual("The string code is finised!!!!");
+  expect(bfr.valid()).toBe(true);
+});
+
+test('little endian big array size', () => {
+  let bff = new NetworkWriteBuffer(false);
+  let count = 27211;
+  bff.integer_32_bits(count);
+  for(let i = 0; i < count; i++) {
+    bff.integer_32_bits(i * 3);
+  }
+  bff.string("The string code is finised!!!!");
+  let bfr = new NetworkReadBuffer(bff.uintArray(), false);
+  let readCount = bfr.integer_32_bits();
+  expect(readCount).toBe(count);
+  for(let i = 0; i < readCount; i++) {
+    expect(bfr.integer_32_bits()).toBe(i * 3);
+  }
+  expect(bfr.string()).toEqual("The string code is finised!!!!");
+  expect(bfr.valid()).toBe(true);
+});
+
 
