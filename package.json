@@ -1,0 +1,5 @@
+{
+  "devDependencies": {
+    "undici-types": "^7.18.2"
+  }
+}

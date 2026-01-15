@@ -3,7 +3,11 @@
   "compilerOptions": {
     "lib": ["DOM", "ES2020"],
     "outDir": "dist",
-    "types": []
+    "types": [],
+    "baseUrl": ".",
+    "paths": {
+      "undici-types": ["node_modules/undici/types/index.d.ts"]
+    }
   },
   "include": ["src/**/*.ts"],
   "exclude": ["**/*.test.ts", "**/*.spec.ts"]
