@@ -72,10 +72,9 @@ export default class NetworkReadBuffer {
         if (strSize + this.currentCount > this.input.length) {
             return "";
         }
-        let response = '';
-        for (let i = 0; i < strSize; i++) {
-            response += String.fromCharCode(this.input[this.currentCount++]);
-        }
-        return response;
+        const decoder = new TextDecoder("utf-8");
+        const stringResponse = decoder.decode(this.input.subarray(this.currentCount, this.currentCount + strSize));
+        this.currentCount += strSize;
+        return stringResponse;
     }
 }
