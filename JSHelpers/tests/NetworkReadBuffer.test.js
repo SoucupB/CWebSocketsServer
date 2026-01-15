@@ -47,3 +47,24 @@ test('big endian 32 bits float', () => {
   let bff = new NetworkReadBuffer(bytes, false);
   expect(bff.float_32_bits()).toBeCloseTo(4.24, 5);
 });
+
+test('little endian string', () => {
+  const bytes = new Uint8Array([2, 0, 0, 0, 0, 0, 0, 0, 97, 98]);
+  let bff = new NetworkReadBuffer(bytes);
+  expect(bff.string()).toBe('ab');
+  expect(bff.valid()).toBe(true);
+});
+
+test('big endian string', () => {
+  const bytes = new Uint8Array([0, 0, 0, 0, 0, 0, 0, 2, 97, 98]);
+  let bff = new NetworkReadBuffer(bytes, false);
+  expect(bff.string()).toBe('ab');
+  expect(bff.valid()).toBe(true);
+});
+
+test('invalid string', () => {
+  const bytes = new Uint8Array([4, 0, 0, 0, 0, 0, 0, 0, 97, 98]);
+  let bff = new NetworkReadBuffer(bytes);
+  expect(bff.string()).toBe('');
+  expect(bff.valid()).toBe(false);
+});

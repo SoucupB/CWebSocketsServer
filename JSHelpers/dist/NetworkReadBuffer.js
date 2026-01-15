@@ -67,4 +67,15 @@ export default class NetworkReadBuffer {
         }
         return this._integer_64_bits_big_endian(first, second);
     }
+    string() {
+        const strSize = this.integer_64_bits();
+        if (strSize + this.currentCount > this.input.length) {
+            return "";
+        }
+        let response = '';
+        for (let i = 0; i < strSize; i++) {
+            response += String.fromCharCode(this.input[this.currentCount++]);
+        }
+        return response;
+    }
 }

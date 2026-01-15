@@ -14,4 +14,5 @@ export default class NetworkReadBuffer {
     _integer_64_bits_little_endian(first: number, second: number): number;
     _integer_64_bits_big_endian(first: number, second: number): number;
     integer_64_bits(): number;
+    string(): string;
 }
