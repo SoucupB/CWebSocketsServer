@@ -67,3 +67,31 @@ test('big endian 64 bits integer with bigger number', () => {
   bff.integer_64_bits(3342824254425);
   memTest(expected, bff.uintArray());
 });
+
+test('little endian 32 bits float', () => {
+  let bff = new NetworkWriteBuffer();
+  let expected = [129, 4, 162, 67];
+  bff.float_32_bits(324.0352);
+  memTest(expected, bff.uintArray());
+});
+
+test('little endian 64 bits float', () => {
+  let bff = new NetworkWriteBuffer();
+  let expected = [27, 13, 224, 45, 144, 64, 116, 64];
+  bff.float_64_bits(324.0352);
+  memTest(expected, bff.uintArray());
+});
+
+test('big endian 32 bits float', () => {
+  let bff = new NetworkWriteBuffer(false);
+  let expected = [67, 162, 4, 129];
+  bff.float_32_bits(324.0352);
+  memTest(expected, bff.uintArray());
+});
+
+test('big endian 64 bits float', () => {
+  let bff = new NetworkWriteBuffer(false);
+  let expected = [64, 116, 64, 144, 45, 224, 13, 27];
+  bff.float_64_bits(324.0352);
+  memTest(expected, bff.uintArray());
+});
