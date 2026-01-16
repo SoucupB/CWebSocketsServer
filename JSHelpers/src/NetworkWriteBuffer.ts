@@ -92,3 +92,5 @@ export default class NetworkWriteBuffer {
     return this.buffer.slice(0, this.size);
   }
 }
+
+(globalThis as any).NetworkWriteBuffer = NetworkWriteBuffer;

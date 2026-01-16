@@ -132,3 +132,5 @@ export default class Network {
     this.ws.send(bytes)
   }
 }
+
+(globalThis as any).Network = Network;

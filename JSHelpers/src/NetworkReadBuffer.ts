@@ -94,3 +94,5 @@ export default class NetworkReadBuffer {
     return stringResponse;
   }
 }
+
+(globalThis as any).NetworkReadBuffer = NetworkReadBuffer;
