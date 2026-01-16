@@ -16,6 +16,7 @@ void ntb_Write_PushINT64(NetBufferHelperWriter self, int64_t number);
 void ntb_Write_PushString(NetBufferHelperWriter self, HttpString str);
 void *ntb_Write_Buffer(NetBufferHelperWriter self);
 size_t ntb_Write_Size(NetBufferHelperWriter self);
+void ntb_Write_DeleteWOBuffer(NetBufferHelperWriter self);
 
 NetBufferHelperReader ntb_Reader_Create(char *buffer, size_t size);
 int64_t ntb_Reader_INT64(PNetBufferHelperReader self);

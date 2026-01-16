@@ -52,6 +52,10 @@ void ntb_Writer_Delete(NetBufferHelperWriter self) {
   tpd_Delete(self.buff);
 }
 
+void ntb_Write_DeleteWOBuffer(NetBufferHelperWriter self) {
+  tpd_DeleteWOBuffer(self.buff);
+}
+
 NetBufferHelperReader ntb_Reader_Create(char *buffer, size_t size) {
   NetBufferHelperReader self;
   self.bufferSize = size;

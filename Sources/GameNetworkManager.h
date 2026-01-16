@@ -20,3 +20,4 @@ uint8_t man_User_Register(PManager self, uint64_t userID);
 void man_InitHTTPServer(PManager self, uint16_t port);
 Array man_Users(PManager self);
 void man_ActivatePingPongRequests(PManager self, uint64_t timeout);
+void man_PushClosingConn(PManager self, Connection conn);
